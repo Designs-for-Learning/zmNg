@@ -115,7 +115,7 @@ export default function Montage() {
     return newLayouts;
   }, [gridCols]);
 
-  // Load layout from storage or initialize
+  // Load layout from storage or initialize (only on mount or when monitors change)
   useEffect(() => {
     if (monitors.length === 0) return;
 
@@ -136,8 +136,8 @@ export default function Montage() {
         if (missingIds.length > 0) {
           console.log('[Montage] Found new monitors, adding to layout:', missingIds.map(m => m.Monitor.Name));
 
-          // Generate layout for JUST the new items
-          const defaultForNew = generateDefaultLayout(missingIds);
+          // Generate layout for JUST the new items using current gridCols
+          const defaultForNew = generateDefaultLayout(missingIds, gridCols);
 
           // Append new items to the bottom of existing layouts
           const mergedLayouts: Layouts = { ...savedLayouts };
@@ -163,15 +163,16 @@ export default function Montage() {
       } else {
         // No saved layout, generate default
         console.log('[Montage] No saved layout, generating default');
-        setLayouts(generateDefaultLayout(monitors));
+        setLayouts(generateDefaultLayout(monitors, gridCols));
       }
     } catch (e) {
       console.error('[Montage] Error loading layout:', e);
-      setLayouts(generateDefaultLayout(monitors));
+      setLayouts(generateDefaultLayout(monitors, gridCols));
     }
 
     setIsLayoutLoaded(true);
-  }, [monitors, generateDefaultLayout]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [monitors]);
 
   // Save layout changes
   const handleLayoutChange = useCallback((_currentLayout: Layout[], allLayouts: Layouts) => {
