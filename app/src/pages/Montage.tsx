@@ -11,7 +11,24 @@ import type { Monitor, MonitorStatus, Profile } from '../api/types';
 import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
-import { RefreshCw, Video, Clock, Settings2, Maximize2, AlertCircle, LayoutDashboard, RotateCcw, Download } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from '../components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../components/ui/dialog';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { RefreshCw, Video, Clock, Settings2, Maximize2, AlertCircle, LayoutDashboard, RotateCcw, Download, Grid2x2, Grid3x3, GripVertical } from 'lucide-react';
 import { filterEnabledMonitors } from '../lib/filters';
 import { cn } from '../lib/utils';
 import { ZM_CONSTANTS } from '../lib/constants';
@@ -46,6 +63,13 @@ export default function Montage() {
   const [layouts, setLayouts] = useState<Layouts>({});
   const [isLayoutLoaded, setIsLayoutLoaded] = useState(false);
 
+  // Grid layout configuration state
+  const [gridRows, setGridRows] = useState<number>(4); // Default 4x4
+  const [gridCols, setGridCols] = useState<number>(4);
+  const [isCustomGridDialogOpen, setIsCustomGridDialogOpen] = useState(false);
+  const [customRows, setCustomRows] = useState<string>('4');
+  const [customCols, setCustomCols] = useState<string>('4');
+
 
 
   useEffect(() => {
@@ -60,8 +84,8 @@ export default function Montage() {
   );
 
   // Generate default layout for a list of monitors
-  const generateDefaultLayout = useCallback((monitorList: typeof monitors) => {
-    const itemsPerRow = { lg: 4, md: 3, sm: 2, xs: 2, xxs: 1 };
+  const generateDefaultLayout = useCallback((monitorList: typeof monitors, cols = gridCols) => {
+    const itemsPerRow = { lg: cols, md: Math.max(2, cols - 1), sm: 2, xs: 2, xxs: 1 };
     const newLayouts: Layouts = {};
 
     Object.keys(COLS).forEach((breakpoint) => {
@@ -80,7 +104,7 @@ export default function Montage() {
     });
 
     return newLayouts;
-  }, []);
+  }, [gridCols]);
 
   // Load layout from storage or initialize
   useEffect(() => {
@@ -157,6 +181,28 @@ export default function Montage() {
     }
   };
 
+  const handleApplyGridLayout = (rows: number, cols: number) => {
+    setGridRows(rows);
+    setGridCols(cols);
+    const newLayout = generateDefaultLayout(monitors, cols);
+    setLayouts(newLayout);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(newLayout));
+    toast.success(`Applied ${rows}x${cols} grid layout`);
+  };
+
+  const handleCustomGridSubmit = () => {
+    const rows = parseInt(customRows, 10);
+    const cols = parseInt(customCols, 10);
+
+    if (isNaN(rows) || isNaN(cols) || rows < 1 || cols < 1 || rows > 10 || cols > 10) {
+      toast.error('Please enter valid numbers between 1 and 10');
+      return;
+    }
+
+    handleApplyGridLayout(rows, cols);
+    setIsCustomGridDialogOpen(false);
+  };
+
   if (isLoading && !isLayoutLoaded) {
     return (
       <div className="p-8 space-y-6">
@@ -218,6 +264,33 @@ export default function Montage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" title="Grid Layout">
+                <LayoutDashboard className="h-4 w-4 mr-2" />
+                {gridRows}x{gridCols} Grid
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => handleApplyGridLayout(2, 2)}>
+                <Grid2x2 className="h-4 w-4 mr-2" />
+                2x2 Grid
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleApplyGridLayout(3, 3)}>
+                <Grid3x3 className="h-4 w-4 mr-2" />
+                3x3 Grid
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleApplyGridLayout(4, 4)}>
+                <LayoutDashboard className="h-4 w-4 mr-2" />
+                4x4 Grid
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setIsCustomGridDialogOpen(true)}>
+                <GripVertical className="h-4 w-4 mr-2" />
+                Custom Size...
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button onClick={handleResetLayout} variant="ghost" size="sm" title="Reset Layout">
             <RotateCcw className="h-4 w-4 mr-2" />
             Reset Layout
@@ -260,6 +333,60 @@ export default function Montage() {
           </ResponsiveGridLayout>
         )}
       </div>
+
+      {/* Custom Grid Dialog */}
+      <Dialog open={isCustomGridDialogOpen} onOpenChange={setIsCustomGridDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Custom Grid Size</DialogTitle>
+            <DialogDescription>
+              Enter the number of rows and columns for your custom grid layout (1-10).
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="custom-rows">Rows</Label>
+                <Input
+                  id="custom-rows"
+                  type="number"
+                  min="1"
+                  max="10"
+                  value={customRows}
+                  onChange={(e) => setCustomRows(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleCustomGridSubmit();
+                    }
+                  }}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="custom-cols">Columns</Label>
+                <Input
+                  id="custom-cols"
+                  type="number"
+                  min="1"
+                  max="10"
+                  value={customCols}
+                  onChange={(e) => setCustomCols(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleCustomGridSubmit();
+                    }
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCustomGridDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleCustomGridSubmit}>Apply</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

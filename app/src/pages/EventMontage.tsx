@@ -24,7 +24,22 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '../components/ui/collapsible';
-import { RefreshCw, Video, AlertCircle, Filter, ChevronDown, X, Calendar, LayoutGrid, Image } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from '../components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../components/ui/dialog';
+import { RefreshCw, Video, AlertCircle, Filter, ChevronDown, X, Calendar, LayoutGrid, Image, Grid2x2, Grid3x3, GripVertical } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { format } from 'date-fns';
 import { filterEnabledMonitors } from '../lib/filters';
@@ -44,6 +59,11 @@ export default function EventMontage() {
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
   const [isFilterOpen, setIsFilterOpen] = useState(true);
+
+  // Grid layout configuration state
+  const [gridCols, setGridCols] = useState<number>(5); // Default 5 columns (xl:grid-cols-5)
+  const [isCustomGridDialogOpen, setIsCustomGridDialogOpen] = useState(false);
+  const [customCols, setCustomCols] = useState<string>('5');
 
   // Fetch monitors for filter
   const { data: monitorsData } = useQuery({
@@ -131,6 +151,41 @@ export default function EventMontage() {
 
   const hasActiveFilters = selectedMonitorIds.length > 0 || selectedCause !== 'all' || startDate || endDate;
 
+  const handleApplyGridLayout = (cols: number) => {
+    setGridCols(cols);
+    toast.success(`Applied ${cols} column grid layout`);
+  };
+
+  const handleCustomGridSubmit = () => {
+    const cols = parseInt(customCols, 10);
+
+    if (isNaN(cols) || cols < 1 || cols > 10) {
+      toast.error('Please enter a valid number between 1 and 10');
+      return;
+    }
+
+    handleApplyGridLayout(cols);
+    setIsCustomGridDialogOpen(false);
+  };
+
+  // Generate grid column classes based on gridCols
+  const gridColsClass = useMemo(() => {
+    const baseClass = 'grid gap-4';
+    const colMap: Record<number, string> = {
+      1: 'grid-cols-1',
+      2: 'grid-cols-1 md:grid-cols-2',
+      3: 'grid-cols-2 md:grid-cols-3',
+      4: 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4',
+      5: 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5',
+      6: 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6',
+      7: 'grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-7',
+      8: 'grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8',
+      9: 'grid-cols-3 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-9',
+      10: 'grid-cols-3 md:grid-cols-5 lg:grid-cols-8 xl:grid-cols-10',
+    };
+    return `${baseClass} ${colMap[gridCols] || colMap[5]}`;
+  }, [gridCols]);
+
   if (isLoading) {
     return (
       <div className="p-8 space-y-6">
@@ -171,10 +226,43 @@ export default function EventMontage() {
             {events.length} event{events.length !== 1 ? 's' : ''} found
           </p>
         </div>
-        <Button onClick={() => refetch()} variant="outline" size="sm">
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" title="Grid Layout">
+                <LayoutGrid className="h-4 w-4 mr-2" />
+                {gridCols} Column{gridCols !== 1 ? 's' : ''}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => handleApplyGridLayout(2)}>
+                <Grid2x2 className="h-4 w-4 mr-2" />
+                2 Columns
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleApplyGridLayout(3)}>
+                <Grid3x3 className="h-4 w-4 mr-2" />
+                3 Columns
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleApplyGridLayout(4)}>
+                <LayoutGrid className="h-4 w-4 mr-2" />
+                4 Columns
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleApplyGridLayout(5)}>
+                <LayoutGrid className="h-4 w-4 mr-2" />
+                5 Columns
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setIsCustomGridDialogOpen(true)}>
+                <GripVertical className="h-4 w-4 mr-2" />
+                Custom...
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button onClick={() => refetch()} variant="outline" size="sm">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -304,7 +392,7 @@ export default function EventMontage() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          <div className={gridColsClass}>
             {events.map((eventData) => {
             const event = eventData.Event;
             const monitorName = monitors.find((m) => m.Monitor.Id === event.MonitorId)?.Monitor.Name || `Monitor ${event.MonitorId}`;
@@ -416,6 +504,42 @@ export default function EventMontage() {
           </div>
         </>
       )}
+
+      {/* Custom Grid Dialog */}
+      <Dialog open={isCustomGridDialogOpen} onOpenChange={setIsCustomGridDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Custom Grid Columns</DialogTitle>
+            <DialogDescription>
+              Enter the number of columns for your custom grid layout (1-10).
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="custom-cols">Columns</Label>
+              <Input
+                id="custom-cols"
+                type="number"
+                min="1"
+                max="10"
+                value={customCols}
+                onChange={(e) => setCustomCols(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleCustomGridSubmit();
+                  }
+                }}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCustomGridDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleCustomGridSubmit}>Apply</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
