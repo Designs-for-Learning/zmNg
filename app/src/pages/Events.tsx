@@ -120,6 +120,7 @@ export default function Events() {
                 variant={activeFilterCount > 0 ? 'default' : 'outline'}
                 size="icon"
                 className="relative"
+                aria-label="Filter events"
               >
                 <Filter className="h-4 w-4" />
                 {activeFilterCount > 0 && (
@@ -237,7 +238,7 @@ export default function Events() {
             </PopoverContent>
           </Popover>
 
-          <Button onClick={() => refetch()} variant="outline" size="icon">
+          <Button onClick={() => refetch()} variant="outline" size="icon" aria-label="Refresh events">
             <RefreshCw className="h-4 w-4" />
           </Button>
         </div>

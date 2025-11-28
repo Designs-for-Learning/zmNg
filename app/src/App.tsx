@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useProfileStore } from './stores/profile';
@@ -8,20 +9,34 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { RouteErrorBoundary } from './components/RouteErrorBoundary';
 import { useTokenRefresh } from './hooks/useTokenRefresh';
 import AppLayout from './components/layout/AppLayout';
-import Setup from './pages/Setup';
-import Monitors from './pages/Monitors';
-import MonitorDetail from './pages/MonitorDetail';
-import Montage from './pages/Montage';
-import Events from './pages/Events';
-import EventDetail from './pages/EventDetail';
-import EventMontage from './pages/EventMontage';
-import Timeline from './pages/Timeline';
-import Profiles from './pages/Profiles';
-import Settings from './pages/Settings';
-import NotificationSettings from './pages/NotificationSettings';
-import NotificationHistory from './pages/NotificationHistory';
 import { NotificationHandler } from './components/NotificationHandler';
 import { log } from './lib/logger';
+
+// Lazy load route components for code splitting
+const Setup = lazy(() => import('./pages/Setup'));
+const Monitors = lazy(() => import('./pages/Monitors'));
+const MonitorDetail = lazy(() => import('./pages/MonitorDetail'));
+const Montage = lazy(() => import('./pages/Montage'));
+const Events = lazy(() => import('./pages/Events'));
+const EventDetail = lazy(() => import('./pages/EventDetail'));
+const EventMontage = lazy(() => import('./pages/EventMontage'));
+const Timeline = lazy(() => import('./pages/Timeline'));
+const Profiles = lazy(() => import('./pages/Profiles'));
+const Settings = lazy(() => import('./pages/Settings'));
+const NotificationSettings = lazy(() => import('./pages/NotificationSettings'));
+const NotificationHistory = lazy(() => import('./pages/NotificationHistory'));
+
+// Loading fallback component
+function RouteLoadingFallback() {
+  return (
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="flex flex-col items-center gap-4">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        <div className="text-muted-foreground">Loading...</div>
+      </div>
+    </div>
+  );
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -52,25 +67,26 @@ function AppRoutes() {
   });
 
   return (
-    <Routes>
-      <Route
-        path="/"
-        element={
-          currentProfile ? (
-            <Navigate to="/monitors" replace />
-          ) : (
-            <Navigate to="/setup" replace />
-          )
-        }
-      />
-      <Route
-        path="/setup"
-        element={
-          <RouteErrorBoundary routePath="/setup">
-            <Setup />
-          </RouteErrorBoundary>
-        }
-      />
+    <Suspense fallback={<RouteLoadingFallback />}>
+      <Routes>
+        <Route
+          path="/"
+          element={
+            currentProfile ? (
+              <Navigate to="/monitors" replace />
+            ) : (
+              <Navigate to="/setup" replace />
+            )
+          }
+        />
+        <Route
+          path="/setup"
+          element={
+            <RouteErrorBoundary routePath="/setup">
+              <Setup />
+            </RouteErrorBoundary>
+          }
+        />
 
       <Route element={<AppLayout />}>
         <Route
@@ -162,7 +178,8 @@ function AppRoutes() {
           }
         />
       </Route>
-    </Routes>
+      </Routes>
+    </Suspense>
   );
 }
 

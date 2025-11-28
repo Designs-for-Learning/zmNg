@@ -12,6 +12,7 @@ import { RefreshCw, Filter, X, Video, Activity, AlertCircle, Clock } from 'lucid
 import { format, subDays } from 'date-fns';
 import { filterEnabledMonitors } from '../lib/filters';
 import { ZM_CONSTANTS } from '../lib/constants';
+import { escapeHtml } from '../lib/utils';
 import { Timeline as VisTimeline } from 'vis-timeline/standalone';
 import { DataSet } from 'vis-data';
 import 'vis-timeline/styles/vis-timeline-graph2d.css';
@@ -22,6 +23,12 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "../components/ui/popover";
+
+interface TimelineGroup {
+  id: string;
+  content: string;
+  style?: string;
+}
 
 export default function Timeline() {
   const navigate = useNavigate();
@@ -63,7 +70,7 @@ export default function Timeline() {
         monitorId: monitorFilter,
         sort: 'StartDateTime',
         direction: 'desc',
-        limit: 1000,
+        limit: 500, // Reduced from 1000 to minimize API calls (5 instead of 10)
       }),
   });
 
@@ -100,7 +107,7 @@ export default function Timeline() {
         const color = colors[colorIdx];
         return {
           id: Monitor.Id,
-          content: `<strong>${Monitor.Name}</strong>`,
+          content: `<strong>${escapeHtml(Monitor.Name)}</strong>`,
           style: `background: linear-gradient(to right, ${color.bg}15, ${color.bg}08);`,
         };
       })
@@ -131,11 +138,11 @@ export default function Timeline() {
           end: endTime,
           content: `<div style="display: flex; align-items: center; gap: 4px;">
             ${isHighPriority ? '<span style="font-size: 10px;">⚠️</span>' : ''}
-            <span style="font-weight: 600;">${Event.Cause}</span>
+            <span style="font-weight: 600;">${escapeHtml(Event.Cause)}</span>
             <span style="opacity: 0.8;">•</span>
             <span>${durationText}</span>
           </div>`,
-          title: `<strong>${Event.Name}</strong>\n━━━━━━━━━━━━━━━\nCause: ${Event.Cause}\nTime: ${format(startTime, 'HH:mm:ss')}\nDuration: ${durationText}\nFrames: ${Event.Frames} total\nAlarm Frames: ${Event.AlarmFrames}\nScore: ${Event.MaxScore}`,
+          title: `<strong>${escapeHtml(Event.Name)}</strong>\n━━━━━━━━━━━━━━━\nCause: ${escapeHtml(Event.Cause)}\nTime: ${format(startTime, 'HH:mm:ss')}\nDuration: ${durationText}\nFrames: ${Event.Frames} total\nAlarm Frames: ${Event.AlarmFrames}\nScore: ${Event.MaxScore}`,
           style: `
             background: linear-gradient(135deg, ${color.bg} 0%, ${color.bg}dd 100%);
             border-color: ${color.border};
@@ -173,7 +180,7 @@ export default function Timeline() {
         followMouse: true,
         overflowMethod: 'cap' as 'cap',
       },
-      groupOrder: (a: any, b: any) => {
+      groupOrder: (a: TimelineGroup, b: TimelineGroup) => {
         return parseInt(a.id) - parseInt(b.id);
       },
     };

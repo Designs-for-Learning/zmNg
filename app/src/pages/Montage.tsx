@@ -410,6 +410,7 @@ function MontageMonitor({
               }
             }}
             title="Save Snapshot"
+            aria-label="Save snapshot"
           >
             <Download className="h-3 w-3" />
           </Button>
@@ -422,6 +423,7 @@ function MontageMonitor({
               navigate(`/events?monitorId=${monitor.Id}`);
             }}
             title="Events"
+            aria-label="View events"
           >
             <Video className="h-3 w-3" />
           </Button>
@@ -434,6 +436,7 @@ function MontageMonitor({
               navigate(`/timeline?monitorId=${monitor.Id}`);
             }}
             title="Timeline"
+            aria-label="View timeline"
           >
             <Clock className="h-3 w-3" />
           </Button>
@@ -446,6 +449,7 @@ function MontageMonitor({
               navigate(`/monitors/${monitor.Id}`);
             }}
             title="Maximize"
+            aria-label="Maximize monitor view"
           >
             <Maximize2 className="h-3 w-3" />
           </Button>

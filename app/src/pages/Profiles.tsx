@@ -28,6 +28,7 @@ import { Badge } from '../components/ui/badge';
 import type { Profile } from '../api/types';
 import { useToast } from '../hooks/use-toast';
 import { toast as sonnerToast } from 'sonner';
+import { deriveZoneminderUrls } from '../lib/urls';
 
 export default function Profiles() {
   const navigate = useNavigate();
@@ -93,20 +94,13 @@ export default function Profiles() {
     setIsSaving(true);
     try {
       const portalUrl = formData.portalUrl.replace(/\/$/, '');
-      const apiUrls = [
-        `${portalUrl}/api`,
-        `${portalUrl}/zm/api`,
-      ];
-      const cgiUrls = [
-        `${portalUrl}/cgi-bin`,
-        `${portalUrl}/zm/cgi-bin`,
-      ];
+      const { apiPatterns, cgiPatterns } = deriveZoneminderUrls(portalUrl);
 
       await addProfile({
         name: formData.name,
         portalUrl,
-        apiUrl: apiUrls[0],
-        cgiUrl: cgiUrls[0],
+        apiUrl: apiPatterns[0],
+        cgiUrl: cgiPatterns[0],
         username: formData.username || undefined,
         password: formData.password || undefined,
         isDefault: profiles.length === 0,
@@ -143,20 +137,13 @@ export default function Profiles() {
     setIsSaving(true);
     try {
       const portalUrl = formData.portalUrl.replace(/\/$/, '');
-      const apiUrls = [
-        `${portalUrl}/api`,
-        `${portalUrl}/zm/api`,
-      ];
-      const cgiUrls = [
-        `${portalUrl}/cgi-bin`,
-        `${portalUrl}/zm/cgi-bin`,
-      ];
+      const { apiPatterns, cgiPatterns } = deriveZoneminderUrls(portalUrl);
 
       const updates: Partial<Profile> = {
         name: formData.name,
         portalUrl,
-        apiUrl: apiUrls[0],
-        cgiUrl: cgiUrls[0],
+        apiUrl: apiPatterns[0],
+        cgiUrl: cgiPatterns[0],
         username: formData.username || undefined,
         password: formData.password || undefined,
       };
@@ -337,6 +324,7 @@ export default function Profiles() {
                         size="icon"
                         onClick={() => handleOpenEditDialog(profile)}
                         disabled={!!switchingProfileId}
+                        aria-label="Edit profile"
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -347,6 +335,7 @@ export default function Profiles() {
                           onClick={() => handleOpenDeleteDialog(profile)}
                           className="text-destructive hover:text-destructive"
                           disabled={!!switchingProfileId}
+                          aria-label="Delete profile"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>

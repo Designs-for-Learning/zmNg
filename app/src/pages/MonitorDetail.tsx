@@ -128,7 +128,7 @@ export default function MonitorDetail() {
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)} aria-label="Go back">
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
@@ -154,7 +154,7 @@ export default function MonitorDetail() {
           <Button variant="outline" size="sm" onClick={() => setMode(mode === 'jpeg' ? 'stream' : 'jpeg')}>
             {mode === 'jpeg' ? 'MJPEG' : 'Stream'}
           </Button>
-          <Button variant="ghost" size="icon">
+          <Button variant="ghost" size="icon" aria-label="Monitor settings">
             <Settings className="h-5 w-5" />
           </Button>
         </div>
@@ -200,6 +200,7 @@ export default function MonitorDetail() {
                     }
                   }}
                   title="Save Snapshot"
+                  aria-label="Save snapshot"
                 >
                   <Download className="h-5 w-5" />
                 </Button>
@@ -209,6 +210,7 @@ export default function MonitorDetail() {
                   className="text-white hover:bg-white/20"
                   onClick={() => navigate(`/events?monitorId=${monitor.Monitor.Id}`)}
                   title="View Events"
+                  aria-label="View events"
                 >
                   <Video className="h-5 w-5" />
                 </Button>
@@ -222,7 +224,7 @@ export default function MonitorDetail() {
                 >
                   {scale}%
                 </Button>
-                <Button variant="ghost" size="icon" className="text-white hover:bg-white/20">
+                <Button variant="ghost" size="icon" className="text-white hover:bg-white/20" aria-label="Maximize view">
                   <Maximize2 className="h-5 w-5" />
                 </Button>
               </div>
@@ -236,13 +238,13 @@ export default function MonitorDetail() {
             <p className="text-sm font-medium text-center mb-4 text-muted-foreground">PTZ Controls</p>
             <div className="grid grid-cols-3 gap-2 w-48 mx-auto">
               <div />
-              <Button variant="outline" size="icon">↑</Button>
+              <Button variant="outline" size="icon" aria-label="Pan up">↑</Button>
               <div />
-              <Button variant="outline" size="icon">←</Button>
-              <Button variant="outline" size="icon">●</Button>
-              <Button variant="outline" size="icon">→</Button>
+              <Button variant="outline" size="icon" aria-label="Pan left">←</Button>
+              <Button variant="outline" size="icon" aria-label="Center">●</Button>
+              <Button variant="outline" size="icon" aria-label="Pan right">→</Button>
               <div />
-              <Button variant="outline" size="icon">↓</Button>
+              <Button variant="outline" size="icon" aria-label="Pan down">↓</Button>
               <div />
             </div>
           </div>

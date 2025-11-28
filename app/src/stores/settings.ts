@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import type { Layouts } from 'react-grid-layout';
 
 export type ViewMode = 'snapshot' | 'streaming';
 
@@ -7,8 +8,8 @@ export interface ProfileSettings {
   viewMode: ViewMode;
   snapshotRefreshInterval: number; // in seconds
   defaultEventLimit: number; // Default number of events to fetch when no filters applied
-  montageLayouts: Record<string, any>; // Store montage layouts per profile
-  eventMontageLayouts: Record<string, any>; // Store event montage layouts per profile
+  montageLayouts: Layouts; // Store montage layouts per profile
+  eventMontageLayouts: Layouts; // Store event montage layouts per profile
 }
 
 interface SettingsState {
@@ -22,10 +23,10 @@ interface SettingsState {
   updateProfileSettings: (profileId: string, updates: Partial<ProfileSettings>) => void;
 
   // Save montage layout for current profile
-  saveMontageLayout: (profileId: string, layout: any) => void;
+  saveMontageLayout: (profileId: string, layout: Layouts) => void;
 
   // Save event montage layout for current profile
-  saveEventMontageLayout: (profileId: string, layout: any) => void;
+  saveEventMontageLayout: (profileId: string, layout: Layouts) => void;
 }
 
 const DEFAULT_SETTINGS: ProfileSettings = {

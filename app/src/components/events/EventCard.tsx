@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { Card } from '../ui/card';
@@ -5,7 +6,7 @@ import { Badge } from '../ui/badge';
 import { Video, Calendar, Clock } from 'lucide-react';
 import type { EventCardProps } from '../../api/types';
 
-export function EventCard({ event, monitorName, thumbnailUrl }: EventCardProps) {
+function EventCardComponent({ event, monitorName, thumbnailUrl }: EventCardProps) {
   const navigate = useNavigate();
   const startTime = new Date(event.StartDateTime.replace(' ', 'T'));
 
@@ -87,3 +88,6 @@ export function EventCard({ event, monitorName, thumbnailUrl }: EventCardProps) 
     </Card>
   );
 }
+
+// Memoize to prevent unnecessary re-renders in virtualized event lists
+export const EventCard = memo(EventCardComponent);

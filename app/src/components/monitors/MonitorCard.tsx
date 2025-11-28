@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
@@ -14,7 +15,7 @@ interface MonitorCardComponentProps extends MonitorCardProps {
   onShowSettings: (monitor: MonitorCardProps['monitor']) => void;
 }
 
-export function MonitorCard({
+function MonitorCardComponent({
   monitor,
   status,
   eventCount,
@@ -195,3 +196,6 @@ export function MonitorCard({
     </Card>
   );
 }
+
+// Memoize to prevent unnecessary re-renders when monitor data hasn't changed
+export const MonitorCard = memo(MonitorCardComponent);

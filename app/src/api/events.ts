@@ -50,9 +50,10 @@ export async function getEvents(filters: EventFilters = {}): Promise<EventsRespo
   const allEvents: EventData[] = [];
   let currentPage = 1;
   let hasMore = true;
+  const maxPages = 10; // Limit to 10 pages (1000 events max) to prevent excessive API calls
 
-  // Keep fetching pages until we have enough events or no more pages
-  while (hasMore && allEvents.length < desiredLimit) {
+  // Keep fetching pages until we have enough events, no more pages, or hit max pages
+  while (hasMore && allEvents.length < desiredLimit && currentPage <= maxPages) {
     const params: Record<string, string | number> = {};
     params.page = currentPage;
     params.limit = 100; // ZM's max per page, we'll fetch multiple pages
@@ -80,6 +81,14 @@ export async function getEvents(filters: EventFilters = {}): Promise<EventsRespo
 
   // Return only the requested number of events
   const finalEvents = allEvents.slice(0, desiredLimit);
+
+  // Warn if we hit the max pages limit
+  if (currentPage > maxPages && allEvents.length < desiredLimit) {
+    log.warn(
+      `Hit max pages limit (${maxPages}) while fetching events. Consider refining filters.`,
+      { fetched: allEvents.length, requested: desiredLimit }
+    );
+  }
 
   log.api(
     `Fetched events complete`,
