@@ -8,8 +8,12 @@ const config: CapacitorConfig = {
     cleartext: true,
     // Use http scheme to avoid CORS issues when making requests to external servers
     androidScheme: 'http',
+    iosScheme: 'http',
     // Allow navigation to any URL
     allowNavigation: ['*']
+  },
+  ios: {
+    contentInset: 'always',
   }
 };
 

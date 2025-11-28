@@ -31,6 +31,9 @@ npm run dev:all
 
 # Android development
 npm run android
+
+# iOS development
+npm run ios
 ```
 
 📱 **For detailed Android guide, see [ANDROID.md](app/ANDROID.md)**
@@ -77,6 +80,7 @@ npm run android
 ## Prerequisites
 - Node.js 18+ and npm
 - For Android: Android SDK, `ANDROID_HOME` env var, and an AVD configured
+- For iOS: macOS with Xcode 14+ and CocoaPods installed
 
 ## Development
 
@@ -99,6 +103,16 @@ npm run android:logs
 # Check connected devices
 npm run android:devices
 ```
+
+### iOS
+```bash
+# Build, sync, and run on simulator/device
+npm run ios
+
+# Open Xcode project
+npm run ios:open
+```
+**Note:** Requires macOS with Xcode installed
 
 ### Testing
 

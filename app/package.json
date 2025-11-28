@@ -27,7 +27,11 @@
     "android:logs": "$ANDROID_HOME/platform-tools/adb logcat | grep -E '(Capacitor|Console|chromium)'",
     "android:devices": "$ANDROID_HOME/platform-tools/adb devices",
     "android:release": "cd android && ./gradlew assembleRelease && cd ..",
-    "android:bundle": "cd android && ./gradlew bundleRelease && cd .."
+    "android:bundle": "cd android && ./gradlew bundleRelease && cd ..",
+    "ios:sync": "npm run build && npx cap sync ios",
+    "ios:run": "npx cap run ios",
+    "ios": "npm run ios:sync && npm run ios:run",
+    "ios:open": "npx cap open ios"
   },
   "dependencies": {
     "@aparajita/capacitor-secure-storage": "^7.1.6",
@@ -35,6 +39,7 @@
     "@capacitor/cli": "^7.4.4",
     "@capacitor/core": "^7.4.4",
     "@capacitor/filesystem": "^7.1.5",
+    "@capacitor/ios": "^7.4.4",
     "@capacitor/preferences": "^7.0.2",
     "@capacitor/push-notifications": "^7.0.3",
     "@hookform/resolvers": "^5.2.2",
