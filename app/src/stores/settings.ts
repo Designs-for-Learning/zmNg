@@ -10,6 +10,9 @@ export interface ProfileSettings {
   defaultEventLimit: number; // Default number of events to fetch when no filters applied
   montageLayouts: Layouts; // Store montage layouts per profile
   eventMontageLayouts: Layouts; // Store event montage layouts per profile
+  montageGridRows: number; // Grid rows for Montage page
+  montageGridCols: number; // Grid columns for Montage page
+  eventMontageGridCols: number; // Grid columns for EventMontage page
 }
 
 interface SettingsState {
@@ -35,6 +38,9 @@ const DEFAULT_SETTINGS: ProfileSettings = {
   defaultEventLimit: 300,
   montageLayouts: {},
   eventMontageLayouts: {},
+  montageGridRows: 4,
+  montageGridCols: 4,
+  eventMontageGridCols: 5,
 };
 
 export const useSettingsStore = create<SettingsState>()(

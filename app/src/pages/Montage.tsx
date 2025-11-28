@@ -57,20 +57,29 @@ export default function Montage() {
 
   const currentProfile = useProfileStore((state) => state.currentProfile());
   const accessToken = useAuthStore((state) => state.accessToken);
-
+  const settings = useSettingsStore((state) => state.getProfileSettings(currentProfile?.id || ''));
+  const updateSettings = useSettingsStore((state) => state.updateProfileSettings);
 
   // State for layouts
   const [layouts, setLayouts] = useState<Layouts>({});
   const [isLayoutLoaded, setIsLayoutLoaded] = useState(false);
 
-  // Grid layout configuration state
-  const [gridRows, setGridRows] = useState<number>(4); // Default 4x4
-  const [gridCols, setGridCols] = useState<number>(4);
+  // Grid layout configuration state - load from settings
+  const [gridRows, setGridRows] = useState<number>(settings.montageGridRows);
+  const [gridCols, setGridCols] = useState<number>(settings.montageGridCols);
   const [isCustomGridDialogOpen, setIsCustomGridDialogOpen] = useState(false);
-  const [customRows, setCustomRows] = useState<string>('4');
-  const [customCols, setCustomCols] = useState<string>('4');
+  const [customRows, setCustomRows] = useState<string>(settings.montageGridRows.toString());
+  const [customCols, setCustomCols] = useState<string>(settings.montageGridCols.toString());
 
 
+
+  // Update grid state when profile changes
+  useEffect(() => {
+    setGridRows(settings.montageGridRows);
+    setGridCols(settings.montageGridCols);
+    setCustomRows(settings.montageGridRows.toString());
+    setCustomCols(settings.montageGridCols.toString());
+  }, [currentProfile?.id, settings.montageGridRows, settings.montageGridCols]);
 
   useEffect(() => {
     // Clean up interval if it exists (removed auto-refresh)
@@ -182,8 +191,18 @@ export default function Montage() {
   };
 
   const handleApplyGridLayout = (rows: number, cols: number) => {
+    if (!currentProfile) return;
+
     setGridRows(rows);
     setGridCols(cols);
+
+    // Save to settings
+    updateSettings(currentProfile.id, {
+      montageGridRows: rows,
+      montageGridCols: cols,
+    });
+
+    // Generate new layout with the specified columns
     const newLayout = generateDefaultLayout(monitors, cols);
     setLayouts(newLayout);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(newLayout));

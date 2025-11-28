@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { getEvents, getEventImageUrl } from '../api/events';
@@ -52,6 +52,7 @@ export default function EventMontage() {
   const currentProfile = useProfileStore((state) => state.currentProfile());
   const accessToken = useAuthStore((state) => state.accessToken);
   const settings = useSettingsStore((state) => state.getProfileSettings(currentProfile?.id || ''));
+  const updateSettings = useSettingsStore((state) => state.updateProfileSettings);
 
   // Filter state
   const [selectedMonitorIds, setSelectedMonitorIds] = useState<string[]>([]);
@@ -60,10 +61,10 @@ export default function EventMontage() {
   const [endDate, setEndDate] = useState<string>('');
   const [isFilterOpen, setIsFilterOpen] = useState(true);
 
-  // Grid layout configuration state
-  const [gridCols, setGridCols] = useState<number>(5); // Default 5 columns (xl:grid-cols-5)
+  // Grid layout configuration state - load from settings
+  const [gridCols, setGridCols] = useState<number>(settings.eventMontageGridCols);
   const [isCustomGridDialogOpen, setIsCustomGridDialogOpen] = useState(false);
-  const [customCols, setCustomCols] = useState<string>('5');
+  const [customCols, setCustomCols] = useState<string>(settings.eventMontageGridCols.toString());
 
   // Fetch monitors for filter
   const { data: monitorsData } = useQuery({
@@ -151,8 +152,22 @@ export default function EventMontage() {
 
   const hasActiveFilters = selectedMonitorIds.length > 0 || selectedCause !== 'all' || startDate || endDate;
 
+  // Update grid state when profile changes
+  useEffect(() => {
+    setGridCols(settings.eventMontageGridCols);
+    setCustomCols(settings.eventMontageGridCols.toString());
+  }, [currentProfile?.id, settings.eventMontageGridCols]);
+
   const handleApplyGridLayout = (cols: number) => {
+    if (!currentProfile) return;
+
     setGridCols(cols);
+
+    // Save to settings
+    updateSettings(currentProfile.id, {
+      eventMontageGridCols: cols,
+    });
+
     toast.success(`Applied ${cols} column grid layout`);
   };
 
