@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useShallow } from 'zustand/react/shallow';
 import { getMonitors, getStreamUrl } from '../api/monitors';
 import { useProfileStore } from '../stores/profile';
 import { useAuthStore } from '../stores/auth';
@@ -42,11 +43,29 @@ import { toast } from 'sonner';
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
 // Storage key for layout persistence
-const STORAGE_KEY = 'zm-montage-layout';
+// Storage key for layout persistence
+const STORAGE_KEY = 'zm-montage-layout-v2';
 
 // Default column configuration
-const COLS = { lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 };
 const BREAKPOINTS = { lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 };
+const GRID_CAPACITY = 60; // Highly divisible number (2,3,4,5,6,10,12,15,20,30) for flexible layouts
+
+// Grid columns configuration
+const COLS = {
+  lg: GRID_CAPACITY,
+  md: GRID_CAPACITY,
+  sm: 12,
+  xs: 12,
+  xxs: 12
+};
+
+// Helper to determine effective columns based on width
+const getEffectiveCols = (width: number, requestedCols: number) => {
+  if (width >= BREAKPOINTS.lg) return requestedCols;
+  if (width >= BREAKPOINTS.md) return Math.min(requestedCols, 6);
+  if (width >= BREAKPOINTS.sm) return 2;
+  return 1;
+};
 
 export default function Montage() {
   const navigate = useNavigate();
@@ -57,7 +76,9 @@ export default function Montage() {
 
   const currentProfile = useProfileStore((state) => state.currentProfile());
   const accessToken = useAuthStore((state) => state.accessToken);
-  const settings = useSettingsStore((state) => state.getProfileSettings(currentProfile?.id || ''));
+  const settings = useSettingsStore(
+    useShallow((state) => state.getProfileSettings(currentProfile?.id || ''))
+  );
   const updateSettings = useSettingsStore((state) => state.updateProfileSettings);
 
   // State for layouts
@@ -70,6 +91,9 @@ export default function Montage() {
   const [isCustomGridDialogOpen, setIsCustomGridDialogOpen] = useState(false);
   const [customRows, setCustomRows] = useState<string>(settings.montageGridRows.toString());
   const [customCols, setCustomCols] = useState<string>(settings.montageGridCols.toString());
+
+  // Track container width for toast notifications
+  const currentWidthRef = useRef(window.innerWidth);
 
 
 
@@ -94,12 +118,26 @@ export default function Montage() {
 
   // Generate default layout for a list of monitors
   const generateDefaultLayout = useCallback((monitorList: typeof monitors, cols = gridCols) => {
-    const itemsPerRow = { lg: cols, md: Math.max(2, cols - 1), sm: 2, xs: 2, xxs: 1 };
+    // Determine items per row for each breakpoint
+    const itemsPerRow = {
+      lg: cols,
+      md: Math.min(cols, 6), // Cap md at 6 to avoid tiny streams
+      sm: 2,
+      xs: 1,
+      xxs: 1
+    };
+
     const newLayouts: Layouts = {};
 
-    Object.keys(COLS).forEach((breakpoint) => {
-      const perRow = itemsPerRow[breakpoint as keyof typeof itemsPerRow];
-      const width = COLS[breakpoint as keyof typeof COLS] / perRow;
+    Object.keys(COLS).forEach((bp) => {
+      const breakpoint = bp as keyof typeof COLS;
+      const totalCols = COLS[breakpoint];
+      const perRow = itemsPerRow[breakpoint];
+
+      // Calculate width: totalCols / perRow
+      // For 60 cols: 3 items -> w=20. 5 items -> w=12.
+      // For 12 cols: 2 items -> w=6.
+      const width = Math.floor(totalCols / perRow);
 
       newLayouts[breakpoint] = monitorList.map(({ Monitor }, index) => ({
         i: Monitor.Id,
@@ -107,7 +145,10 @@ export default function Montage() {
         y: Math.floor(index / perRow) * 3,
         w: width,
         h: 3,
-        minW: breakpoint === 'lg' || breakpoint === 'md' ? 2 : 1,
+        // Min width should be reasonable. 
+        // For 60 cols, maybe 1/6th (10) or 1/12th (5). Let's say 5 (small but visible).
+        // For 12 cols, maybe 2.
+        minW: totalCols === GRID_CAPACITY ? 5 : 2,
         minH: 2,
       }));
     });
@@ -143,16 +184,17 @@ export default function Montage() {
           const mergedLayouts: Layouts = { ...savedLayouts };
 
           Object.keys(COLS).forEach((bp) => {
-            const existing = savedLayouts[bp] || [];
+            const breakpoint = bp as keyof typeof COLS;
+            const existing = savedLayouts[breakpoint] || [];
             // Find lowest point in current layout
             const maxY = existing.reduce((max, item) => Math.max(max, item.y + item.h), 0);
 
-            const newItems = (defaultForNew[bp] || []).map(item => ({
+            const newItems = (defaultForNew[breakpoint] || []).map(item => ({
               ...item,
               y: item.y + maxY // Offset Y to place below existing
             }));
 
-            mergedLayouts[bp] = [...existing, ...newItems];
+            mergedLayouts[breakpoint] = [...existing, ...newItems];
           });
 
           // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -171,7 +213,7 @@ export default function Montage() {
     }
 
     setIsLayoutLoaded(true);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [monitors]);
 
   // Save layout changes
@@ -207,7 +249,16 @@ export default function Montage() {
     const newLayout = generateDefaultLayout(monitors, cols);
     setLayouts(newLayout);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(newLayout));
-    toast.success(`Applied ${rows}x${cols} grid layout`);
+
+    // Check if actual columns match requested columns
+    const effectiveCols = getEffectiveCols(currentWidthRef.current, cols);
+    if (effectiveCols !== cols) {
+      toast.info(`Grid set to ${rows}x${cols}`, {
+        description: `Screen size limits display to ${effectiveCols} columns.`
+      });
+    } else {
+      toast.success(`Applied ${rows}x${cols} grid layout`);
+    }
   };
 
   const handleCustomGridSubmit = () => {
@@ -333,6 +384,9 @@ export default function Montage() {
             cols={COLS}
             rowHeight={ZM_CONSTANTS.gridRowHeight}
             onLayoutChange={handleLayoutChange}
+            onWidthChange={(width) => {
+              currentWidthRef.current = width;
+            }}
             draggableHandle=".drag-handle"
             resizeHandles={['se']}
             compactType="vertical"
@@ -427,7 +481,9 @@ function MontageMonitor({
 }) {
   const isRunning = status?.Status === 'Connected';
   const regenerateConnKey = useMonitorStore((state) => state.regenerateConnKey);
-  const settings = useSettingsStore((state) => state.getProfileSettings(currentProfile?.id || ''));
+  const settings = useSettingsStore(
+    useShallow((state) => state.getProfileSettings(currentProfile?.id || ''))
+  );
   const [connKey, setConnKey] = useState(0);
   const [cacheBuster, setCacheBuster] = useState(Date.now());
   const [displayedImageUrl, setDisplayedImageUrl] = useState<string>('');

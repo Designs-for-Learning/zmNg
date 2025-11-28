@@ -101,8 +101,13 @@ export default function Timeline() {
     ];
 
     // Create groups (one per monitor)
+    // Deduplicate monitors to prevent crashes
+    const uniqueMonitors = Array.from(
+      new Map(enabledMonitors.map(m => [m.Monitor.Id, m])).values()
+    );
+
     const groups = new DataSet(
-      enabledMonitors.map(({ Monitor }) => {
+      uniqueMonitors.map(({ Monitor }) => {
         const colorIdx = parseInt(Monitor.Id) % colors.length;
         const color = colors[colorIdx];
         return {
@@ -114,8 +119,13 @@ export default function Timeline() {
     );
 
     // Create items (events)
+    // Deduplicate events to prevent crashes
+    const uniqueEvents = Array.from(
+      new Map(data.events.map(e => [e.Event.Id, e])).values()
+    );
+
     const items = new DataSet(
-      data.events.map(({ Event }) => {
+      uniqueEvents.map(({ Event }) => {
         const startTime = new Date(Event.StartDateTime.replace(' ', 'T'));
         const endTime = Event.EndDateTime ? new Date(Event.EndDateTime.replace(' ', 'T')) : new Date(startTime.getTime() + parseInt(Event.Length) * 1000);
         const colorIdx = parseInt(Event.MonitorId) % colors.length;

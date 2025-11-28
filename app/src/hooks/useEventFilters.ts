@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useProfileStore } from '../stores/profile';
 import { useSettingsStore } from '../stores/settings';
+import { useShallow } from 'zustand/react/shallow';
 import type { EventFilters } from '../api/events';
 
 interface UseEventFiltersReturn {
@@ -25,8 +26,8 @@ interface UseEventFiltersReturn {
 export function useEventFilters(): UseEventFiltersReturn {
   const [searchParams, setSearchParams] = useSearchParams();
   const currentProfile = useProfileStore((state) => state.currentProfile());
-  const settings = useSettingsStore((state) =>
-    state.getProfileSettings(currentProfile?.id || '')
+  const settings = useSettingsStore(
+    useShallow((state) => state.getProfileSettings(currentProfile?.id || ''))
   );
 
   // Derive filters from URL

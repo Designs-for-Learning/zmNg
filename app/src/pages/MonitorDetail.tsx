@@ -1,4 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom';
+import { useShallow } from 'zustand/react/shallow';
 import { useQuery } from '@tanstack/react-query';
 import { getMonitor, getStreamUrl } from '../api/monitors';
 import { useProfileStore } from '../stores/profile';
@@ -28,7 +29,9 @@ export default function MonitorDetail() {
   const currentProfile = useProfileStore((state) => state.currentProfile());
   const accessToken = useAuthStore((state) => state.accessToken);
   const regenerateConnKey = useMonitorStore((state) => state.regenerateConnKey);
-  const settings = useSettingsStore((state) => state.getProfileSettings(currentProfile?.id || ''));
+  const settings = useSettingsStore(
+    useShallow((state) => state.getProfileSettings(currentProfile?.id || ''))
+  );
   const [connKey, setConnKey] = useState(0);
   const [cacheBuster, setCacheBuster] = useState(Date.now());
   const [displayedImageUrl, setDisplayedImageUrl] = useState<string>('');

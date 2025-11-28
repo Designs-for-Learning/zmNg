@@ -50,7 +50,7 @@ export const useSettingsStore = create<SettingsState>()(
 
       getProfileSettings: (profileId) => {
         const settings = get().profileSettings[profileId];
-        return settings || DEFAULT_SETTINGS;
+        return { ...DEFAULT_SETTINGS, ...settings };
       },
 
       updateProfileSettings: (profileId, updates) => {

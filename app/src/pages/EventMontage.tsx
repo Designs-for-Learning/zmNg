@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useShallow } from 'zustand/react/shallow';
 import { useNavigate } from 'react-router-dom';
 import { getEvents, getEventImageUrl } from '../api/events';
 import { getMonitors } from '../api/monitors';
@@ -51,7 +52,9 @@ export default function EventMontage() {
   const navigate = useNavigate();
   const currentProfile = useProfileStore((state) => state.currentProfile());
   const accessToken = useAuthStore((state) => state.accessToken);
-  const settings = useSettingsStore((state) => state.getProfileSettings(currentProfile?.id || ''));
+  const settings = useSettingsStore(
+    useShallow((state) => state.getProfileSettings(currentProfile?.id || ''))
+  );
   const updateSettings = useSettingsStore((state) => state.updateProfileSettings);
 
   // Filter state
@@ -409,104 +412,104 @@ export default function EventMontage() {
         <>
           <div className={gridColsClass}>
             {events.map((eventData) => {
-            const event = eventData.Event;
-            const monitorName = monitors.find((m) => m.Monitor.Id === event.MonitorId)?.Monitor.Name || `Monitor ${event.MonitorId}`;
-            const startTime = new Date(event.StartDateTime.replace(' ', 'T'));
+              const event = eventData.Event;
+              const monitorName = monitors.find((m) => m.Monitor.Id === event.MonitorId)?.Monitor.Name || `Monitor ${event.MonitorId}`;
+              const startTime = new Date(event.StartDateTime.replace(' ', 'T'));
 
-            // Use portal URL for image
-            const imageUrl = currentProfile
-              ? getEventImageUrl(currentProfile.portalUrl, event.Id, 'snapshot', {
+              // Use portal URL for image
+              const imageUrl = currentProfile
+                ? getEventImageUrl(currentProfile.portalUrl, event.Id, 'snapshot', {
                   token: accessToken || undefined,
                   width: ZM_CONSTANTS.eventMontageImageWidth,
                   height: ZM_CONSTANTS.eventMontageImageHeight,
                 })
-              : '';
+                : '';
 
-            const hasVideo = event.Videoed === '1';
-            const hasJPEGs = event.SaveJPEGs !== null && event.SaveJPEGs !== '0';
+              const hasVideo = event.Videoed === '1';
+              const hasJPEGs = event.SaveJPEGs !== null && event.SaveJPEGs !== '0';
 
-            return (
-              <Card
-                key={event.Id}
-                className="group overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary transition-all"
-                onClick={() => navigate(`/events/${event.Id}`)}
-              >
-                <div className="aspect-video relative bg-black">
-                  <img
-                    src={imageUrl}
-                    alt={event.Name}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      const img = e.target as HTMLImageElement;
-                      img.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="300" height="200"%3E%3Crect fill="%231a1a1a" width="300" height="200"/%3E%3Ctext fill="%23444" x="50%" y="50%" text-anchor="middle" font-family="sans-serif"%3ENo Image%3C/text%3E%3C/svg%3E';
-                    }}
-                  />
-                  <div className="absolute top-2 right-2">
-                    <Badge variant="secondary" className="text-xs">
-                      {event.Length}s
-                    </Badge>
-                  </div>
-
-                  {/* Download Button Overlay */}
-                  {(hasVideo || hasJPEGs) && (
-                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        className="gap-2"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (hasVideo && currentProfile) {
-                            downloadEventVideo(
-                              currentProfile.portalUrl,
-                              event.Id,
-                              event.Name,
-                              accessToken || undefined
-                            )
-                              .then(() => toast.success('Video download started'))
-                              .catch(() => toast.error('Failed to download video'));
-                          } else if (hasJPEGs) {
-                            downloadEventImage(imageUrl, event.Id, event.Name)
-                              .then(() => toast.success('Image downloaded'))
-                              .catch(() => toast.error('Failed to download image'));
-                          }
-                        }}
-                        title={hasVideo ? 'Download Video' : 'Download Image'}
-                      >
-                        {hasVideo ? (
-                          <>
-                            <Video className="h-4 w-4" />
-                            Download Video
-                          </>
-                        ) : (
-                          <>
-                            <Image className="h-4 w-4" />
-                            Download Image
-                          </>
-                        )}
-                      </Button>
+              return (
+                <Card
+                  key={event.Id}
+                  className="group overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary transition-all"
+                  onClick={() => navigate(`/events/${event.Id}`)}
+                >
+                  <div className="aspect-video relative bg-black">
+                    <img
+                      src={imageUrl}
+                      alt={event.Name}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        const img = e.target as HTMLImageElement;
+                        img.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="300" height="200"%3E%3Crect fill="%231a1a1a" width="300" height="200"/%3E%3Ctext fill="%23444" x="50%" y="50%" text-anchor="middle" font-family="sans-serif"%3ENo Image%3C/text%3E%3C/svg%3E';
+                      }}
+                    />
+                    <div className="absolute top-2 right-2">
+                      <Badge variant="secondary" className="text-xs">
+                        {event.Length}s
+                      </Badge>
                     </div>
-                  )}
-                </div>
-                <div className="p-3 space-y-1">
-                  <div className="font-medium text-sm truncate" title={event.Name}>
-                    {event.Name}
+
+                    {/* Download Button Overlay */}
+                    {(hasVideo || hasJPEGs) && (
+                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          className="gap-2"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (hasVideo && currentProfile) {
+                              downloadEventVideo(
+                                currentProfile.portalUrl,
+                                event.Id,
+                                event.Name,
+                                accessToken || undefined
+                              )
+                                .then(() => toast.success('Video download started'))
+                                .catch(() => toast.error('Failed to download video'));
+                            } else if (hasJPEGs) {
+                              downloadEventImage(imageUrl, event.Id, event.Name)
+                                .then(() => toast.success('Image downloaded'))
+                                .catch(() => toast.error('Failed to download image'));
+                            }
+                          }}
+                          title={hasVideo ? 'Download Video' : 'Download Image'}
+                        >
+                          {hasVideo ? (
+                            <>
+                              <Video className="h-4 w-4" />
+                              Download Video
+                            </>
+                          ) : (
+                            <>
+                              <Image className="h-4 w-4" />
+                              Download Image
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    )}
                   </div>
-                  <div className="text-xs text-muted-foreground truncate">
-                    {monitorName}
+                  <div className="p-3 space-y-1">
+                    <div className="font-medium text-sm truncate" title={event.Name}>
+                      {event.Name}
+                    </div>
+                    <div className="text-xs text-muted-foreground truncate">
+                      {monitorName}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {format(startTime, 'MMM d, HH:mm:ss')}
+                    </div>
+                    {event.Cause && (
+                      <Badge variant="outline" className="text-xs">
+                        {event.Cause}
+                      </Badge>
+                    )}
                   </div>
-                  <div className="text-xs text-muted-foreground">
-                    {format(startTime, 'MMM d, HH:mm:ss')}
-                  </div>
-                  {event.Cause && (
-                    <Badge variant="outline" className="text-xs">
-                      {event.Cause}
-                    </Badge>
-                  )}
-                </div>
-              </Card>
-            );
-          })}
+                </Card>
+              );
+            })}
           </div>
 
           {/* Results summary */}

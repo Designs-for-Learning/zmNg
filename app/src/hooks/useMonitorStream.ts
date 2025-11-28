@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { getStreamUrl } from '../api/monitors';
 import { useMonitorStore } from '../stores/monitors';
 import { useProfileStore } from '../stores/profile';
@@ -30,8 +31,8 @@ export function useMonitorStream({
 }: UseMonitorStreamOptions): UseMonitorStreamReturn {
   const currentProfile = useProfileStore((state) => state.currentProfile());
   const accessToken = useAuthStore((state) => state.accessToken);
-  const settings = useSettingsStore((state) =>
-    state.getProfileSettings(currentProfile?.id || '')
+  const settings = useSettingsStore(
+    useShallow((state) => state.getProfileSettings(currentProfile?.id || ''))
   );
   const regenerateConnKey = useMonitorStore((state) => state.regenerateConnKey);
 
@@ -75,17 +76,17 @@ export function useMonitorStream({
   // Build stream URL
   const streamUrl = currentProfile
     ? getStreamUrl(currentProfile.cgiUrl, monitorId, {
-        mode: settings.viewMode === 'snapshot' ? 'single' : 'jpeg',
-        scale: ZM_CONSTANTS.monitorStreamScale,
-        maxfps:
-          settings.viewMode === 'streaming'
-            ? ZM_CONSTANTS.streamMaxFPS
-            : undefined,
-        token: accessToken || undefined,
-        connkey: connKey,
-        cacheBuster: cacheBuster,
-        ...streamOptions,
-      })
+      mode: settings.viewMode === 'snapshot' ? 'single' : 'jpeg',
+      scale: ZM_CONSTANTS.monitorStreamScale,
+      maxfps:
+        settings.viewMode === 'streaming'
+          ? ZM_CONSTANTS.streamMaxFPS
+          : undefined,
+      token: accessToken || undefined,
+      connkey: connKey,
+      cacheBuster: cacheBuster,
+      ...streamOptions,
+    })
     : '';
 
   // Preload images in snapshot mode to avoid flickering

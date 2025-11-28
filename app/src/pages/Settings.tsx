@@ -1,4 +1,5 @@
 import { useProfileStore } from '../stores/profile';
+import { useShallow } from 'zustand/react/shallow';
 import { useAuthStore } from '../stores/auth';
 import { useSettingsStore } from '../stores/settings';
 import { Button } from '../components/ui/button';
@@ -12,7 +13,9 @@ import { Badge } from '../components/ui/badge';
 export default function Settings() {
   const currentProfile = useProfileStore((state) => state.currentProfile());
   const { version, apiVersion, logout } = useAuthStore();
-  const settings = useSettingsStore((state) => state.getProfileSettings(currentProfile?.id || ''));
+  const settings = useSettingsStore(
+    useShallow((state) => state.getProfileSettings(currentProfile?.id || ''))
+  );
   const updateSettings = useSettingsStore((state) => state.updateProfileSettings);
 
   const handleLogout = () => {

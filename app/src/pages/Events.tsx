@@ -1,5 +1,6 @@
 import { useMemo, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useShallow } from 'zustand/react/shallow';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { getEvents, getEventImageUrl } from '../api/events';
 import { getMonitors } from '../api/monitors';
@@ -19,8 +20,8 @@ import { EventCard } from '../components/events/EventCard';
 
 export default function Events() {
   const currentProfile = useProfileStore((state) => state.currentProfile());
-  const settings = useSettingsStore((state) =>
-    state.getProfileSettings(currentProfile?.id || '')
+  const settings = useSettingsStore(
+    useShallow((state) => state.getProfileSettings(currentProfile?.id || ''))
   );
   const accessToken = useAuthStore((state) => state.accessToken);
   const parentRef = useRef<HTMLDivElement>(null);
@@ -270,10 +271,10 @@ export default function Events() {
               const { Event } = allEvents[virtualRow.index];
               const thumbnailUrl = currentProfile
                 ? getEventImageUrl(currentProfile.portalUrl, Event.Id, 'snapshot', {
-                    token: accessToken || undefined,
-                    width: 160,
-                    height: 120,
-                  })
+                  token: accessToken || undefined,
+                  width: 160,
+                  height: 120,
+                })
                 : '';
 
               const monitorName =
