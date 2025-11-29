@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { getMonitors } from '../api/monitors';
@@ -31,6 +31,18 @@ export default function Monitors() {
     queryFn: getMonitors,
     enabled: !!currentProfile && isAuthenticated,
   });
+
+  // Force refetch when profile changes or auth state changes
+  // This helps resolve race conditions where the query might run before the API client is fully ready
+  useEffect(() => {
+    if (currentProfile?.id && isAuthenticated) {
+      // Small delay to ensure everything is settled
+      const timer = setTimeout(() => {
+        refetch();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [currentProfile?.id, isAuthenticated, refetch]);
 
   // Fetch event counts for the last 24 hours
   const { data: eventCounts } = useQuery({
