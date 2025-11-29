@@ -223,6 +223,12 @@ export function getEventVideoDownloadUrl(
   eventId: string,
   token?: string
 ): string {
+  // Ensure portalUrl has a protocol
+  let baseUrl = portalUrl;
+  if (!baseUrl.startsWith('http://') && !baseUrl.startsWith('https://')) {
+    baseUrl = `https://${baseUrl}`;
+  }
+
   // ZoneMinder video export endpoint
   // This tries to get the video file directly (mp4, avi, or mjpeg)
   const params = new URLSearchParams({
@@ -231,7 +237,7 @@ export function getEventVideoDownloadUrl(
     ...(token && { token }),
   });
 
-  return `${portalUrl}/index.php?${params.toString()}`;
+  return `${baseUrl}/index.php?${params.toString()}`;
 }
 
 /**

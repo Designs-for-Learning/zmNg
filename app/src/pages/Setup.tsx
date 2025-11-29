@@ -182,12 +182,18 @@ export default function Setup() {
       setSuccess(true);
       setError('');
 
+      // Ensure portalUrl has a protocol before saving
+      let finalPortalUrl = portalUrl;
+      if (!finalPortalUrl.startsWith('http://') && !finalPortalUrl.startsWith('https://')) {
+        finalPortalUrl = `https://${finalPortalUrl}`;
+      }
+
       if (currentProfile) {
         // If we are editing/logging in to an existing profile, update it
         console.log('[Setup] Updating existing profile:', currentProfile.name);
         const { updateProfile } = useProfileStore.getState();
         await updateProfile(currentProfile.id, {
-          portalUrl,
+          portalUrl: finalPortalUrl,
           apiUrl,
           cgiUrl,
           username: username || undefined,
@@ -199,16 +205,16 @@ export default function Setup() {
         console.log('[Setup] Adding new profile');
         // Use provided profile name, or fall back to auto-generated name
         const finalProfileName = profileName.trim() || (
-          portalUrl.includes('demo.zoneminder.com')
+          finalPortalUrl.includes('demo.zoneminder.com')
             ? 'Demo Server'
-            : portalUrl.includes('isaac')
+            : finalPortalUrl.includes('isaac')
               ? 'Isaac Server'
               : 'My ZoneMinder'
         );
 
         addProfile({
           name: finalProfileName,
-          portalUrl,
+          portalUrl: finalPortalUrl,
           apiUrl,
           cgiUrl,
           username: username || undefined,

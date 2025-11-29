@@ -168,6 +168,12 @@ export function getEventImageUrl(
     height?: number;
   } = {}
 ): string {
+  // Ensure portalUrl has a protocol
+  let baseUrl = portalUrl;
+  if (!baseUrl.startsWith('http://') && !baseUrl.startsWith('https://')) {
+    baseUrl = `https://${baseUrl}`;
+  }
+
   // Build query parameters for ZoneMinder's index.php image viewer
   const params = new URLSearchParams();
   params.append('view', 'image');
@@ -180,7 +186,7 @@ export function getEventImageUrl(
 
   // Construct the full URL: portalUrl/index.php?view=image&eid=...
   const imagePath = `/index.php?${params.toString()}`;
-  const fullUrl = `${portalUrl}${imagePath}`;
+  const fullUrl = `${baseUrl}${imagePath}`;
 
   // In dev mode, use proxy server to avoid CORS issues
   // In production (Tauri), use direct URL
@@ -205,11 +211,17 @@ export function getEventVideoUrl(
   eventId: string,
   token?: string
 ): string {
+  // Ensure portalUrl has a protocol
+  let baseUrl = portalUrl;
+  if (!baseUrl.startsWith('http://') && !baseUrl.startsWith('https://')) {
+    baseUrl = `https://${baseUrl}`;
+  }
+
   const params = new URLSearchParams({
     view: 'view_video',
     eid: eventId,
     ...(token && { token }),
   });
 
-  return `${portalUrl}/index.php?${params.toString()}`;
+  return `${baseUrl}/index.php?${params.toString()}`;
 }
