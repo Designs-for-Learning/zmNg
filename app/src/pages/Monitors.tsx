@@ -26,23 +26,26 @@ export default function Monitors() {
   const currentProfile = useProfileStore((state) => state.currentProfile());
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
+  // Allow fetching if authenticated OR if the profile doesn't require authentication (no username)
+  const canFetch = !!currentProfile && (isAuthenticated || !currentProfile.username);
+
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['monitors', currentProfile?.id],
     queryFn: getMonitors,
-    enabled: !!currentProfile && isAuthenticated,
+    enabled: canFetch,
   });
 
   // Force refetch when profile changes or auth state changes
   // This helps resolve race conditions where the query might run before the API client is fully ready
   useEffect(() => {
-    if (currentProfile?.id && isAuthenticated) {
+    if (canFetch) {
       // Small delay to ensure everything is settled
       const timer = setTimeout(() => {
         refetch();
       }, 100);
       return () => clearTimeout(timer);
     }
-  }, [currentProfile?.id, isAuthenticated, refetch]);
+  }, [canFetch, refetch]);
 
   // Fetch event counts for the last 24 hours
   const { data: eventCounts } = useQuery({
