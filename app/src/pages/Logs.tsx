@@ -2,12 +2,118 @@ import { useLogStore } from '../stores/logs';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
-import { ScrollText, Trash2 } from 'lucide-react';
+import { ScrollText, Trash2, Download, Share2, ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { Capacitor } from '@capacitor/core';
+import { Share } from '@capacitor/share';
+import { useToast } from '../hooks/use-toast';
+import { useState } from 'react';
+
+function LogCodeBlock({ content }: { content: string }) {
+    const [isExpanded, setIsExpanded] = useState(false);
+    const lines = content.split('\n');
+    const shouldTruncate = lines.length > 30;
+    const displayContent = shouldTruncate && !isExpanded
+        ? lines.slice(0, 30).join('\n')
+        : content;
+
+    return (
+        <div className="mt-1">
+            <pre className="p-2 bg-muted rounded text-[10px] overflow-x-auto">
+                {displayContent}
+            </pre>
+            {shouldTruncate && (
+                <button
+                    onClick={() => setIsExpanded(!isExpanded)}
+                    className="mt-1 text-[10px] text-primary hover:underline flex items-center gap-1"
+                >
+                    {isExpanded ? (
+                        <>
+                            <ChevronUp className="h-3 w-3" />
+                            Show less
+                        </>
+                    ) : (
+                        <>
+                            <ChevronDown className="h-3 w-3" />
+                            Show {lines.length - 30} more lines
+                        </>
+                    )}
+                </button>
+            )}
+        </div>
+    );
+}
 
 export default function Logs() {
     const logs = useLogStore((state) => state.logs);
     const clearLogs = useLogStore((state) => state.clearLogs);
+    const { toast } = useToast();
+    const isNative = Capacitor.isNativePlatform();
+
+    const exportLogsAsText = () => {
+        const logText = logs.map(log => {
+            let text = `[${log.timestamp}] [${log.level}]`;
+            if (log.context?.component) {
+                text += ` [${log.context.component}]`;
+            }
+            text += ` ${log.message}`;
+
+            if (log.args && log.args.length > 0) {
+                text += '\n  Args: ' + log.args.map(arg =>
+                    typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+                ).join(', ');
+            }
+
+            if (log.context && Object.keys(log.context).length > 0) {
+                const contextEntries = Object.entries(log.context)
+                    .filter(([key]) => key !== 'component')
+                    .map(([key, value]) => `${key}: ${String(value)}`);
+                if (contextEntries.length > 0) {
+                    text += '\n  Context: ' + contextEntries.join(', ');
+                }
+            }
+
+            return text;
+        }).join('\n\n');
+
+        return logText || 'No logs available';
+    };
+
+    const handleSaveLogs = () => {
+        const logText = exportLogsAsText();
+        const blob = new Blob([logText], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `zmng-logs-${new Date().toISOString().split('T')[0]}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        toast({
+            title: 'Success',
+            description: 'Logs saved successfully',
+        });
+    };
+
+    const handleShareLogs = async () => {
+        const logText = exportLogsAsText();
+
+        try {
+            await Share.share({
+                title: 'zmNg Application Logs',
+                text: logText,
+                dialogTitle: 'Share Logs',
+            });
+        } catch (error) {
+            toast({
+                title: 'Error',
+                description: 'Failed to share logs',
+                variant: 'destructive',
+            });
+        }
+    };
 
     const getLevelColor = (level: string) => {
         switch (level) {
@@ -28,15 +134,38 @@ export default function Logs() {
                         View and manage application logs for debugging
                     </p>
                 </div>
-                <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={clearLogs}
-                    disabled={logs.length === 0}
-                >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Clear Logs
-                </Button>
+                <div className="flex items-center gap-2">
+                    {isNative ? (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleShareLogs}
+                            disabled={logs.length === 0}
+                        >
+                            <Share2 className="h-4 w-4 mr-2" />
+                            Share
+                        </Button>
+                    ) : (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleSaveLogs}
+                            disabled={logs.length === 0}
+                        >
+                            <Download className="h-4 w-4 mr-2" />
+                            Save
+                        </Button>
+                    )}
+                    <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={clearLogs}
+                        disabled={logs.length === 0}
+                    >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Clear Logs
+                    </Button>
+                </div>
             </div>
 
             <Card className="flex-1 overflow-hidden flex flex-col">
@@ -73,11 +202,11 @@ export default function Logs() {
                                             </div>
                                             <p className="break-all whitespace-pre-wrap">{log.message}</p>
                                             {log.args && log.args.length > 0 && (
-                                                <pre className="mt-1 p-2 bg-muted rounded text-[10px] overflow-x-auto">
-                                                    {log.args.map(arg =>
+                                                <LogCodeBlock
+                                                    content={log.args.map(arg =>
                                                         typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
                                                     ).join('\n')}
-                                                </pre>
+                                                />
                                             )}
                                             {log.context && Object.keys(log.context).length > 0 && (
                                                 <div className="mt-1 flex flex-wrap gap-1">

@@ -4,6 +4,7 @@
  */
 
 import { useLogStore } from '../stores/logs';
+import { sanitizeLogMessage, sanitizeObject, sanitizeLogArgs } from './log-sanitizer';
 
 export const LogLevel = {
   DEBUG: 0,
@@ -47,19 +48,25 @@ class Logger {
 
     const prefix = `${timestamp} ${level} ${contextStr}${actionStr}`;
 
-    if (args.length > 0) {
-      console.log(prefix, message, ...args);
+    // Sanitize before logging to console and store
+    const sanitizedMessage = sanitizeLogMessage(message);
+    const sanitizedContext = sanitizeObject(context) as LogContext;
+    const sanitizedArgs = args.length > 0 ? sanitizeLogArgs(args) : [];
+
+    // Log sanitized data to console
+    if (sanitizedArgs.length > 0) {
+      console.log(prefix, sanitizedMessage, ...sanitizedArgs);
     } else {
-      console.log(prefix, message);
+      console.log(prefix, sanitizedMessage);
     }
 
     // Add to store
     useLogStore.getState().addLog({
       timestamp,
       level,
-      message,
-      context,
-      args: args.length > 0 ? args : undefined,
+      message: sanitizedMessage,
+      context: sanitizedContext,
+      args: sanitizedArgs.length > 0 ? sanitizedArgs : undefined,
     });
   }
 
