@@ -71,6 +71,12 @@ export default function EventDetail() {
       })
     : '';
 
+  const posterUrl = currentProfile
+    ? getEventImageUrl(currentProfile.portalUrl, event.Event.Id, 'snapshot', {
+        token: accessToken || undefined,
+      })
+    : undefined;
+
   const startTime = new Date(event.Event.StartDateTime.replace(' ', 'T'));
 
   return (
@@ -155,7 +161,7 @@ export default function EventDetail() {
                   controls
                   autoPlay
                   className="w-full h-full"
-                  poster={currentProfile ? `${currentProfile.apiUrl}/events/${event.Event.Id}.json?token=${accessToken}` : undefined}
+                  poster={posterUrl}
                 >
                   Your browser does not support the video tag.
                 </video>
