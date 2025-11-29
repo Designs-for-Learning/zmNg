@@ -99,7 +99,7 @@ npm run dev:all
 
 ### Desktop (Tauri)
 ```bash
-# Start Tauri development window
+# Start Tauri development window (Uses native HTTP client, no proxy needed)
 npm run tauri:dev
 ```
 
@@ -391,7 +391,7 @@ All user passwords are encrypted before being stored in localStorage using:
   - **Web Dev**: Uses proxy server on localhost:3001
   - **Web Production**: Direct requests (assumes CORS enabled on ZM server)
   - **Android/iOS**: Native HTTP via Capacitor (no CORS issues)
-  - **Desktop**: Native HTTP via Tauri (no CORS issues)
+  - **Desktop (Tauri)**: Native HTTP via Tauri (no CORS issues, even in dev)
 
 #### Network Security (Android)
 - Android 9+ blocks cleartext (HTTP) traffic by default

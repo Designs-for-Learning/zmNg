@@ -10,12 +10,15 @@ interface SecureImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
 }
 
 export function SecureImage({ src, fallbackSrc, className, alt, ...props }: SecureImageProps) {
-  const [imageSrc, setImageSrc] = useState<string>(src);
+  // In native mode, start with empty string to prevent immediate 401/CORS error
+  // which would trigger onError before the blob is fetched
+  const isNativeMode = Capacitor.isNativePlatform() || isTauri();
+  const [imageSrc, setImageSrc] = useState<string>(isNativeMode ? '' : src);
   const [isLoading, setIsLoading] = useState(true);
-  const mountedRef = useRef(true);
+  const objectUrlRef = useRef<string | null>(null);
 
   useEffect(() => {
-    mountedRef.current = true;
+    let isCancelled = false;
     const isNative = Capacitor.isNativePlatform();
     const isTauriApp = isTauri();
 
@@ -27,31 +30,44 @@ export function SecureImage({ src, fallbackSrc, className, alt, ...props }: Secu
     }
 
     // If native/Tauri, fetch as blob to bypass CORS
-    let objectUrl: string | null = null;
+    
+    // Cleanup previous object URL if exists
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current);
+      objectUrlRef.current = null;
+    }
+
+    // Reset state for new src
+    setImageSrc('');
+    setIsLoading(true);
 
     const fetchImage = async () => {
       try {
-        setIsLoading(true);
-        
         const client = getApiClient();
         const response = await client.get(src, { 
           responseType: 'blob' 
         });
         
-        if (mountedRef.current && response.data) {
+        if (!isCancelled && response.data) {
           const blob = response.data as Blob;
-          objectUrl = URL.createObjectURL(blob);
-          setImageSrc(objectUrl);
+          if (blob.size > 0) {
+            const url = URL.createObjectURL(blob);
+            // Store in ref so we can cleanup later
+            objectUrlRef.current = url;
+            setImageSrc(url);
+          } else {
+            // Empty blob, try original src
+            setImageSrc(src);
+          }
         }
       } catch (error) {
-        console.error('Failed to fetch secure image:', error);
-        if (mountedRef.current) {
-          // Fallback to original src if blob fetch fails, 
-          // maybe it works directly (e.g. if it's a public URL)
+        console.error('Failed to fetch secure image:', src, error);
+        if (!isCancelled) {
+          // Fallback to original src if blob fetch fails
           setImageSrc(src);
         }
       } finally {
-        if (mountedRef.current) {
+        if (!isCancelled) {
           setIsLoading(false);
         }
       }
@@ -60,20 +76,31 @@ export function SecureImage({ src, fallbackSrc, className, alt, ...props }: Secu
     fetchImage();
 
     return () => {
-      mountedRef.current = false;
-      if (objectUrl) {
-        URL.revokeObjectURL(objectUrl);
+      isCancelled = true;
+      if (objectUrlRef.current) {
+        URL.revokeObjectURL(objectUrlRef.current);
+        objectUrlRef.current = null;
       }
     };
   }, [src]);
 
   const handleError = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    // Ignore errors that happen while we are explicitly loading the blob
+    // This prevents the "No Image" placeholder from showing up prematurely
+    if (isLoading && isNativeMode) return;
+
     if (fallbackSrc && imageSrc !== fallbackSrc) {
       setImageSrc(fallbackSrc);
     } else if (props.onError) {
       props.onError(e);
     }
   };
+
+  // If loading in native mode, show a placeholder or nothing
+  // This prevents the browser from trying to load an empty src or the remote src
+  if (isLoading && isNativeMode) {
+    return <div className={cn(className, "animate-pulse bg-muted flex items-center justify-center")} />;
+  }
 
   return (
     <img
