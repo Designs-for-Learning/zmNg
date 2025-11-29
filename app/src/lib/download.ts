@@ -6,6 +6,7 @@
 import { Capacitor, CapacitorHttp } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Media } from '@capacitor-community/media';
+import { isTauri } from '@tauri-apps/api/core';
 import { log } from './logger';
 
 /**
@@ -65,9 +66,10 @@ export async function downloadFile(url: string, filename: string): Promise<void>
     } else {
       // Web: Use traditional fetch + blob download
       const isDev = import.meta.env.DEV;
+      const isTauriApp = isTauri();
       let fetchUrl = url;
 
-      if (isDev && (url.startsWith('http://') || url.startsWith('https://'))) {
+      if (isDev && !isTauriApp && (url.startsWith('http://') || url.startsWith('https://'))) {
         // Use the image proxy for cross-origin URLs in dev mode
         fetchUrl = `http://localhost:3001/image-proxy?url=${encodeURIComponent(url)}`;
         log.info('[Download] Using proxy for CORS', { component: 'Download', url: fetchUrl });

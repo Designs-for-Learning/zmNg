@@ -111,6 +111,12 @@ export function createApiClient(baseURL: string): AxiosInstance {
               url: urlWithParams,
               headers: (config.headers as Record<string, string>) || {},
               data: config.data,
+              // Map axios responseType to CapacitorHttp responseType
+              responseType: config.responseType === 'blob' 
+                ? 'blob' 
+                : config.responseType === 'arraybuffer' 
+                  ? 'arraybuffer' 
+                  : undefined,
             });
             responseData = response.data;
             responseStatus = response.status;
@@ -139,11 +145,17 @@ export function createApiClient(baseURL: string): AxiosInstance {
               responseHeaders[key] = value;
             });
 
-            const text = await response.text();
-            try {
-              responseData = JSON.parse(text);
-            } catch {
-              responseData = text;
+            if (config.responseType === 'blob') {
+              responseData = await response.blob();
+            } else if (config.responseType === 'arraybuffer') {
+              responseData = await response.arrayBuffer();
+            } else {
+              const text = await response.text();
+              try {
+                responseData = JSON.parse(text);
+              } catch {
+                responseData = text;
+              }
             }
 
             // Handle 401 specifically for Tauri

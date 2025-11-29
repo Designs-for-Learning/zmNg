@@ -2,6 +2,8 @@ import { getApiClient } from './client';
 import type { EventsResponse, EventData } from './types';
 import { EventsResponseSchema } from './types';
 import { log } from '../lib/logger';
+import { Capacitor } from '@capacitor/core';
+import { isTauri } from '@tauri-apps/api/core';
 
 export interface EventFilters {
   monitorId?: string;
@@ -183,7 +185,10 @@ export function getEventImageUrl(
   // In dev mode, use proxy server to avoid CORS issues
   // In production (Tauri), use direct URL
   const isDev = import.meta.env.DEV;
-  if (isDev) {
+  const isNative = Capacitor.isNativePlatform();
+  const isTauriApp = isTauri();
+
+  if (isDev && !isNative && !isTauriApp) {
     const proxyParams = new URLSearchParams();
     proxyParams.append('url', fullUrl);
     return `http://localhost:3001/image-proxy?${proxyParams.toString()}`;

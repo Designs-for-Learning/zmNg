@@ -96,6 +96,10 @@ export default function Setup() {
     // For now, use the first CGI pattern - we'll validate this later
     cgiUrl = cgiPatterns[0];
 
+    // If we are in Tauri, we need to make sure we don't use localhost proxy for images
+    // The API client handles this for API calls, but for images we need the real URL
+    // This is handled by the fact that we store the real URL in the profile
+    
     return { apiUrl, cgiUrl };
   };
 
