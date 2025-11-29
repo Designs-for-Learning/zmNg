@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react';
+import { useMemo, useRef, useState, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useShallow } from 'zustand/react/shallow';
 import { useVirtualizer } from '@tanstack/react-virtual';
@@ -12,7 +12,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Badge } from '../components/ui/badge';
-import { RefreshCw, Filter, AlertCircle, Video, X } from 'lucide-react';
+import { RefreshCw, Filter, AlertCircle, Video, X, Loader2 } from 'lucide-react';
 import { getEnabledMonitorIds, filterEnabledMonitors } from '../lib/filters';
 import { Popover, PopoverContent, PopoverTrigger } from '../components/ui/popover';
 import { Checkbox } from '../components/ui/checkbox';
@@ -40,6 +40,10 @@ export default function Events() {
     activeFilterCount,
   } = useEventFilters();
 
+  // Pagination state
+  const [eventLimit, setEventLimit] = useState(settings.defaultEventLimit || 300);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+
   // Fetch monitors to filter by enabled ones
   const { data: monitorsData } = useQuery({
     queryKey: ['monitors'],
@@ -48,9 +52,16 @@ export default function Events() {
 
   // Fetch events with configured limit
   const { data: eventsData, isLoading, error, refetch } = useQuery({
-    queryKey: ['events', filters],
-    queryFn: () => getEvents(filters),
+    queryKey: ['events', filters, eventLimit],
+    queryFn: () => getEvents({ ...filters, limit: eventLimit }),
   });
+
+  // Load next batch of events
+  const loadNextPage = useCallback(() => {
+    setIsLoadingMore(true);
+    setEventLimit(prev => prev + (settings.defaultEventLimit || 300));
+    setIsLoadingMore(false);
+  }, [settings.defaultEventLimit]);
 
   // Memoize enabled monitor IDs and monitors
   const enabledMonitorIds = useMemo(
@@ -65,11 +76,28 @@ export default function Events() {
 
   // Memoize filtered events
   const allEvents = useMemo(() => {
-    const filtered = (eventsData?.events || []).filter(({ Event }) =>
+    const filtered = (eventsData?.events || []).filter(({ Event }: any) =>
       enabledMonitorIds.includes(Event.MonitorId)
     );
     return filtered;
   }, [eventsData?.events, enabledMonitorIds]);
+
+  // Detect scroll to bottom for infinite scroll
+  useEffect(() => {
+    const container = parentRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      // Trigger load when user scrolls within 500px of bottom
+      if (scrollHeight - (scrollTop + clientHeight) < 500 && !isLoadingMore && allEvents.length >= eventLimit) {
+        loadNextPage();
+      }
+    };
+
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [eventLimit, isLoadingMore, loadNextPage, allEvents.length]);
 
   // Virtualize the events list for better performance
   const rowVirtualizer = useVirtualizer({
@@ -302,15 +330,29 @@ export default function Events() {
             })}
           </div>
 
-          {/* Results summary */}
-          <div className="text-center py-2 text-xs text-muted-foreground">
-            {allEvents.length === (settings.defaultEventLimit || 300) ? (
-              <>
-                Showing {allEvents.length} events (maximum per query reached - adjust limit in
-                Settings to see more)
-              </>
-            ) : (
-              <>Showing all {allEvents.length} events</>
+          {/* Results summary and load more */}
+          <div className="text-center py-4 space-y-3">
+            <div className="text-xs text-muted-foreground">
+              Showing {allEvents.length} event{allEvents.length !== 1 ? 's' : ''}
+              {allEvents.length >= eventLimit && ` (more available)`}
+            </div>
+            {allEvents.length >= eventLimit && (
+              <Button
+                onClick={loadNextPage}
+                disabled={isLoadingMore}
+                variant="outline"
+                size="sm"
+                className="w-full"
+              >
+                {isLoadingMore ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  'Load More Events'
+                )}
+              </Button>
             )}
           </div>
         </div>

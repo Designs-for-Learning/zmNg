@@ -15,17 +15,20 @@ import {
   Menu,
   Users,
   Grid3x3,
-  Bell
+  Bell,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Sheet, SheetContent, SheetTrigger } from '../ui/sheet';
 
 interface SidebarContentProps {
   onMobileClose?: () => void;
+  isCollapsed?: boolean;
 }
 
-function SidebarContent({ onMobileClose }: SidebarContentProps) {
+function SidebarContent({ onMobileClose, isCollapsed }: SidebarContentProps) {
   const location = useLocation();
   const currentProfile = useProfileStore((state) => state.currentProfile());
   const logout = useAuthStore((state) => state.logout);
@@ -48,22 +51,24 @@ function SidebarContent({ onMobileClose }: SidebarContentProps) {
   ];
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="p-6">
+    <div className="flex flex-col h-full overflow-hidden">
+      <div className={cn("p-6 transition-all duration-300", isCollapsed && "p-2")}>
         <div className="flex items-center gap-2 mb-1">
-          <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
+          <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
             <Video className="h-5 w-5 text-primary-foreground" />
           </div>
-          <h1 className="text-xl font-bold tracking-tight">zmNg</h1>
+          {!isCollapsed && (
+            <h1 className="text-xl font-bold tracking-tight whitespace-nowrap">zmNg</h1>
+          )}
         </div>
-        {currentProfile && (
-          <p className="text-xs text-muted-foreground font-medium px-1">
+        {!isCollapsed && currentProfile && (
+          <p className="text-xs text-muted-foreground font-medium px-1 truncate">
             {currentProfile.name}
           </p>
         )}
       </div>
 
-      <div className="flex-1 px-3 py-2">
+      <div className="flex-1 px-3 py-2 overflow-y-auto">
         <nav className="space-y-1">
           {navItems.map((item) => {
             const Icon = item.icon;
@@ -78,15 +83,21 @@ function SidebarContent({ onMobileClose }: SidebarContentProps) {
                   "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group relative",
                   isActive
                     ? "bg-primary text-primary-foreground shadow-md"
-                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                  isCollapsed && "justify-center px-2"
                 )}
+                title={isCollapsed ? item.label : undefined}
               >
-                <Icon className={cn("h-4 w-4 transition-transform group-hover:scale-110", isActive && "text-primary-foreground")} />
-                {item.label}
-                {item.path === '/notifications' && unreadCount > 0 && (
-                  <span className="ml-auto h-5 min-w-5 px-1.5 flex items-center justify-center text-xs font-bold rounded-full bg-destructive text-destructive-foreground">
-                    {unreadCount > 99 ? '99+' : unreadCount}
-                  </span>
+                <Icon className={cn("h-4 w-4 transition-transform group-hover:scale-110 flex-shrink-0", isActive && "text-primary-foreground")} />
+                {!isCollapsed && (
+                  <>
+                    <span className="truncate">{item.label}</span>
+                    {item.path === '/notifications' && unreadCount > 0 && (
+                      <span className="ml-auto h-5 min-w-5 px-1.5 flex items-center justify-center text-xs font-bold rounded-full bg-destructive text-destructive-foreground flex-shrink-0">
+                        {unreadCount > 99 ? '99+' : unreadCount}
+                      </span>
+                    )}
+                  </>
                 )}
               </Link>
             );
@@ -94,22 +105,28 @@ function SidebarContent({ onMobileClose }: SidebarContentProps) {
         </nav>
       </div>
 
-      <div className="p-4 border-t bg-card/50 backdrop-blur-sm space-y-3">
-        <div className="space-y-2">
-          <span className="text-xs font-medium text-muted-foreground px-1">Profile</span>
-          <ProfileSwitcher />
-        </div>
-        <div className="flex items-center justify-between pt-2">
-          <span className="text-xs font-medium text-muted-foreground">Theme</span>
-          <ModeToggle />
-        </div>
+      <div className={cn("border-t bg-card/50 backdrop-blur-sm space-y-3 transition-all duration-300", isCollapsed ? "p-2" : "p-4")}>
+        {!isCollapsed && (
+          <>
+            <div className="space-y-2">
+              <span className="text-xs font-medium text-muted-foreground px-1">Profile</span>
+              <ProfileSwitcher />
+            </div>
+            <div className="flex items-center justify-between pt-2">
+              <span className="text-xs font-medium text-muted-foreground">Theme</span>
+              <ModeToggle />
+            </div>
+          </>
+        )}
         <Button
           variant="ghost"
-          className="w-full justify-start text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+          className={cn("text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all duration-300", isCollapsed ? "w-auto p-2 h-auto" : "w-full justify-start")}
+          size={isCollapsed ? "icon" : "default"}
           onClick={handleLogout}
+          title={isCollapsed ? "Logout" : undefined}
         >
-          <LogOut className="h-4 w-4 mr-2" />
-          Logout
+          <LogOut className="h-4 w-4" />
+          {!isCollapsed && <span className="ml-2">Logout</span>}
         </Button>
       </div>
     </div>
@@ -118,12 +135,71 @@ function SidebarContent({ onMobileClose }: SidebarContentProps) {
 
 export default function AppLayout() {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(256); // 256px = w-64
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartX = useRef(0);
+  const dragStartWidth = useRef(0);
+  const MIN_WIDTH = 60;
+  const MAX_WIDTH = 256;
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setIsDragging(true);
+    dragStartX.current = e.clientX;
+    dragStartWidth.current = sidebarWidth;
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDragging) return;
+
+      const delta = e.clientX - dragStartX.current;
+      const newWidth = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, dragStartWidth.current + delta));
+      setSidebarWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging]);
+
+  const toggleSidebar = () => {
+    setSidebarWidth(sidebarWidth > MIN_WIDTH + 20 ? MIN_WIDTH : MAX_WIDTH);
+  };
+
+  const isCollapsed = sidebarWidth <= MIN_WIDTH + 20;
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
-      {/* Desktop Sidebar */}
-      <aside className="hidden md:flex w-64 flex-col border-r bg-card/50 backdrop-blur-xl z-20">
-        <SidebarContent />
+      {/* Desktop Sidebar - Draggable */}
+      <aside
+        className="hidden md:flex flex-col border-r bg-card/50 backdrop-blur-xl z-20 transition-all duration-300 relative group"
+        style={{ width: `${sidebarWidth}px` }}
+      >
+        <SidebarContent isCollapsed={isCollapsed} />
+
+        {/* Draggable Handle with Toggle Button */}
+        <div
+          className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-5 h-12 bg-primary hover:bg-primary/90 rounded-full flex items-center justify-center cursor-col-resize shadow-lg z-50 transition-all duration-200 group-hover:w-6"
+          onMouseDown={handleMouseDown}
+          onClick={toggleSidebar}
+          title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          {isCollapsed ? (
+            <ChevronRight className="h-4 w-4 text-primary-foreground" />
+          ) : (
+            <ChevronLeft className="h-4 w-4 text-primary-foreground" />
+          )}
+        </div>
       </aside>
 
       {/* Mobile Header */}
@@ -140,8 +216,10 @@ export default function AppLayout() {
               <Menu className="h-5 w-5" />
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="p-0 w-64 sm:w-72">
-            <SidebarContent onMobileClose={() => setIsMobileOpen(false)} />
+          <SheetContent side="left" className="p-0 w-64 sm:w-72 flex flex-col">
+            <div className="flex-1 overflow-y-auto">
+              <SidebarContent onMobileClose={() => setIsMobileOpen(false)} />
+            </div>
           </SheetContent>
         </Sheet>
       </div>

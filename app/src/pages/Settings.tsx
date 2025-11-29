@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Label } from '../components/ui/label';
 import { Input } from '../components/ui/input';
 import { Switch } from '../components/ui/switch';
-import { Settings as SettingsIcon, Shield, Info, LogOut, Image, Video as VideoIcon, List } from 'lucide-react';
+import { Settings as SettingsIcon, Shield, Info, LogOut, Image, Video as VideoIcon, List, Maximize2, Minimize2 } from 'lucide-react';
 import { Badge } from '../components/ui/badge';
 
 export default function Settings() {
@@ -44,6 +44,13 @@ export default function Settings() {
     });
   };
 
+  const handleDisplayModeChange = (checked: boolean) => {
+    if (!currentProfile) return;
+    updateSettings(currentProfile.id, {
+      displayMode: checked ? 'compact' : 'normal',
+    });
+  };
+
   return (
     <div className="p-3 sm:p-4 md:p-6 max-w-5xl mx-auto space-y-4 sm:space-y-6">
       <div>
@@ -67,7 +74,7 @@ export default function Settings() {
           </CardHeader>
           <CardContent className="space-y-6">
             {/* View Mode Toggle */}
-            <div className="flex items-center justify-between space-x-4 p-4 rounded-lg border bg-card">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 rounded-lg border bg-card">
               <div className="flex-1 space-y-1">
                 <div className="flex items-center gap-2">
                   <Label htmlFor="view-mode" className="text-base font-semibold">
@@ -88,7 +95,7 @@ export default function Settings() {
                   ⚠ Note: Snapshot mode is recommended due to browser limitations (6 concurrent connection limit)
                 </p>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <div className="flex items-center gap-2 text-sm">
                   <Image className="h-4 w-4" />
                   <span className="font-medium">Snapshot</span>
@@ -116,7 +123,7 @@ export default function Settings() {
                     How often to refresh camera snapshots (in seconds)
                   </p>
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                   <Input
                     id="refresh-interval"
                     type="number"
@@ -127,7 +134,7 @@ export default function Settings() {
                     className="w-24"
                   />
                   <span className="text-sm text-muted-foreground">seconds</span>
-                  <div className="flex gap-2 ml-auto">
+                  <div className="flex flex-wrap gap-2 sm:ml-auto">
                     <Button
                       variant="outline"
                       size="sm"
@@ -156,6 +163,50 @@ export default function Settings() {
           </CardContent>
         </Card>
 
+        {/* Display Mode Settings */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Minimize2 className="h-5 w-5 text-primary" />
+              <CardTitle>Display Mode</CardTitle>
+            </div>
+            <CardDescription>
+              Choose between normal and compact layouts to optimize screen space
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 rounded-lg border bg-card">
+              <div className="flex-1 space-y-1">
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="display-mode" className="text-base font-semibold">
+                    Compact View
+                  </Label>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {settings.displayMode === 'compact'
+                    ? 'Using compact layout with smaller fonts and tighter spacing'
+                    : 'Using normal layout with standard fonts and spacing'}
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2 text-sm">
+                  <Maximize2 className="h-4 w-4" />
+                  <span className="font-medium">Normal</span>
+                </div>
+                <Switch
+                  id="display-mode"
+                  checked={settings.displayMode === 'compact'}
+                  onCheckedChange={handleDisplayModeChange}
+                />
+                <div className="flex items-center gap-2 text-sm">
+                  <Minimize2 className="h-4 w-4" />
+                  <span className="font-medium">Compact</span>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Event Settings */}
         <Card>
           <CardHeader>
@@ -177,7 +228,7 @@ export default function Settings() {
                   Number of events to load at a time in Events and Event Montage pages
                 </p>
               </div>
-              <div className="flex items-center gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                 <Input
                   id="event-limit"
                   type="number"
@@ -189,7 +240,7 @@ export default function Settings() {
                   className="w-28"
                 />
                 <span className="text-sm text-muted-foreground">events per page</span>
-                <div className="flex gap-2 ml-auto">
+                <div className="flex flex-wrap gap-2 sm:ml-auto">
                   <Button
                     variant="outline"
                     size="sm"

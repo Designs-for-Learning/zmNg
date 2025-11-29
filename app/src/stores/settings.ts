@@ -3,9 +3,11 @@ import { persist } from 'zustand/middleware';
 import type { Layouts } from 'react-grid-layout';
 
 export type ViewMode = 'snapshot' | 'streaming';
+export type DisplayMode = 'normal' | 'compact';
 
 export interface ProfileSettings {
   viewMode: ViewMode;
+  displayMode: DisplayMode;
   snapshotRefreshInterval: number; // in seconds
   defaultEventLimit: number; // Default number of events to fetch when no filters applied
   montageLayouts: Layouts; // Store montage layouts per profile
@@ -39,8 +41,19 @@ interface SettingsState {
   saveEventMontageLayout: (profileId: string, layout: Layouts) => void;
 }
 
+// Determine default display mode based on device type
+const getDefaultDisplayMode = (): DisplayMode => {
+  // Check if window is available (client-side)
+  if (typeof window !== 'undefined') {
+    // Use mobile breakpoint (768px = md breakpoint in Tailwind)
+    return window.innerWidth < 768 ? 'compact' : 'normal';
+  }
+  return 'normal';
+};
+
 const DEFAULT_SETTINGS: ProfileSettings = {
   viewMode: 'snapshot',
+  displayMode: getDefaultDisplayMode(),
   snapshotRefreshInterval: 3,
   defaultEventLimit: 300,
   montageLayouts: {},

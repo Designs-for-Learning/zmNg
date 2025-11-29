@@ -1,7 +1,8 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useProfileStore } from './stores/profile';
+import { useSettingsStore } from './stores/settings';
 import { setQueryClient } from './stores/query-cache';
 import { Toaster } from './components/ui/toast';
 import { ThemeProvider } from './components/theme-provider';
@@ -53,9 +54,24 @@ setQueryClient(queryClient);
 function AppRoutes() {
   const profiles = useProfileStore((state) => state.profiles);
   const currentProfile = useProfileStore((state) => state.currentProfile());
+  const displayMode = useSettingsStore(
+    (state) => state.getProfileSettings(currentProfile?.id || '').displayMode
+  );
 
   // Enable automatic token refresh
   useTokenRefresh();
+
+  // Apply compact mode class to root element
+  useEffect(() => {
+    const root = document.getElementById('root');
+    if (root) {
+      if (displayMode === 'compact') {
+        root.classList.add('compact-mode');
+      } else {
+        root.classList.remove('compact-mode');
+      }
+    }
+  }, [displayMode]);
 
   // Log app mount and profile state
   log.info('React app initialized', {

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useShallow } from 'zustand/react/shallow';
 import { useNavigate } from 'react-router-dom';
@@ -40,7 +40,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../components/ui/dialog';
-import { RefreshCw, Video, AlertCircle, Filter, ChevronDown, X, Calendar, LayoutGrid, Image, Grid2x2, Grid3x3, GripVertical } from 'lucide-react';
+import { RefreshCw, Video, AlertCircle, Filter, ChevronDown, X, Calendar, LayoutGrid, Image, Grid2x2, Grid3x3, GripVertical, Loader2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { format } from 'date-fns';
 import { filterEnabledMonitors } from '../lib/filters';
@@ -69,6 +69,11 @@ export default function EventMontage() {
   const [gridCols, setGridCols] = useState<number>(settings.eventMontageGridCols);
   const [isCustomGridDialogOpen, setIsCustomGridDialogOpen] = useState(false);
   const [customCols, setCustomCols] = useState<string>(settings.eventMontageGridCols.toString());
+
+  // Pagination state
+  const [eventLimit, setEventLimit] = useState(settings.defaultEventLimit || 300);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Fetch monitors for filter
   const { data: monitorsData } = useQuery({
@@ -99,14 +104,18 @@ export default function EventMontage() {
     }
 
     // Always use the configured limit, default to 300 if not set
-    params.limit = settings.defaultEventLimit || 300;
+    params.limit = eventLimit;
+    
+    // Sort by newest events first (same as Events page)
+    params.sort = 'StartDateTime';
+    params.direction = 'desc';
 
     console.log('[EventMontage] Filter params:', params);
 
     return params;
-  }, [selectedMonitorIds, selectedCause, startDate, endDate, settings.defaultEventLimit]);
+  }, [selectedMonitorIds, selectedCause, startDate, endDate, eventLimit]);
 
-  // Fetch events with configured limit (no pagination)
+  // Fetch events with configured limit
   const {
     data: eventsData,
     isLoading,
@@ -116,6 +125,30 @@ export default function EventMontage() {
     queryKey: ['event-montage', filterParams],
     queryFn: () => getEvents(filterParams),
   });
+
+  // Load next batch of events
+  const loadNextPage = useCallback(() => {
+    setIsLoadingMore(true);
+    setEventLimit(prev => prev + (settings.defaultEventLimit || 300));
+    setIsLoadingMore(false);
+  }, [settings.defaultEventLimit]);
+
+  // Detect scroll to bottom for infinite scroll
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      // Trigger load when user scrolls within 500px of bottom
+      if (scrollHeight - (scrollTop + clientHeight) < 500 && !isLoadingMore && (eventsData?.events?.length || 0) >= eventLimit) {
+        loadNextPage();
+      }
+    };
+
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [eventLimit, isLoadingMore, loadNextPage, eventsData?.events?.length]);
 
   const events = eventsData?.events || [];
 
@@ -256,7 +289,7 @@ export default function EventMontage() {
   }
 
   return (
-    <div className="p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4 md:space-y-6">
+    <div ref={containerRef} className="h-full overflow-auto p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4 md:space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div>
@@ -540,12 +573,29 @@ export default function EventMontage() {
             })}
           </div>
 
-          {/* Results summary */}
-          <div className="text-center py-6 text-sm text-muted-foreground">
-            {events.length === (settings.defaultEventLimit || 300) ? (
-              <>Showing {events.length} events (maximum per query reached - adjust limit in Settings to see more)</>
-            ) : (
-              <>Showing all {events.length} events</>
+          {/* Results summary and load more */}
+          <div className="text-center py-4 space-y-3">
+            <div className="text-xs text-muted-foreground">
+              Showing {events.length} event{events.length !== 1 ? 's' : ''}
+              {events.length >= eventLimit && ` (more available)`}
+            </div>
+            {events.length >= eventLimit && (
+              <Button
+                onClick={loadNextPage}
+                disabled={isLoadingMore}
+                variant="outline"
+                size="sm"
+                className="w-full"
+              >
+                {isLoadingMore ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  'Load More Events'
+                )}
+              </Button>
             )}
           </div>
         </>

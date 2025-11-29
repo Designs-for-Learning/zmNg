@@ -91,12 +91,18 @@ export function useMonitorStream({
 
   // Preload images in snapshot mode to avoid flickering
   useEffect(() => {
-    if (settings.viewMode !== 'snapshot' || !streamUrl) {
+    // In streaming mode or if no URL, just use the streamUrl directly
+    if (settings.viewMode !== 'snapshot') {
       setDisplayedImageUrl(streamUrl);
       return;
     }
 
-    // Preload the new image
+    // In snapshot mode, preload the image to avoid flickering
+    if (!streamUrl) {
+      setDisplayedImageUrl('');
+      return;
+    }
+
     const img = new Image();
     img.onload = () => {
       // Only update the displayed URL when the new image is fully loaded
