@@ -29,7 +29,7 @@ import {
 } from '../components/ui/dialog';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import { RefreshCw, Video, Clock, Settings2, Maximize2, AlertCircle, LayoutDashboard, RotateCcw, Download, Grid2x2, Grid3x3, GripVertical } from 'lucide-react';
+import { RefreshCw, Video, Clock, Settings2, Maximize2, AlertCircle, LayoutDashboard, RotateCcw, Download, Grid2x2, Grid3x3, GripVertical, Maximize, Minimize, X } from 'lucide-react';
 import { filterEnabledMonitors } from '../lib/filters';
 import { cn } from '../lib/utils';
 import { ZM_CONSTANTS } from '../lib/constants';
@@ -64,7 +64,8 @@ const getEffectiveCols = (width: number, requestedCols: number) => {
   if (width >= BREAKPOINTS.lg) return requestedCols;
   if (width >= BREAKPOINTS.md) return Math.min(requestedCols, 6);
   if (width >= BREAKPOINTS.sm) return 2;
-  return 1;
+  // Allow 2 columns minimum on mobile (changed from 1)
+  return Math.min(requestedCols, 2);
 };
 
 export default function Montage() {
@@ -95,7 +96,19 @@ export default function Montage() {
   // Track container width for toast notifications
   const currentWidthRef = useRef(window.innerWidth);
 
+  // Fullscreen mode state
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showFullscreenOverlay, setShowFullscreenOverlay] = useState(false);
 
+  // Auto-hide overlay after 5 seconds
+  useEffect(() => {
+    if (showFullscreenOverlay) {
+      const timer = setTimeout(() => {
+        setShowFullscreenOverlay(false);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [showFullscreenOverlay]);
 
   // Update grid state when profile changes
   useEffect(() => {
@@ -320,9 +333,10 @@ export default function Montage() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-background">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-2 sm:p-3 border-b bg-card/50 backdrop-blur-sm shrink-0 z-10">
+    <div className="h-screen flex flex-col bg-background relative">
+      {/* Header - Hidden in fullscreen mode */}
+      {!isFullscreen && (
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-2 sm:p-3 border-b bg-card/50 backdrop-blur-sm shrink-0 z-10">
         <div className="flex items-center gap-2 sm:gap-3">
           <div>
             <h1 className="text-base sm:text-xl md:text-2xl font-bold tracking-tight flex items-center gap-2">
@@ -370,11 +384,70 @@ export default function Montage() {
             <RefreshCw className="h-4 w-4 sm:mr-2" />
             <span className="hidden sm:inline">Refresh</span>
           </Button>
+          <Button
+            onClick={() => setIsFullscreen(true)}
+            variant="default"
+            size="sm"
+            className="h-8 sm:h-9"
+            title="Fullscreen Mode"
+          >
+            <Maximize className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Fullscreen</span>
+          </Button>
         </div>
-      </div>
+        </div>
+      )}
+
+      {/* Fullscreen Overlay Menu */}
+      {isFullscreen && showFullscreenOverlay && (
+        <div className="absolute top-0 left-0 right-0 z-50 bg-black/90 backdrop-blur-md border-b border-white/10">
+          <div className="flex items-center justify-between p-3">
+            <h2 className="text-white font-semibold flex items-center gap-2">
+              <LayoutDashboard className="h-5 w-5" />
+              Live Montage
+            </h2>
+            <div className="flex items-center gap-2">
+              <Button onClick={() => refetch()} variant="ghost" size="sm" className="text-white hover:bg-white/10">
+                <RefreshCw className="h-4 w-4" />
+              </Button>
+              <Button
+                onClick={() => {
+                  setIsFullscreen(false);
+                  setShowFullscreenOverlay(false);
+                }}
+                variant="ghost"
+                size="sm"
+                className="text-white hover:bg-white/10"
+                title="Exit Fullscreen"
+              >
+                <Minimize className="h-4 w-4 mr-2" />
+                Exit
+              </Button>
+              <Button
+                onClick={() => setShowFullscreenOverlay(false)}
+                variant="ghost"
+                size="icon"
+                className="text-white hover:bg-white/10"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Grid Content */}
-      <div className="flex-1 overflow-auto p-2 sm:p-3 md:p-4 bg-muted/10">
+      <div
+        className={cn(
+          "flex-1 overflow-auto bg-muted/10",
+          isFullscreen ? "p-0" : "p-2 sm:p-3 md:p-4"
+        )}
+        onClick={() => {
+          if (isFullscreen && !showFullscreenOverlay) {
+            setShowFullscreenOverlay(true);
+          }
+        }}
+      >
         {isLayoutLoaded && (
           <ResponsiveGridLayout
             key={`${gridRows}-${gridCols}`}
@@ -391,8 +464,10 @@ export default function Montage() {
             resizeHandles={['se']}
             compactType="vertical"
             preventCollision={false}
-            margin={[ZM_CONSTANTS.gridMargin, ZM_CONSTANTS.gridMargin]}
+            margin={isFullscreen ? [0, 0] : [ZM_CONSTANTS.gridMargin, ZM_CONSTANTS.gridMargin]}
             containerPadding={[0, 0]}
+            isDraggable={!isFullscreen}
+            isResizable={!isFullscreen}
           >
             {monitors.map(({ Monitor, Monitor_Status }) => (
               <div key={Monitor.Id} className="relative group">
@@ -402,6 +477,7 @@ export default function Montage() {
                   currentProfile={currentProfile}
                   accessToken={accessToken}
                   navigate={navigate}
+                  isFullscreen={isFullscreen}
                 />
               </div>
             ))}
@@ -471,13 +547,15 @@ function MontageMonitor({
   status,
   currentProfile,
   accessToken,
-  navigate
+  navigate,
+  isFullscreen = false
 }: {
   monitor: Monitor,
   status: MonitorStatus | undefined,
   currentProfile: Profile | null,
   accessToken: string | null,
-  navigate: NavigateFunction
+  navigate: NavigateFunction,
+  isFullscreen?: boolean
 }) {
   const isRunning = status?.Status === 'Connected';
   const regenerateConnKey = useMonitorStore((state) => state.regenerateConnKey);
@@ -552,28 +630,38 @@ function MontageMonitor({
   }, [streamUrl, settings.viewMode]);
 
   return (
-    <Card className="h-full overflow-hidden border-0 shadow-md bg-card hover:shadow-xl transition-shadow duration-200 ring-1 ring-border/50 hover:ring-primary/50 flex flex-col">
-      {/* Header / Drag Handle */}
-      <div className="drag-handle h-8 bg-card border-b flex items-center justify-between px-2 cursor-move hover:bg-accent/50 transition-colors shrink-0 select-none">
-        <div className="flex items-center gap-2 overflow-hidden">
-          <Badge
-            variant={isRunning ? "default" : "destructive"}
-            className={cn(
-              "h-1.5 w-1.5 p-0 rounded-full shrink-0",
-              isRunning ? "bg-green-500 hover:bg-green-500" : "bg-red-500 hover:bg-red-500"
-            )}
-          />
-          <span className="text-xs font-medium truncate" title={monitor.Name}>
-            {monitor.Name}
-          </span>
+    <Card className={cn(
+      "h-full overflow-hidden flex flex-col",
+      isFullscreen
+        ? "border-0 shadow-none bg-black rounded-none"
+        : "border-0 shadow-md bg-card hover:shadow-xl transition-shadow duration-200 ring-1 ring-border/50 hover:ring-primary/50"
+    )}>
+      {/* Header / Drag Handle - Hidden in fullscreen */}
+      {!isFullscreen && (
+        <div className="drag-handle h-8 bg-card border-b flex items-center justify-between px-2 cursor-move hover:bg-accent/50 transition-colors shrink-0 select-none">
+          <div className="flex items-center gap-2 overflow-hidden">
+            <Badge
+              variant={isRunning ? "default" : "destructive"}
+              className={cn(
+                "h-1.5 w-1.5 p-0 rounded-full shrink-0",
+                isRunning ? "bg-green-500 hover:bg-green-500" : "bg-red-500 hover:bg-red-500"
+              )}
+            />
+            <span className="text-xs font-medium truncate" title={monitor.Name}>
+              {monitor.Name}
+            </span>
+          </div>
+          <Settings2 className="h-3 w-3 text-muted-foreground opacity-50" />
         </div>
-        <Settings2 className="h-3 w-3 text-muted-foreground opacity-50" />
-      </div>
+      )}
 
       {/* Video Content */}
       <div
-        className="flex-1 relative bg-black/90 overflow-hidden cursor-pointer"
-        onClick={() => navigate(`/monitors/${monitor.Id}`)}
+        className={cn(
+          "flex-1 relative bg-black/90 overflow-hidden",
+          !isFullscreen && "cursor-pointer"
+        )}
+        onClick={() => !isFullscreen && navigate(`/monitors/${monitor.Id}`)}
       >
         <img
           ref={imgRef}
