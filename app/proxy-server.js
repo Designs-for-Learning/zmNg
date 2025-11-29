@@ -27,7 +27,7 @@ app.get('/image-proxy', async (req, res) => {
     return res.status(400).json({ error: 'Missing url query parameter' });
   }
 
-  console.log(`[Image Proxy] Fetching ${targetUrl}`);
+
 
   try {
     // Use built-in fetch (Node 18+) or fall back to node-fetch
@@ -62,7 +62,7 @@ app.use('/proxy', (req, res, next) => {
     return res.status(400).json({ error: 'Missing X-Target-Host header' });
   }
 
-  console.log(`[Proxy] Routing ${req.method} ${req.url} -> ${targetHost}`);
+
 
   const proxy = createProxyMiddleware({
     target: targetHost,
