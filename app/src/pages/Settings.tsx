@@ -7,10 +7,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Label } from '../components/ui/label';
 import { Input } from '../components/ui/input';
 import { Switch } from '../components/ui/switch';
-import { Settings as SettingsIcon, Shield, Info, LogOut, Image, Video as VideoIcon, List, Maximize2, Minimize2 } from 'lucide-react';
+import { Settings as SettingsIcon, Shield, Info, LogOut, Image, Video as VideoIcon, List, Maximize2, Minimize2, Globe } from 'lucide-react';
 import { Badge } from '../components/ui/badge';
+import { useTranslation } from 'react-i18next';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../components/ui/select';
 
 export default function Settings() {
+  const { t, i18n } = useTranslation();
   const currentProfile = useProfileStore((state) => state.currentProfile());
   const { version, apiVersion, logout } = useAuthStore();
   const settings = useSettingsStore(
@@ -61,6 +70,35 @@ export default function Settings() {
       </div>
 
       <div className="grid gap-4 sm:gap-6">
+        {/* Language Settings */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Globe className="h-5 w-5 text-primary" />
+              <CardTitle>{t('settings.language')}</CardTitle>
+            </div>
+            <CardDescription>
+              {t('settings.select_language')}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-4">
+              <Select
+                value={i18n.language}
+                onValueChange={(value) => i18n.changeLanguage(value)}
+              >
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Select language" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="en">English</SelectItem>
+                  <SelectItem value="es">Español</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* View Mode Settings */}
         <Card>
           <CardHeader>

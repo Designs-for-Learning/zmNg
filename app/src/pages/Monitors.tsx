@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { getMonitors } from '../api/monitors';
 import { getConsoleEvents } from '../api/events';
 import { useProfileStore } from '../stores/profile';
@@ -19,6 +20,7 @@ import { filterEnabledMonitors } from '../lib/filters';
 import type { Monitor } from '../api/types';
 
 export default function Monitors() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [selectedMonitor, setSelectedMonitor] = useState<Monitor | null>(null);
   const [showPropertiesDialog, setShowPropertiesDialog] = useState(false);
@@ -82,11 +84,11 @@ export default function Monitors() {
     return (
       <div className="p-8">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold tracking-tight">Monitors</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t('monitors.title')}</h1>
         </div>
         <div className="p-4 bg-destructive/10 text-destructive rounded-lg flex items-center gap-2">
           <AlertCircle className="h-5 w-5" />
-          Failed to load monitors: {(error as Error).message}
+          {t('monitors.failed_to_load', { error: (error as Error).message })}
         </div>
       </div>
     );
@@ -96,14 +98,14 @@ export default function Monitors() {
     <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div>
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">Cameras</h1>
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">{t('monitors.title')}</h1>
           <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-            {allMonitors.length} camera{allMonitors.length !== 1 ? 's' : ''}
+            {t('monitors.count', { count: allMonitors.length })}
           </p>
         </div>
         <Button onClick={() => refetch()} variant="outline" size="sm" className="gap-2 h-8 sm:h-9">
           <RefreshCw className="h-4 w-4 sm:mr-0" />
-          <span className="hidden sm:inline">Refresh</span>
+          <span className="hidden sm:inline">{t('common.refresh')}</span>
         </Button>
       </div>
 
@@ -111,7 +113,7 @@ export default function Monitors() {
       <div className="space-y-3 sm:space-y-4">
         {allMonitors.length === 0 ? (
           <div className="p-8 text-center border rounded-lg bg-muted/20 text-muted-foreground">
-            No cameras found.
+            {t('monitors.no_cameras')}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
@@ -134,10 +136,10 @@ export default function Monitors() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Settings className="h-5 w-5" />
-              Monitor Properties: {selectedMonitor?.Name}
+              {t('monitors.properties_title', { name: selectedMonitor?.Name })}
             </DialogTitle>
             <DialogDescription>
-              Detailed configuration and status information for monitor ID: {selectedMonitor?.Id}
+              {t('monitors.properties_description', { id: selectedMonitor?.Id })}
             </DialogDescription>
           </DialogHeader>
 
@@ -145,34 +147,34 @@ export default function Monitors() {
             <div className="space-y-6 mt-4">
               {/* Basic Information */}
               <div>
-                <h3 className="text-sm font-semibold mb-3 text-primary">Basic Information</h3>
+                <h3 className="text-sm font-semibold mb-3 text-primary">{t('monitors.basic_info')}</h3>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span className="text-muted-foreground">Monitor ID:</span>
+                    <span className="text-muted-foreground">{t('monitors.id')}:</span>
                     <div className="font-medium">{selectedMonitor.Id}</div>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">Name:</span>
+                    <span className="text-muted-foreground">{t('monitors.name')}:</span>
                     <div className="font-medium">{selectedMonitor.Name}</div>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">Type:</span>
+                    <span className="text-muted-foreground">{t('monitors.type')}:</span>
                     <div className="font-medium">{selectedMonitor.Type}</div>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">Function:</span>
+                    <span className="text-muted-foreground">{t('monitors.function')}:</span>
                     <div className="font-medium">{selectedMonitor.Function}</div>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">Enabled:</span>
+                    <span className="text-muted-foreground">{t('common.enabled')}:</span>
                     <div className="font-medium">
-                      {selectedMonitor.Enabled === '1' ? 'Yes' : 'No'}
+                      {selectedMonitor.Enabled === '1' ? t('common.yes') : t('common.no')}
                     </div>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">Controllable (PTZ):</span>
+                    <span className="text-muted-foreground">{t('monitors.controllable')}:</span>
                     <div className="font-medium">
-                      {selectedMonitor.Controllable === '1' ? 'Yes' : 'No'}
+                      {selectedMonitor.Controllable === '1' ? t('common.yes') : t('common.no')}
                     </div>
                   </div>
                 </div>
@@ -180,26 +182,26 @@ export default function Monitors() {
 
               {/* Source Configuration */}
               <div>
-                <h3 className="text-sm font-semibold mb-3 text-primary">Source Configuration</h3>
+                <h3 className="text-sm font-semibold mb-3 text-primary">{t('monitors.source_config')}</h3>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span className="text-muted-foreground">Protocol:</span>
+                    <span className="text-muted-foreground">{t('monitors.protocol')}:</span>
                     <div className="font-medium">{selectedMonitor.Protocol || 'N/A'}</div>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">Method:</span>
+                    <span className="text-muted-foreground">{t('monitors.method')}:</span>
                     <div className="font-medium">{selectedMonitor.Method || 'N/A'}</div>
                   </div>
                   <div className="col-span-2">
-                    <span className="text-muted-foreground">Host:</span>
+                    <span className="text-muted-foreground">{t('monitors.host')}:</span>
                     <div className="font-medium break-all">{selectedMonitor.Host || 'N/A'}</div>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">Port:</span>
+                    <span className="text-muted-foreground">{t('monitors.port')}:</span>
                     <div className="font-medium">{selectedMonitor.Port || 'N/A'}</div>
                   </div>
                   <div className="col-span-2">
-                    <span className="text-muted-foreground">Path:</span>
+                    <span className="text-muted-foreground">{t('monitors.path')}:</span>
                     <div className="font-medium break-all">{selectedMonitor.Path || 'N/A'}</div>
                   </div>
                 </div>
@@ -207,26 +209,26 @@ export default function Monitors() {
 
               {/* Video Settings */}
               <div>
-                <h3 className="text-sm font-semibold mb-3 text-primary">Video Settings</h3>
+                <h3 className="text-sm font-semibold mb-3 text-primary">{t('monitors.video_settings')}</h3>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span className="text-muted-foreground">Resolution:</span>
+                    <span className="text-muted-foreground">{t('monitors.resolution')}:</span>
                     <div className="font-medium">
                       {selectedMonitor.Width}x{selectedMonitor.Height}
                     </div>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">Colours:</span>
+                    <span className="text-muted-foreground">{t('monitors.colours')}:</span>
                     <div className="font-medium">{selectedMonitor.Colours}</div>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">Max FPS:</span>
-                    <div className="font-medium">{selectedMonitor.MaxFPS || 'Unlimited'}</div>
+                    <span className="text-muted-foreground">{t('monitors.max_fps')}:</span>
+                    <div className="font-medium">{selectedMonitor.MaxFPS || t('monitors.unlimited')}</div>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">Alarm Max FPS:</span>
+                    <span className="text-muted-foreground">{t('monitors.alarm_max_fps')}:</span>
                     <div className="font-medium">
-                      {selectedMonitor.AlarmMaxFPS || 'Same as Max FPS'}
+                      {selectedMonitor.AlarmMaxFPS || t('monitors.same_as_max_fps')}
                     </div>
                   </div>
                 </div>
@@ -235,7 +237,7 @@ export default function Monitors() {
               {/* Actions */}
               <div className="flex justify-end gap-2 pt-4 border-t">
                 <Button variant="outline" onClick={() => setShowPropertiesDialog(false)}>
-                  Close
+                  {t('common.close')}
                 </Button>
                 <Button
                   onClick={() => {
@@ -244,7 +246,7 @@ export default function Monitors() {
                   }}
                 >
                   <Video className="h-4 w-4 mr-2" />
-                  View Live
+                  {t('monitors.view_live')}
                 </Button>
               </div>
             </div>

@@ -1,0 +1,60 @@
+{
+  "common": {
+    "refresh": "Actualizar",
+    "close": "Cerrar",
+    "settings": "Configuración",
+    "loading": "Cargando...",
+    "error": "Error",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "view": "Ver",
+    "yes": "Sí",
+    "no": "No",
+    "on": "Encendido",
+    "off": "Apagado",
+    "enabled": "Habilitado",
+    "disabled": "Deshabilitado",
+    "none": "Ninguno",
+    "unknown": "Desconocido"
+  },
+  "monitors": {
+    "title": "Cámaras",
+    "count_one": "{{count}} cámara",
+    "count_other": "{{count}} cámaras",
+    "no_cameras": "No se encontraron cámaras.",
+    "failed_to_load": "Error al cargar cámaras: {{error}}",
+    "properties_title": "Propiedades del Monitor: {{name}}",
+    "properties_description": "Configuración detallada e información de estado para el monitor ID: {{id}}",
+    "basic_info": "Información Básica",
+    "source_config": "Configuración de Fuente",
+    "video_settings": "Configuración de Video",
+    "view_live": "Ver en Vivo",
+    "id": "ID del Monitor",
+    "name": "Nombre",
+    "type": "Tipo",
+    "function": "Función",
+    "controllable": "Controlable (PTZ)",
+    "protocol": "Protocolo",
+    "method": "Método",
+    "host": "Host",
+    "port": "Puerto",
+    "path": "Ruta",
+    "resolution": "Resolución",
+    "colours": "Colores",
+    "max_fps": "FPS Máx",
+    "alarm_max_fps": "FPS Máx Alarma",
+    "unlimited": "Ilimitado",
+    "same_as_max_fps": "Igual que FPS Máx"
+  },
+  "events": {
+    "title": "Eventos",
+    "subtitle": "Revisar grabaciones"
+  },
+  "settings": {
+    "title": "Configuración",
+    "language": "Idioma",
+    "select_language": "Seleccionar Idioma"
+  }
+}
