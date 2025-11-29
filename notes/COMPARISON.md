@@ -56,9 +56,10 @@ zmNg represents a complete architectural modernization of zmNinja, reducing code
 | **State** | Zustand + TanStack Query | 5.x | ✅ Optimized, persistent |
 | **Styling** | Tailwind CSS + shadcn/ui | 3.4 | ✅ Utility-first, responsive |
 | **Testing** | Playwright | 1.57 | ✅ E2E test coverage |
-| **Unit Testing** | Vitest | 3.2 | ✅ 28 tests passing |
+| **Unit Testing** | Vitest | 3.2 | ✅ 35 tests passing |
 | **HTTP Client** | Axios + Capacitor HTTP | 1.13 | ✅ Interceptors, native support |
 | **Notifications** | socket.io-client + FCM | 4.8 | ✅ WebSocket + Push |
+| **i18n** | i18next | 24.2 | ✅ 5 languages supported |
 
 **Capacitor Plugins (2 total):**
 - `@aparajita/capacitor-secure-storage` - Hardware-backed secure storage
@@ -90,11 +91,11 @@ zmNg represents a complete architectural modernization of zmNinja, reducing code
 
 | Metric | zmNinja | zmNg | Reduction |
 |--------|---------|------|-----------|
-| **JavaScript/TypeScript** | ~28,000 LOC | ~11,014 LOC | **61% less** |
+| **JavaScript/TypeScript** | ~28,000 LOC | ~13,155 LOC | **53% less** |
 | **Templates/JSX** | ~3,000 LOC | (integrated) | Unified |
-| **Styles (CSS/SCSS)** | ~650 LOC | ~300 LOC | **54% less** |
-| **Total Source Code** | **~31,650 LOC** | **~11,314 LOC** | **65% less** |
-| **Source Files** | 79 files | 67 files | **15% fewer** |
+| **Styles (CSS/SCSS)** | ~650 LOC | ~425 LOC | **35% less** |
+| **Total Source Code** | **~31,650 LOC** | **~13,580 LOC** | **57% less** |
+| **Source Files** | 79 files | 73 files | **8% fewer** |
 | **Cordova/Capacitor Plugins** | 26 plugins | 2 plugins | **92% fewer** |
 
 ### File Organization
@@ -864,7 +865,7 @@ npm run android:release # Build APK (auto-signed)
 | **Coupling** | Tight (services ↔ controllers) | Loose (components) | zmNg |
 | **Cohesion** | Low (mixed concerns) | High (single responsibility) | zmNg |
 | **Type Coverage** | 0% (JavaScript) | 100% (TypeScript) | zmNg |
-| **Test Coverage** | ~0% (manual) | 28 unit + E2E | zmNg |
+| **Test Coverage** | ~0% (manual) | 35 unit + E2E | zmNg |
 
 ### Technical Debt
 
@@ -885,7 +886,7 @@ npm run android:release # Build APK (auto-signed)
 - ✅ **2 Capacitor plugins** (minimal maintenance: storage + push)
 - ✅ **Zero jQuery** (modern DOM APIs)
 - ✅ **100% TypeScript** (compile-time safety)
-- ✅ **28 unit tests + Playwright E2E** (automated regression)
+- ✅ **35 unit tests + Playwright E2E** (automated regression)
 - ✅ **Modular components** (50-300 LOC files)
 - ✅ **Async/await** (readable, linear code)
 - ✅ **Declarative UI** (React reconciliation)
@@ -972,7 +973,7 @@ npm run android:release # Build APK (auto-signed)
 | **Type Safety** | 100% vs 0% type coverage |
 | **Modern Tools** | Vite, TypeScript, React 19 |
 | **Better DX** | Clear errors, autocomplete |
-| **Automated Testing** | 28 unit tests + Playwright E2E |
+| **Automated Testing** | 35 unit tests + Playwright E2E |
 | **Easier Debugging** | React DevTools vs console.log |
 
 ### For the Project
@@ -1206,7 +1207,7 @@ function Monitors() {
 - ✅ **Real-time notifications** - Fully implemented (WebSocket + FCM)
 - ✅ **Notification history** - Last 100 events with unread tracking
 - ✅ **Per-monitor config** - Customizable check intervals
-- ✅ **Comprehensive testing** - 28 unit tests, E2E coverage
+- ✅ **Comprehensive testing** - 35 unit tests, E2E coverage
 - 🚀 **Biometric auth** - Planned Q1 2025
 - 🚀 **iOS support** - Planned Q2 2025
 - 🚀 **Desktop app (Tauri)** - Planned Q2 2025
@@ -1223,8 +1224,8 @@ function Monitors() {
 
 | Metric | zmNinja | zmNg | Improvement |
 |--------|---------|------|-------------|
-| **Lines of Code** | 31,650 | 11,314 | **-65%** |
-| **Source Files** | 79 | 67 | **-15%** |
+| **Lines of Code** | 31,650 | 13,580 | **-57%** |
+| **Source Files** | 79 | 73 | **-8%** |
 | **Native Plugins** | 26 | 2 | **-92%** |
 | **Load Time (Web)** | 3-5s | 0.8-1.5s | **-70%** |
 | **APK Size (Android)** | 30-50 MB | 8-12 MB | **-75%** |
@@ -1233,7 +1234,7 @@ function Monitors() {
 | **Memory Usage** | 150-200 MB | 80-120 MB | **-40%** |
 | **Type Safety** | 0% | 100% | **+100%** |
 | **UI Performance** | 30-45 FPS | 55-60 FPS | **+50%** |
-| **Unit Tests** | 0 | 28 | **+∞** |
+| **Unit Tests** | 0 | 35 | **+∞** |
 
 ### The Bottom Line
 
@@ -1244,7 +1245,7 @@ zmNg achieves a **fundamental transformation** of zmNinja through modern web tec
 - ✅ **92% fewer plugins** (2 vs 26 - reduced complexity)
 - ✅ **100% type-safe** (compile-time error detection)
 - ✅ **Modern architecture** (React component-based)
-- ✅ **28 unit tests** (automated quality assurance)
+- ✅ **35 unit tests** (automated quality assurance)
 
 **Performance:**
 - ✅ **3-4x faster load times** (better UX)
@@ -1374,12 +1375,19 @@ zmNg achieves a **fundamental transformation** of zmNinja through modern web tec
 
 ---
 
-*Last Updated: November 28, 2025*
+*Last Updated: November 29, 2025*
 *zmNinja version: v1.8.000*
-*zmNg version: v0.2.0 (beta - with notifications)*
+*zmNg version: v0.2.1 (beta - with i18n)*
 *Platforms: Android & Web (iOS not yet implemented in zmNg)*
 
-## Recent Updates (v0.2.0)
+## Recent Updates (v0.2.1)
+
+**Internationalization (i18n):**
+- ✅ Full multi-language support (English, Spanish, French, German, Chinese)
+- ✅ Automatic language detection
+- ✅ Dynamic language switching
+- ✅ Localized dates and times
+- ✅ Translated error messages and notifications
 
 **Notification System (Fully Implemented):**
 - ✅ WebSocket connection to ZoneMinder Event Server (zmeventnotification.pl)
@@ -1391,7 +1399,7 @@ zmNg achieves a **fundamental transformation** of zmNinja through modern web tec
 - ✅ Toast notifications with event thumbnails
 - ✅ Sound alerts (Web Audio API)
 - ✅ Auto-reconnect with exponential backoff
-- ✅ 28 passing unit tests (Vitest)
+- ✅ 35 passing unit tests (Vitest)
 - ✅ E2E test coverage (Playwright)
 
 **Technical Implementation:**

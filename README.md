@@ -81,6 +81,12 @@ npm run ios
 - **Notification history** - View last 100 events with unread tracking
 - **Mock server included** - Test notifications without ZM server setup
 
+### Internationalization (i18n)
+- **Multi-language support** - Fully localized interface
+- **Supported languages** - English, Spanish, French, German, Chinese
+- **Auto-detection** - Automatically detects browser/system language
+- **Dynamic switching** - Change language instantly without reload
+
 
 ## Prerequisites
 - Node.js 18+ and npm
@@ -133,7 +139,7 @@ npm run test:unit       # Run unit tests once (CI)
 npm test                # Run in watch mode
 npm run test:coverage   # Generate coverage report
 ```
-Current coverage: 28 passing tests (notification service & store)
+Current coverage: 35 passing tests (notification service & store)
 
 **E2E Tests (Playwright)**
 ```bash
@@ -225,6 +231,7 @@ Output files:
 - **Data Fetching**: TanStack Query (React Query)
 - **HTTP Client**: Axios with interceptors + Capacitor HTTP (native)
 - **Routing**: React Router v7
+- **Internationalization**: i18next + react-i18next
 - **Security**: Web Crypto API for AES-GCM encryption
 - **Logging**: Custom structured logging system with levels
 - **Testing**: Playwright for E2E
