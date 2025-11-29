@@ -5,6 +5,7 @@
 
 import { Capacitor, CapacitorHttp } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
+import { Media } from '@capacitor-community/media';
 import { log } from './logger';
 
 /**
@@ -43,6 +44,24 @@ export async function downloadFile(url: string, filename: string): Promise<void>
         path: result.uri,
         filename
       });
+
+      // Save to Photo Library if it's an image or video
+      try {
+        if (filename.match(/\.(jpg|jpeg|png|gif)$/i)) {
+          await Media.savePhoto({
+            path: result.uri
+          });
+          log.info('[Download] Saved to Photo Library', { component: 'Download', filename });
+        } else if (filename.match(/\.(mp4|mov|avi)$/i)) {
+          await Media.saveVideo({
+            path: result.uri
+          });
+          log.info('[Download] Saved to Video Library', { component: 'Download', filename });
+        }
+      } catch (mediaError) {
+        log.error('[Download] Failed to save to media library', { component: 'Download', filename }, mediaError);
+        // Don't throw here, as the file is at least saved to Documents
+      }
     } else {
       // Web: Use traditional fetch + blob download
       const isDev = import.meta.env.DEV;
@@ -105,6 +124,16 @@ export async function downloadSnapshot(imageUrl: string, monitorName: string): P
         path: result.uri,
         filename
       });
+
+      // Save to Photo Library
+      try {
+        await Media.savePhoto({
+          path: result.uri
+        });
+        log.info('[Download] Snapshot saved to Photo Library', { component: 'Download', filename });
+      } catch (mediaError) {
+        log.error('[Download] Failed to save snapshot to Photo Library', { component: 'Download' }, mediaError);
+      }
     } else {
       // Web: Traditional download
       const link = document.createElement('a');
@@ -153,6 +182,16 @@ export async function downloadSnapshotFromElement(
           path: result.uri,
           filename
         });
+
+        // Save to Photo Library
+        try {
+          await Media.savePhoto({
+            path: result.uri
+          });
+          log.info('[Download] Snapshot saved to Photo Library', { component: 'Download', filename });
+        } catch (mediaError) {
+          log.error('[Download] Failed to save snapshot to Photo Library', { component: 'Download' }, mediaError);
+        }
       } else {
         // Web: Traditional download
         const link = document.createElement('a');
