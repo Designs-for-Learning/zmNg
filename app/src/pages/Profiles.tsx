@@ -426,7 +426,7 @@ export default function Profiles() {
                 onChange={(e) => setFormData({ ...formData, portalUrl: e.target.value })}
               />
               <p className="text-xs text-muted-foreground">
-                API and CGI URLs will be derived automatically
+                API and Streaming URLs will be derived automatically
               </p>
             </div>
             <div className="grid gap-2">
@@ -520,7 +520,7 @@ export default function Profiles() {
               </p>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="edit-cgiUrl">CGI/ZMS URL*</Label>
+              <Label htmlFor="edit-cgiUrl">Streaming URL*</Label>
               <Input
                 id="edit-cgiUrl"
                 value={formData.cgiUrl}

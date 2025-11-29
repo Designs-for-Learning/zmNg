@@ -336,7 +336,7 @@ export default function Setup() {
                 </p>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="manualCgiUrl" className="text-sm font-medium">CGI/ZMS URL*</Label>
+                <Label htmlFor="manualCgiUrl" className="text-sm font-medium">Streaming URL*</Label>
                 <Input
                   id="manualCgiUrl"
                   type="url"
