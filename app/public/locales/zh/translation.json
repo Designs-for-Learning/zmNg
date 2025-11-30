@@ -440,7 +440,13 @@
     "monitors_selected": "已选择 {{count}} 个监控",
     "selected": "已选择",
     "cameras_selected": "摄像头已选择",
-    "deselect_all": "取消全选"
+    "deselect_all": "取消全选",
+    "tooltip_cause": "原因",
+    "tooltip_time": "时间",
+    "tooltip_duration": "时长",
+    "tooltip_frames_total": "帧数",
+    "tooltip_alarm_frames": "报警帧",
+    "tooltip_score": "评分"
   },
   "error": {
     "something_went_wrong": "出错了",

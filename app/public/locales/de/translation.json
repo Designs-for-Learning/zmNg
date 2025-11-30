@@ -440,7 +440,13 @@
     "monitors_selected": "{{count}} Monitore ausgewählt",
     "selected": "Ausgewählt",
     "cameras_selected": "Kameras ausgewählt",
-    "deselect_all": "Alles abwählen"
+    "deselect_all": "Alles abwählen",
+    "tooltip_cause": "Ursache",
+    "tooltip_time": "Zeit",
+    "tooltip_duration": "Dauer",
+    "tooltip_frames_total": "Frames",
+    "tooltip_alarm_frames": "Alarm-Frames",
+    "tooltip_score": "Bewertung"
   },
   "error": {
     "something_went_wrong": "Etwas ist schief gelaufen",

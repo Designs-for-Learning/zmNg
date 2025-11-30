@@ -440,7 +440,13 @@
     "monitors_selected": "{{count}} monitores seleccionados",
     "selected": "Seleccionado",
     "cameras_selected": "Cámaras Seleccionadas",
-    "deselect_all": "Deseleccionar Todo"
+    "deselect_all": "Deseleccionar Todo",
+    "tooltip_cause": "Causa",
+    "tooltip_time": "Hora",
+    "tooltip_duration": "Duración",
+    "tooltip_frames_total": "Fotogramas",
+    "tooltip_alarm_frames": "Fotogramas de Alarma",
+    "tooltip_score": "Puntuación"
   },
   "error": {
     "something_went_wrong": "Algo salió mal",

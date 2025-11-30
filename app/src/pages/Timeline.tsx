@@ -154,7 +154,7 @@ export default function Timeline() {
             <span style="opacity: 0.8;">•</span>
             <span>${durationText}</span>
           </div>`,
-          title: `<strong>${escapeHtml(Event.Name)}</strong>\n━━━━━━━━━━━━━━━\nCause: ${escapeHtml(Event.Cause)}\nTime: ${format(startTime, 'HH:mm:ss')}\nDuration: ${durationText}\nFrames: ${Event.Frames} total\nAlarm Frames: ${Event.AlarmFrames}\nScore: ${Event.MaxScore}`,
+          title: `<strong>${escapeHtml(Event.Name)}</strong>\n━━━━━━━━━━━━━━━\n${t('timeline.tooltip_cause')}: ${escapeHtml(Event.Cause)}\n${t('timeline.tooltip_time')}: ${format(startTime, 'HH:mm:ss')}\n${t('timeline.tooltip_duration')}: ${durationText}\n${t('timeline.tooltip_frames_total')}: ${Event.Frames} total\n${t('timeline.tooltip_alarm_frames')}: ${Event.AlarmFrames}\n${t('timeline.tooltip_score')}: ${Event.MaxScore}`,
           style: `
             background: linear-gradient(135deg, ${color.bg} 0%, ${color.bg}dd 100%);
             border-color: ${color.border};
