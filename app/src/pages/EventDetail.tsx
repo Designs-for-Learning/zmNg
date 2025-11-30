@@ -1,3 +1,10 @@
+/**
+ * Event Detail Page
+ *
+ * Displays detailed information about a specific event.
+ * Includes video playback (or image fallback), metadata, and download options.
+ */
+
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { getEvent, getEventVideoUrl, getEventImageUrl, getEventZmsUrl } from '../api/events';

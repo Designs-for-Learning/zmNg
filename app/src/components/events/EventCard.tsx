@@ -1,3 +1,11 @@
+/**
+ * Event Card Component
+ *
+ * Displays a summary of a single event, including a thumbnail,
+ * event details (name, cause, time), and statistics (frames, score).
+ * It is used in event lists and grids.
+ */
+
 import { memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -8,11 +16,23 @@ import { Video, Calendar, Clock } from 'lucide-react';
 import type { EventCardProps } from '../../api/types';
 import { useTranslation } from 'react-i18next';
 
+/**
+ * EventCard component.
+ * Renders a clickable card representing a ZoneMinder event.
+ *
+ * @param props - Component properties
+ * @param props.event - The event data object
+ * @param props.monitorName - Name of the monitor that recorded the event
+ * @param props.thumbnailUrl - URL for the event thumbnail image
+ */
 function EventCardComponent({ event, monitorName, thumbnailUrl }: EventCardProps) {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const startTime = new Date(event.StartDateTime.replace(' ', 'T'));
 
+  /**
+   * Handles image load errors by replacing the source with a fallback SVG.
+   */
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
     const img = e.target as HTMLImageElement;
     img.src =

@@ -1,3 +1,11 @@
+/**
+ * Theme Provider Component
+ *
+ * Manages the application's theme (light, dark, system) using React Context.
+ * Persists the theme preference to localStorage and applies the corresponding
+ * CSS class to the document root.
+ */
+
 import { createContext, useContext, useEffect, useState } from "react"
 
 type Theme = "dark" | "light" | "system"
@@ -20,6 +28,14 @@ const initialState: ThemeProviderState = {
 
 const ThemeProviderContext = createContext<ThemeProviderState>(initialState)
 
+/**
+ * ThemeProvider component that wraps the application to provide theme context.
+ *
+ * @param props - Component properties
+ * @param props.children - Child components
+ * @param props.defaultTheme - Default theme to use if not stored (default: "system")
+ * @param props.storageKey - Key to use for localStorage (default: "vite-ui-theme")
+ */
 export function ThemeProvider({
     children,
     defaultTheme = "system",
@@ -62,6 +78,12 @@ export function ThemeProvider({
     )
 }
 
+/**
+ * Hook to access the theme context.
+ *
+ * @returns The current theme state and setter
+ * @throws Error if used outside of a ThemeProvider
+ */
 export const useTheme = () => {
     const context = useContext(ThemeProviderContext)
 

@@ -1,3 +1,10 @@
+/**
+ * Separator Component
+ *
+ * A visual divider between content.
+ * Built on Radix UI Separator.
+ */
+
 import * as React from "react"
 import * as SeparatorPrimitive from "@radix-ui/react-separator"
 

@@ -1,3 +1,11 @@
+/**
+ * Monitor Card Component
+ *
+ * Displays a single monitor with a live stream preview (or static image),
+ * status information, and quick action buttons.
+ * It handles stream connection regeneration and snapshot downloading.
+ */
+
 import { memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card } from '../ui/card';
@@ -13,9 +21,20 @@ import { log } from '../../lib/logger';
 import { useTranslation } from 'react-i18next';
 
 interface MonitorCardComponentProps extends MonitorCardProps {
+  /** Callback to open the settings dialog for this monitor */
   onShowSettings: (monitor: MonitorCardProps['monitor']) => void;
 }
 
+/**
+ * MonitorCard component.
+ * Renders a card with monitor details and a live stream/image.
+ *
+ * @param props - Component properties
+ * @param props.monitor - The monitor data object
+ * @param props.status - The current status of the monitor (Connected/Disconnected, FPS, etc.)
+ * @param props.eventCount - Number of events for this monitor
+ * @param props.onShowSettings - Callback when settings button is clicked
+ */
 function MonitorCardComponent({
   monitor,
   status,
@@ -26,6 +45,7 @@ function MonitorCardComponent({
   const { t } = useTranslation();
   const isRunning = status?.Status === 'Connected';
 
+  // Use the custom hook to manage the monitor stream URL and connection state
   const {
     streamUrl,
     displayedImageUrl,
@@ -35,6 +55,10 @@ function MonitorCardComponent({
     monitorId: monitor.Id,
   });
 
+  /**
+   * Handles image load errors.
+   * Attempts to regenerate the connection key once before showing a fallback placeholder.
+   */
   const handleImageError = () => {
     const img = imgRef.current;
     if (!img) return;
@@ -59,6 +83,9 @@ function MonitorCardComponent({
     }
   };
 
+  /**
+   * Downloads a snapshot of the current stream frame.
+   */
   const handleDownloadSnapshot = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (imgRef.current) {

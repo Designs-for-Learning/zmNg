@@ -1,3 +1,16 @@
+/**
+ * Auth Store
+ * 
+ * Manages authentication state including access and refresh tokens.
+ * Handles login, logout, and token refresh operations.
+ * 
+ * Key features:
+ * - Persists refresh tokens to localStorage (access tokens are memory-only for security)
+ * - Automatically calculates token expiration times
+ * - Provides actions for login and logout
+ * - Integrates with API layer for authentication requests
+ */
+
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { login as apiLogin, refreshToken as apiRefreshToken } from '../api/auth';
@@ -31,6 +44,12 @@ export const useAuthStore = create<AuthState>()(
       apiVersion: null,
       isAuthenticated: false,
 
+      /**
+       * Authenticate with the ZoneMinder server.
+       * 
+       * @param username - The username
+       * @param password - The password
+       */
       login: async (username: string, password: string) => {
         log.auth(`Login attempt for user: ${username}`);
         try {
@@ -48,6 +67,10 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
+      /**
+       * Clear all authentication state.
+       * Removes tokens and resets authentication status.
+       */
       logout: () => {
         log.auth('Logging out, clearing all auth state');
         set({
@@ -62,6 +85,10 @@ export const useAuthStore = create<AuthState>()(
         log.auth('Logout complete');
       },
 
+      /**
+       * Refresh the access token using the stored refresh token.
+       * If refresh fails, logs the user out.
+       */
       refreshAccessToken: async () => {
         const { refreshToken } = get();
         if (!refreshToken) {
@@ -78,6 +105,10 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
+      /**
+       * Update state with new tokens from API response.
+       * Calculates absolute expiration times based on relative seconds from response.
+       */
       setTokens: (response: LoginResponse) => {
         const now = Date.now();
         const currentState = get();
@@ -96,6 +127,8 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'zmng-auth',
+      // Only persist refresh token and server version info
+      // Access token is kept in memory for better security
       partialize: (state) => ({
         refreshToken: state.refreshToken,
         refreshTokenExpires: state.refreshTokenExpires,

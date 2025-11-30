@@ -1,3 +1,11 @@
+/**
+ * Error Boundary Component
+ *
+ * A top-level error boundary that catches errors anywhere in the component tree.
+ * It displays a user-friendly error UI and logs the error details.
+ * In development mode, it also shows the component stack trace.
+ */
+
 import { Component } from 'react';
 import type { ErrorInfo, ReactNode } from 'react';
 import { AlertCircle, RefreshCw } from 'lucide-react';

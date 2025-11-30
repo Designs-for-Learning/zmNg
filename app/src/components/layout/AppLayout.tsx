@@ -1,3 +1,11 @@
+/**
+ * App Layout Component
+ *
+ * The main layout component for the application.
+ * It provides the responsive sidebar navigation, mobile header, and main content area.
+ * It also handles the sidebar resizing logic and mobile drawer state.
+ */
+
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useProfileStore } from '../../stores/profile';
 import { useAuthStore } from '../../stores/auth';
@@ -37,6 +45,10 @@ interface SidebarContentProps {
   isCollapsed?: boolean;
 }
 
+/**
+ * Language Switcher Component
+ * Renders a dropdown to switch the application language.
+ */
 function LanguageSwitcher({ collapsed = false }: { collapsed?: boolean }) {
   const { i18n } = useTranslation();
 
@@ -81,6 +93,10 @@ function LanguageSwitcher({ collapsed = false }: { collapsed?: boolean }) {
   );
 }
 
+/**
+ * Sidebar Content Component
+ * Renders the navigation links and user controls within the sidebar.
+ */
 function SidebarContent({ onMobileClose, isCollapsed }: SidebarContentProps) {
   const location = useLocation();
   const currentProfile = useProfileStore((state) => state.currentProfile());
@@ -190,6 +206,10 @@ function SidebarContent({ onMobileClose, isCollapsed }: SidebarContentProps) {
   );
 }
 
+/**
+ * AppLayout Component
+ * The main layout wrapper that includes the sidebar and main content area.
+ */
 export default function AppLayout() {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(256); // 256px = w-64

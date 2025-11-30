@@ -1,3 +1,10 @@
+/**
+ * Monitor Detail Page
+ *
+ * Displays a live stream (or high-refresh snapshot) for a single monitor.
+ * Includes PTZ controls (if applicable) and quick actions.
+ */
+
 import { useParams, useNavigate } from 'react-router-dom';
 import { useShallow } from 'zustand/react/shallow';
 import { useQuery } from '@tanstack/react-query';

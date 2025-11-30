@@ -1,3 +1,10 @@
+/**
+ * Profiles Page
+ *
+ * Manages server connection profiles.
+ * Allows adding, editing, deleting, and switching between ZoneMinder servers.
+ */
+
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useProfileStore } from '../stores/profile';

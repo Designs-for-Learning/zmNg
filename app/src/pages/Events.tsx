@@ -1,3 +1,10 @@
+/**
+ * Events Page
+ *
+ * Displays a list of events with filtering and infinite scrolling.
+ * Uses virtualization for performance with large lists.
+ */
+
 import { useMemo, useRef, useState, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useShallow } from 'zustand/react/shallow';

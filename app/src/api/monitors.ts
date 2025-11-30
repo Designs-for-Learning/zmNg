@@ -1,9 +1,20 @@
+/**
+ * Monitors API
+ * 
+ * Handles fetching monitor lists, details, and controlling monitor state (enable/disable, alarms).
+ * Also provides utility for generating stream URLs.
+ */
+
 import { getApiClient } from './client';
 import type { MonitorsResponse, MonitorData } from './types';
 import { MonitorsResponseSchema } from './types';
 
 /**
- * Get all monitors
+ * Get all monitors.
+ * 
+ * Fetches the list of all monitors from /monitors.json.
+ * 
+ * @returns Promise resolving to MonitorsResponse containing array of monitors
  */
 export async function getMonitors(): Promise<MonitorsResponse> {
   const client = getApiClient();
@@ -15,7 +26,10 @@ export async function getMonitors(): Promise<MonitorsResponse> {
 }
 
 /**
- * Get a single monitor by ID
+ * Get a single monitor by ID.
+ * 
+ * @param monitorId - The ID of the monitor to fetch
+ * @returns Promise resolving to MonitorData
  */
 export async function getMonitor(monitorId: string): Promise<MonitorData> {
   const client = getApiClient();
@@ -24,7 +38,13 @@ export async function getMonitor(monitorId: string): Promise<MonitorData> {
 }
 
 /**
- * Update monitor settings
+ * Update monitor settings.
+ * 
+ * Sends a PUT request to update specific monitor fields.
+ * 
+ * @param monitorId - The ID of the monitor to update
+ * @param updates - Object containing fields to update
+ * @returns Promise resolving to updated MonitorData
  */
 export async function updateMonitor(
   monitorId: string,
@@ -36,7 +56,13 @@ export async function updateMonitor(
 }
 
 /**
- * Change monitor function (None/Monitor/Modect/Record/Mocord/Nodect)
+ * Change monitor function (None/Monitor/Modect/Record/Mocord/Nodect).
+ * 
+ * Helper wrapper around updateMonitor for changing the function.
+ * 
+ * @param monitorId - The ID of the monitor
+ * @param func - The new function mode
+ * @returns Promise resolving to updated MonitorData
  */
 export async function changeMonitorFunction(
   monitorId: string,
@@ -48,7 +74,13 @@ export async function changeMonitorFunction(
 }
 
 /**
- * Enable or disable a monitor
+ * Enable or disable a monitor.
+ * 
+ * Helper wrapper around updateMonitor for toggling enabled state.
+ * 
+ * @param monitorId - The ID of the monitor
+ * @param enabled - True to enable, false to disable
+ * @returns Promise resolving to updated MonitorData
  */
 export async function setMonitorEnabled(monitorId: string, enabled: boolean): Promise<MonitorData> {
   return updateMonitor(monitorId, {
@@ -57,7 +89,11 @@ export async function setMonitorEnabled(monitorId: string, enabled: boolean): Pr
 }
 
 /**
- * Trigger alarm on a monitor
+ * Trigger alarm on a monitor.
+ * 
+ * Forces an alarm state on the monitor.
+ * 
+ * @param monitorId - The ID of the monitor
  */
 export async function triggerAlarm(monitorId: string): Promise<void> {
   const client = getApiClient();
@@ -65,7 +101,11 @@ export async function triggerAlarm(monitorId: string): Promise<void> {
 }
 
 /**
- * Cancel alarm on a monitor
+ * Cancel alarm on a monitor.
+ * 
+ * Forces an alarm state off on the monitor.
+ * 
+ * @param monitorId - The ID of the monitor
  */
 export async function cancelAlarm(monitorId: string): Promise<void> {
   const client = getApiClient();
@@ -73,7 +113,12 @@ export async function cancelAlarm(monitorId: string): Promise<void> {
 }
 
 /**
- * Get alarm status of a monitor
+ * Get alarm status of a monitor.
+ * 
+ * Checks if the monitor is currently in alarm state.
+ * 
+ * @param monitorId - The ID of the monitor
+ * @returns Promise resolving to object with status string
  */
 export async function getAlarmStatus(monitorId: string): Promise<{ status: string }> {
   const client = getApiClient();
@@ -82,7 +127,13 @@ export async function getAlarmStatus(monitorId: string): Promise<{ status: strin
 }
 
 /**
- * Get daemon status for a monitor
+ * Get daemon status for a monitor.
+ * 
+ * Checks status of zmc (capture) or zma (analysis) daemons.
+ * 
+ * @param monitorId - The ID of the monitor
+ * @param daemon - 'zmc' or 'zma'
+ * @returns Promise resolving to object with status string
  */
 export async function getDaemonStatus(
   monitorId: string,
@@ -94,7 +145,14 @@ export async function getDaemonStatus(
 }
 
 /**
- * Construct streaming URL for a monitor
+ * Construct streaming URL for a monitor.
+ * 
+ * Generates the URL for the ZMS CGI script to stream video or images.
+ * 
+ * @param cgiUrl - Base CGI URL (e.g. https://zm.example.com/cgi-bin)
+ * @param monitorId - The ID of the monitor
+ * @param options - Streaming options (mode, scale, dimensions, etc.)
+ * @returns Full URL string for the stream
  */
 export function getStreamUrl(
   cgiUrl: string,

@@ -1,3 +1,10 @@
+/**
+ * Popover Component
+ *
+ * A popover component that displays rich content in a portal.
+ * Built on Radix UI Popover.
+ */
+
 import * as React from "react"
 import * as PopoverPrimitive from "@radix-ui/react-popover"
 

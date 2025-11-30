@@ -1,3 +1,11 @@
+/**
+ * Password Input Component
+ *
+ * A specialized input component for passwords that includes a visibility toggle.
+ * Wraps the standard Input component and adds an eye icon button to switch
+ * between 'password' and 'text' types.
+ */
+
 import * as React from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { Input } from './input';
@@ -13,6 +21,13 @@ export interface PasswordInputProps extends React.InputHTMLAttributes<HTMLInputE
   showToggle?: boolean;
 }
 
+/**
+ * PasswordInput component.
+ *
+ * @param props - Component properties
+ * @param props.showToggle - Whether to show the visibility toggle button
+ * @param props.className - Additional CSS classes
+ */
 const PasswordInput = React.forwardRef<HTMLInputElement, PasswordInputProps>(
   ({ className, showToggle = true, ...props }, ref) => {
     const [showPassword, setShowPassword] = React.useState(false);

@@ -1,3 +1,10 @@
+/**
+ * Events API
+ * 
+ * Handles fetching event lists, details, and generating URLs for event media (images, video).
+ * Supports filtering, pagination, and archiving.
+ */
+
 import { getApiClient } from './client';
 import type { EventsResponse, EventData } from './types';
 import { EventsResponseSchema } from './types';
@@ -17,8 +24,13 @@ export interface EventFilters {
 }
 
 /**
- * Get events with optional filtering
- * Automatically fetches multiple pages if needed to reach the desired limit
+ * Get events with optional filtering.
+ * 
+ * Automatically fetches multiple pages if needed to reach the desired limit.
+ * Handles ZM API pagination logic internally.
+ * 
+ * @param filters - Object containing filter criteria (monitor, date, etc.)
+ * @returns Promise resolving to EventsResponse with list of events and pagination info
  */
 export async function getEvents(filters: EventFilters = {}): Promise<EventsResponse> {
   const client = getApiClient();
@@ -113,7 +125,10 @@ export async function getEvents(filters: EventFilters = {}): Promise<EventsRespo
 }
 
 /**
- * Get a single event by ID
+ * Get a single event by ID.
+ * 
+ * @param eventId - The ID of the event to fetch
+ * @returns Promise resolving to EventData
  */
 export async function getEvent(eventId: string): Promise<EventData> {
   const client = getApiClient();
@@ -122,7 +137,9 @@ export async function getEvent(eventId: string): Promise<EventData> {
 }
 
 /**
- * Delete an event
+ * Delete an event.
+ * 
+ * @param eventId - The ID of the event to delete
  */
 export async function deleteEvent(eventId: string): Promise<void> {
   const client = getApiClient();
@@ -130,7 +147,11 @@ export async function deleteEvent(eventId: string): Promise<void> {
 }
 
 /**
- * Archive or unarchive an event
+ * Archive or unarchive an event.
+ * 
+ * @param eventId - The ID of the event
+ * @param archived - True to archive, false to unarchive
+ * @returns Promise resolving to updated EventData
  */
 export async function setEventArchived(eventId: string, archived: boolean): Promise<EventData> {
   const client = getApiClient();
@@ -141,8 +162,12 @@ export async function setEventArchived(eventId: string, archived: boolean): Prom
 }
 
 /**
- * Get event count for console (recent events per monitor)
- * Returns event counts per monitor within the specified interval
+ * Get event count for console (recent events per monitor).
+ * 
+ * Returns event counts per monitor within the specified interval.
+ * 
+ * @param interval - Time interval string (e.g. '1 hour', '1 day')
+ * @returns Promise resolving to object mapping monitor IDs to event counts
  */
 export async function getConsoleEvents(interval: string = '1 hour'): Promise<Record<string, number>> {
   const client = getApiClient();
@@ -154,9 +179,16 @@ export async function getConsoleEvents(interval: string = '1 hour'): Promise<Rec
 }
 
 /**
- * Construct event image URL using ZoneMinder's index.php endpoint
+ * Construct event image URL using ZoneMinder's index.php endpoint.
+ * 
  * Format: /index.php?view=image&eid=<eventId>&fid=<frame>&width=<width>&height=<height>&token=<token>
- * In dev mode, uses proxy to avoid CORS issues
+ * In dev mode, uses proxy to avoid CORS issues.
+ * 
+ * @param portalUrl - Base portal URL
+ * @param eventId - The ID of the event
+ * @param frame - Frame number, 'snapshot', or 'objdetect'
+ * @param options - Options for token, dimensions, and API URL override
+ * @returns Full URL string for the image
  */
 export function getEventImageUrl(
   portalUrl: string,
@@ -213,7 +245,13 @@ export function getEventImageUrl(
 }
 
 /**
- * Construct event video URL (for MP4 playback)
+ * Construct event video URL (for MP4 playback).
+ * 
+ * @param portalUrl - Base portal URL
+ * @param eventId - The ID of the event
+ * @param token - Auth token
+ * @param apiUrl - API URL override
+ * @returns Full URL string for the video
  */
 export function getEventVideoUrl(
   portalUrl: string,
@@ -245,7 +283,13 @@ export function getEventVideoUrl(
 }
 
 /**
- * Construct event ZMS stream URL (for MJPEG playback fallback)
+ * Construct event ZMS stream URL (for MJPEG playback fallback).
+ * 
+ * @param portalUrl - Base portal URL
+ * @param eventId - The ID of the event
+ * @param token - Auth token
+ * @param apiUrl - API URL override
+ * @returns Full URL string for the stream
  */
 export function getEventZmsUrl(
   portalUrl: string,

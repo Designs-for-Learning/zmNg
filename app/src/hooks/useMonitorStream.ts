@@ -1,3 +1,17 @@
+/**
+ * Monitor Stream Hook
+ * 
+ * Manages the lifecycle of a ZoneMinder video stream or snapshot sequence.
+ * Handles connection keys (connkey) to allow multiple simultaneous streams.
+ * Implements cache busting and periodic refreshing for snapshot mode.
+ * 
+ * Features:
+ * - Supports both 'streaming' (MJPEG) and 'snapshot' (JPEG refresh) modes
+ * - Handles connection cleanup on unmount to prevent zombie streams on server
+ * - Implements image preloading for smooth snapshot transitions
+ * - Generates unique connection keys per stream instance
+ */
+
 import { useState, useEffect, useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { getStreamUrl } from '../api/monitors';
@@ -22,8 +36,11 @@ interface UseMonitorStreamReturn {
 }
 
 /**
- * Custom hook for managing monitor stream URLs and connections
- * Handles connection keys, cache busting, and periodic refreshes for snapshot mode
+ * Custom hook for managing monitor stream URLs and connections.
+ * 
+ * @param options - Configuration options
+ * @param options.monitorId - The ID of the monitor to stream
+ * @param options.streamOptions - Optional overrides for stream parameters
  */
 export function useMonitorStream({
   monitorId,

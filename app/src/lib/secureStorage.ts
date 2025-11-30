@@ -1,15 +1,19 @@
 /**
- * Secure Storage utility
- * - Uses @aparajita/capacitor-secure-storage on mobile (iOS Keychain / Android Keystore)
- * - Uses AES-GCM encryption in localStorage on web/desktop
- *
- * Mobile Security:
- *   - iOS: Data stored in iOS Keychain (hardware-encrypted)
- *   - Android: Data encrypted with AES-256-GCM using Android Keystore
- *
- * Web/Desktop Security:
- *   - Browser: AES-GCM encryption with PBKDF2 key derivation (100k iterations)
- *   - Electron: Same as browser (no OS-level keychain support in aparajita plugin)
+ * Secure Storage Utility
+ * 
+ * Provides a unified interface for securely storing sensitive data (like passwords)
+ * across different platforms (iOS, Android, Web).
+ * 
+ * Implementation Details:
+ * - Mobile (iOS/Android): Uses @aparajita/capacitor-secure-storage to access
+ *   native hardware-backed storage (Keychain/Keystore).
+ * - Web/Desktop: Uses AES-GCM encryption (via Web Crypto API) and stores
+ *   the encrypted blob in localStorage.
+ * 
+ * Security Features:
+ * - iOS: Data stored in Keychain (hardware-encrypted, accessible only by app)
+ * - Android: Data encrypted with AES-256-GCM using Android Keystore
+ * - Web: PBKDF2 key derivation (100k iterations) + AES-GCM encryption
  */
 
 import { Capacitor } from '@capacitor/core';
@@ -20,16 +24,17 @@ import { log } from './logger';
 const STORAGE_PREFIX = 'zmng_secure_';
 
 /**
- * Check if we're running on a native platform (iOS/Android)
+ * Check if we're running on a native platform (iOS/Android).
  */
 function isNativePlatform(): boolean {
   return Capacitor.isNativePlatform();
 }
 
 /**
- * Store a value securely
- * - On mobile: Uses iOS Keychain or Android Keystore (hardware-encrypted)
- * - On web/desktop: Uses AES-GCM encryption in localStorage
+ * Store a value securely.
+ * 
+ * @param key - The identifier for the value
+ * @param value - The string value to store
  */
 export async function setSecureValue(key: string, value: string): Promise<void> {
   const fullKey = `${STORAGE_PREFIX}${key}`;
@@ -69,9 +74,10 @@ export async function setSecureValue(key: string, value: string): Promise<void> 
 }
 
 /**
- * Retrieve a value securely
- * - On mobile: Retrieves from iOS Keychain or Android Keystore
- * - On web/desktop: Decrypts from localStorage
+ * Retrieve a value securely.
+ * 
+ * @param key - The identifier for the value
+ * @returns The decrypted value, or null if not found
  */
 export async function getSecureValue(key: string): Promise<string | null> {
   const fullKey = `${STORAGE_PREFIX}${key}`;
@@ -136,7 +142,9 @@ export async function getSecureValue(key: string): Promise<string | null> {
 }
 
 /**
- * Remove a value from secure storage
+ * Remove a value from secure storage.
+ * 
+ * @param key - The identifier for the value to remove
  */
 export async function removeSecureValue(key: string): Promise<void> {
   const fullKey = `${STORAGE_PREFIX}${key}`;
@@ -163,7 +171,9 @@ export async function removeSecureValue(key: string): Promise<void> {
 }
 
 /**
- * Check if a value exists in secure storage
+ * Check if a value exists in secure storage.
+ * 
+ * @param key - The identifier to check
  */
 export async function hasSecureValue(key: string): Promise<boolean> {
   const fullKey = `${STORAGE_PREFIX}${key}`;
@@ -181,7 +191,8 @@ export async function hasSecureValue(key: string): Promise<boolean> {
 }
 
 /**
- * Clear all secure values (useful for logout/reset)
+ * Clear all secure values managed by this app.
+ * Useful for logout or app reset.
  */
 export async function clearSecureStorage(): Promise<void> {
   if (isNativePlatform()) {
@@ -230,7 +241,7 @@ export async function clearSecureStorage(): Promise<void> {
 }
 
 /**
- * Get storage type info (for debugging)
+ * Get storage type info (for debugging/settings).
  */
 export function getStorageInfo(): {
   platform: 'native' | 'web';

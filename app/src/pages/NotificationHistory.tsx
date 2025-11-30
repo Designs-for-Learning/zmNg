@@ -1,3 +1,10 @@
+/**
+ * Notification History Page
+ *
+ * Displays a list of past notifications.
+ * Allows users to view event details, mark as read, or clear history.
+ */
+
 import { useNotificationStore } from '../stores/notifications';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';

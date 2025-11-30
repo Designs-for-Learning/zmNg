@@ -1,3 +1,10 @@
+/**
+ * Monitors Page
+ *
+ * Displays a grid of all available monitors with their status and event counts.
+ * Allows filtering and quick access to monitor details.
+ */
+
 import { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';

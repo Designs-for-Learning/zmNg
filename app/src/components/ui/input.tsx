@@ -1,3 +1,9 @@
+/**
+ * Input Component
+ *
+ * A basic text input field with consistent styling.
+ */
+
 import * as React from "react"
 
 import { cn } from "../../lib/utils"

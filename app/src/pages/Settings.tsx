@@ -1,3 +1,10 @@
+/**
+ * Settings Page
+ *
+ * Global application settings configuration.
+ * Handles language selection, theme preferences, and view mode toggles.
+ */
+
 import { useProfileStore } from '../stores/profile';
 import { useShallow } from 'zustand/react/shallow';
 import { useAuthStore } from '../stores/auth';

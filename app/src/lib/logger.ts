@@ -1,6 +1,16 @@
 /**
- * Centralized logging utility
- * Provides structured logging with levels and context
+ * Centralized Logging Utility
+ * 
+ * Provides a structured logging system with support for log levels, context, and sanitization.
+ * Logs are output to the console and also persisted to an in-memory store (via useLogStore)
+ * for display in the application's debug/logs view.
+ * 
+ * Features:
+ * - Log levels (DEBUG, INFO, WARN, ERROR)
+ * - Automatic sanitization of sensitive data (passwords, tokens)
+ * - Context-aware logging (component, action)
+ * - Specialized helpers for common domains (API, Auth, Profile, Monitor)
+ * - Persists log level preference to localStorage
  */
 
 import { useLogStore } from '../stores/logs';
@@ -39,6 +49,10 @@ class Logger {
     }
   }
 
+  /**
+   * Set the current log level.
+   * Persists the choice to localStorage.
+   */
   setLevel(level: LogLevel): void {
     this.level = level;
     if (typeof localStorage !== 'undefined') {
@@ -46,6 +60,9 @@ class Logger {
     }
   }
 
+  /**
+   * Get the current log level.
+   */
   getLevel(): LogLevel {
     return this.level;
   }
@@ -53,8 +70,6 @@ class Logger {
   private shouldLog(level: LogLevel): boolean {
     return level >= this.level;
   }
-
-
 
   private formatMessage(level: string, context: LogContext, message: string, ...args: unknown[]): void {
     const timestamp = new Date().toLocaleString();

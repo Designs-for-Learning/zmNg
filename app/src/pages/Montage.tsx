@@ -1,3 +1,10 @@
+/**
+ * Montage Page
+ *
+ * Displays a customizable grid of live monitor streams.
+ * Supports drag-and-drop layout, resizing, and fullscreen mode.
+ */
+
 import { useQuery } from '@tanstack/react-query';
 import { useShallow } from 'zustand/react/shallow';
 import { getMonitors, getStreamUrl } from '../api/monitors';

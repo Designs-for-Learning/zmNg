@@ -1,6 +1,14 @@
 /**
- * Download utilities for snapshots and videos
- * Works cross-platform (web browser and mobile apps)
+ * Download Utilities
+ * 
+ * Provides cross-platform file download capabilities for snapshots and videos.
+ * Handles platform-specific logic for Web, iOS, and Android.
+ * 
+ * Features:
+ * - Web: Uses standard browser download (Blob/Anchor)
+ * - Mobile: Uses Capacitor Filesystem and Media plugins
+ * - Handles CORS issues via native HTTP or proxy
+ * - Automatically saves media to device Photo/Video library on mobile
  */
 
 import { Capacitor, CapacitorHttp } from '@capacitor/core';
@@ -10,9 +18,13 @@ import { isTauri } from '@tauri-apps/api/core';
 import { log } from './logger';
 
 /**
- * Download a file from a URL
- * For web: triggers browser download
- * For mobile: saves to Downloads directory with media scan
+ * Download a file from a URL.
+ * 
+ * For web: triggers browser download via a temporary anchor element.
+ * For mobile: saves to Documents directory and then attempts to save to Photo/Video library.
+ * 
+ * @param url - The URL to download from
+ * @param filename - The target filename
  */
 export async function downloadFile(url: string, filename: string): Promise<void> {
   const isNative = Capacitor.isNativePlatform();
@@ -102,9 +114,10 @@ export async function downloadFile(url: string, filename: string): Promise<void>
 }
 
 /**
- * Download a snapshot from a data URL or image URL
+ * Download a snapshot from a data URL or image URL.
+ * 
  * @param imageUrl - URL or data URL of the image
- * @param monitorName - Name of the monitor for filename
+ * @param monitorName - Name of the monitor for filename generation
  */
 export async function downloadSnapshot(imageUrl: string, monitorName: string): Promise<void> {
   const isNative = Capacitor.isNativePlatform();
@@ -153,9 +166,10 @@ export async function downloadSnapshot(imageUrl: string, monitorName: string): P
 }
 
 /**
- * Capture current frame from an img element and download
+ * Capture current frame from an img element and download.
+ * 
  * @param imgElement - The image element to capture
- * @param monitorName - Name of the monitor for filename
+ * @param monitorName - Name of the monitor for filename generation
  */
 export async function downloadSnapshotFromElement(
   imgElement: HTMLImageElement,
@@ -215,8 +229,8 @@ export async function downloadSnapshotFromElement(
 }
 
 /**
- * Get event video download URL from ZoneMinder
- * ZoneMinder provides videos in different formats based on event storage
+ * Get event video download URL from ZoneMinder.
+ * ZoneMinder provides videos in different formats based on event storage.
  */
 export function getEventVideoDownloadUrl(
   portalUrl: string,
@@ -241,7 +255,8 @@ export function getEventVideoDownloadUrl(
 }
 
 /**
- * Download event video
+ * Download event video.
+ * 
  * @param portalUrl - ZoneMinder portal URL
  * @param eventId - Event ID
  * @param eventName - Event name for filename
@@ -272,7 +287,8 @@ export async function downloadEventVideo(
 }
 
 /**
- * Download event image/snapshot (for events with only JPEG frames, no video)
+ * Download event image/snapshot (for events with only JPEG frames, no video).
+ * 
  * @param imageUrl - Full URL to the event image
  * @param eventId - Event ID
  * @param eventName - Event name for filename

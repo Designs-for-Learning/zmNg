@@ -1,8 +1,10 @@
 /**
  * Notification Handler Component
  *
- * Listens to the notification store and displays toast notifications
- * Also handles auto-connecting to notification server when profile loads
+ * A headless component that manages the notification system.
+ * It listens to the notification store and displays toast notifications
+ * for new events. It also handles auto-connecting to the notification
+ * server when a profile is loaded.
  */
 
 import { useEffect, useRef } from 'react';
@@ -13,6 +15,11 @@ import { Bell } from 'lucide-react';
 import { log } from '../lib/logger';
 import { useTranslation } from 'react-i18next';
 
+/**
+ * NotificationHandler component.
+ * This component does not render any visible UI itself but manages
+ * side effects related to notifications (toasts, sounds, connection).
+ */
 export function NotificationHandler() {
   const currentProfile = useProfileStore((state) => state.currentProfile());
   const getDecryptedPassword = useProfileStore((state) => state.getDecryptedPassword);
@@ -142,7 +149,8 @@ export function NotificationHandler() {
 }
 
 /**
- * Play notification sound
+ * Plays a notification sound using the Web Audio API.
+ * Generates a simple beep tone.
  */
 function playNotificationSound() {
   try {

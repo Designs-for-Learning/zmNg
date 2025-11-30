@@ -1,11 +1,24 @@
+/**
+ * Token Refresh Hook
+ * 
+ * Automatically manages the lifecycle of authentication tokens.
+ * Checks token expiration periodically and refreshes the access token
+ * before it expires to ensure uninterrupted session validity.
+ * 
+ * Features:
+ * - Proactive refreshing (refreshes 5 minutes before expiry)
+ * - Automatic logout on refresh failure
+ * - Lifecycle-aware (stops checking when component unmounts or user logs out)
+ */
+
 import { useEffect } from 'react';
 import { useAuthStore } from '../stores/auth';
 import { ZM_CONSTANTS } from '../lib/constants';
 import { log } from '../lib/logger';
 
 /**
- * Custom hook to handle automatic token refresh
- * Replaces the module-level setInterval for better lifecycle management
+ * Custom hook to handle automatic token refresh.
+ * Should be mounted once at the root of the application (e.g., in App.tsx).
  */
 export function useTokenRefresh(): void {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);

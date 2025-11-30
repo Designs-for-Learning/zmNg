@@ -1,3 +1,10 @@
+/**
+ * Switch Component
+ *
+ * A toggle switch component.
+ * Built on Radix UI Switch.
+ */
+
 import * as React from "react"
 import * as SwitchPrimitives from "@radix-ui/react-switch"
 

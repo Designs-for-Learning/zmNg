@@ -1,4 +1,11 @@
-// App constants based on zmNinja analysis
+/**
+ * Application Constants
+ * 
+ * Centralized configuration values for the application.
+ * Many of these values are derived from the original zmNinja application
+ * to ensure consistent behavior and performance.
+ */
+
 export const ZM_CONSTANTS = {
   // HTTP timeouts
   httpTimeout: 10000,
@@ -47,8 +54,20 @@ export const ZM_CONSTANTS = {
   timelineZoomMax: 7 * 24 * 60 * 60 * 1000, // 1 week
 } as const;
 
+/**
+ * Valid ZoneMinder monitor functions.
+ * - None: Monitor disabled
+ * - Monitor: View only, no analysis
+ * - Modect: Motion detection
+ * - Record: Continuous recording
+ * - Mocord: Continuous recording + motion detection
+ * - Nodect: External trigger only
+ */
 export const MONITOR_FUNCTIONS = ['None', 'Monitor', 'Modect', 'Record', 'Mocord', 'Nodect'] as const;
 
+/**
+ * Color mappings for monitor status indicators.
+ */
 export const MONITOR_STATUS_COLORS = {
   checking: '#03A9F4',
   notRunning: '#F44336',

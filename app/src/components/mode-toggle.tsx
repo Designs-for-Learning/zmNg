@@ -1,3 +1,10 @@
+/**
+ * Mode Toggle Component
+ *
+ * A dropdown menu button that allows the user to switch between
+ * Light, Dark, and System theme modes.
+ */
+
 import { Moon, Sun } from "lucide-react"
 import { Button } from "./ui/button"
 import {
@@ -9,6 +16,10 @@ import {
 import { useTheme } from "./theme-provider"
 import { useTranslation } from "react-i18next"
 
+/**
+ * ModeToggle component.
+ * Renders a button with a sun/moon icon that toggles the theme dropdown.
+ */
 export function ModeToggle() {
     const { setTheme } = useTheme()
     const { t } = useTranslation()

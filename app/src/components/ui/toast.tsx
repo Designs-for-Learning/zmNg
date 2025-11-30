@@ -1,3 +1,10 @@
+/**
+ * Toaster Component
+ *
+ * A toast notification provider using 'sonner'.
+ * Configures the global toast styles.
+ */
+
 import { Toaster as Sonner } from "sonner"
 
 type ToasterProps = React.ComponentProps<typeof Sonner>

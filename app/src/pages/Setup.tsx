@@ -1,3 +1,10 @@
+/**
+ * Setup Page
+ *
+ * Initial application setup wizard.
+ * Guides the user through connecting to their first ZoneMinder server.
+ */
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AxiosError } from 'axios';

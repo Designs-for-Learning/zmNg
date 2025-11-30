@@ -1,3 +1,10 @@
+/**
+ * Authentication API
+ * 
+ * Handles login, token refresh, and version checking against the ZoneMinder API.
+ * Uses the configured API client for requests.
+ */
+
 import { getApiClient } from './client';
 import type { LoginResponse } from './types';
 import { LoginResponseSchema } from './types';
@@ -13,7 +20,14 @@ export interface LoginWithRefreshToken {
 }
 
 /**
- * Login to ZoneMinder with username and password
+ * Login to ZoneMinder with username and password.
+ * 
+ * Sends a POST request to /host/login.json with form-encoded credentials.
+ * Validates the response using Zod schema.
+ * 
+ * @param credentials - Object containing username and password
+ * @returns Promise resolving to LoginResponse containing tokens and version info
+ * @throws Error if login fails or response validation fails
  */
 export async function login(credentials: LoginCredentials): Promise<LoginResponse> {
   log.auth('Login attempt', { username: credentials.user });
@@ -69,7 +83,12 @@ export async function login(credentials: LoginCredentials): Promise<LoginRespons
 }
 
 /**
- * Refresh access token using refresh token
+ * Refresh access token using refresh token.
+ * 
+ * Sends a POST request to /host/login.json with the refresh token.
+ * 
+ * @param refreshToken - The refresh token obtained from previous login
+ * @returns Promise resolving to LoginResponse with new tokens
  */
 export async function refreshToken(refreshToken: string): Promise<LoginResponse> {
   const client = getApiClient();
@@ -90,7 +109,11 @@ export async function refreshToken(refreshToken: string): Promise<LoginResponse>
 }
 
 /**
- * Get API version
+ * Get API version.
+ * 
+ * Fetches version information from /host/getVersion.json.
+ * 
+ * @returns Promise resolving to object with version and apiversion strings
  */
 export async function getVersion(): Promise<{ version: string; apiversion: string }> {
   const client = getApiClient();
@@ -99,7 +122,13 @@ export async function getVersion(): Promise<{ version: string; apiversion: strin
 }
 
 /**
- * Test if API is reachable and working
+ * Test if API is reachable and working.
+ * 
+ * Attempts to fetch version info from the specified API URL.
+ * Useful for validating server connection during setup.
+ * 
+ * @param apiUrl - The base API URL to test
+ * @returns Promise resolving to true if connection successful, false otherwise
  */
 export async function testConnection(apiUrl: string): Promise<boolean> {
   try {

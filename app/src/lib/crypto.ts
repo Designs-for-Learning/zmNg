@@ -1,6 +1,13 @@
 /**
- * Encryption utility for secure password storage in localStorage
- * Uses Web Crypto API for AES-GCM encryption
+ * Encryption Utility
+ * 
+ * Provides AES-GCM encryption for secure storage of sensitive data (like passwords)
+ * in environments where native secure storage is not available (e.g., web browser).
+ * 
+ * Uses the Web Crypto API for standard, secure cryptographic operations.
+ * 
+ * Note: On native mobile apps (iOS/Android), we prefer using the Capacitor Secure Storage
+ * plugin which uses the device's Keychain/Keystore. This utility is a fallback for web.
  */
 
 const ENCRYPTION_ALGORITHM = 'AES-GCM';
@@ -8,8 +15,10 @@ const KEY_LENGTH = 256;
 const IV_LENGTH = 12;
 
 /**
- * Generate a crypto key from a password
- * Uses device-specific entropy combined with a salt
+ * Generate a crypto key from a password.
+ * Uses device-specific entropy combined with a salt to derive a key.
+ * 
+ * @returns Promise resolving to a CryptoKey
  */
 async function getEncryptionKey(): Promise<CryptoKey> {
   const salt = 'zmng-v1'; // App-specific salt
@@ -36,7 +45,10 @@ async function getEncryptionKey(): Promise<CryptoKey> {
 }
 
 /**
- * Encrypt a string value
+ * Encrypt a string value.
+ * 
+ * @param plaintext - The string to encrypt
+ * @returns Base64 encoded string containing IV + Ciphertext
  */
 export async function encrypt(plaintext: string): Promise<string> {
   try {
@@ -66,7 +78,10 @@ export async function encrypt(plaintext: string): Promise<string> {
 }
 
 /**
- * Decrypt a string value
+ * Decrypt a string value.
+ * 
+ * @param encryptedData - Base64 encoded string containing IV + Ciphertext
+ * @returns The original plaintext string
  */
 export async function decrypt(encryptedData: string): Promise<string> {
   try {
@@ -94,7 +109,7 @@ export async function decrypt(encryptedData: string): Promise<string> {
 }
 
 /**
- * Check if Web Crypto API is available
+ * Check if Web Crypto API is available in the current environment.
  */
 export function isCryptoAvailable(): boolean {
   return typeof window !== 'undefined' &&

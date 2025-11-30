@@ -1,13 +1,34 @@
+/**
+ * Secure Image Component
+ *
+ * An enhanced image component that handles authenticated image loading.
+ * It attempts to load images normally first, but can fall back to
+ * fetching via the API client (with auth headers) if the standard load fails.
+ * This is particularly useful for loading protected resources in a native context.
+ */
+
 import { useState, useEffect, useRef } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { getApiClient } from '../../api/client';
 import { cn } from '../../lib/utils';
 
 interface SecureImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
+  /** The source URL of the image */
   src: string;
+  /** Optional fallback URL if the primary source fails */
   fallbackSrc?: string;
 }
 
+/**
+ * SecureImage component.
+ * Renders an `img` tag with built-in error handling and authenticated fetch fallback.
+ *
+ * @param props - Component properties
+ * @param props.src - Image source URL
+ * @param props.fallbackSrc - Fallback image URL
+ * @param props.className - CSS class names
+ * @param props.alt - Alt text
+ */
 export function SecureImage({ src, fallbackSrc, className, alt, ...props }: SecureImageProps) {
   const [imageSrc, setImageSrc] = useState<string>(src);
   const isNative = Capacitor.isNativePlatform();
@@ -44,6 +65,10 @@ export function SecureImage({ src, fallbackSrc, className, alt, ...props }: Secu
   }, [src, isNative, fallbackSrc]);
   */
 
+  /**
+   * Handles image load errors.
+   * Tries authenticated fetch if on native platform, then falls back to fallbackSrc.
+   */
   const handleError = async (e: React.SyntheticEvent<HTMLImageElement>) => {
     // If we already tried fallback or native fetch, stop
     if (imageSrc === fallbackSrc) {

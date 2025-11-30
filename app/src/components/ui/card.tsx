@@ -1,3 +1,10 @@
+/**
+ * Card Component
+ *
+ * A container component for grouping related content.
+ * Includes subcomponents for Header, Title, Description, Content, and Footer.
+ */
+
 import * as React from "react"
 
 import { cn } from "../../lib/utils"

@@ -1,3 +1,16 @@
+/**
+ * Event Filters Hook
+ * 
+ * Manages the state and logic for filtering events in the Events view.
+ * Synchronizes filter state with URL search parameters to support deep linking and browser history.
+ * 
+ * Features:
+ * - Two-way binding between UI state and URL parameters
+ * - Multi-monitor selection support
+ * - Date range filtering (start/end)
+ * - Active filter counting for UI badges
+ */
+
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useProfileStore } from '../stores/profile';
@@ -20,8 +33,10 @@ interface UseEventFiltersReturn {
 }
 
 /**
- * Custom hook for managing event filters
- * Handles URL params synchronization and local state
+ * Custom hook for managing event filters.
+ * Handles URL params synchronization and local state.
+ * 
+ * @returns Object containing filter state and manipulation functions
  */
 export function useEventFilters(): UseEventFiltersReturn {
   const [searchParams, setSearchParams] = useSearchParams();

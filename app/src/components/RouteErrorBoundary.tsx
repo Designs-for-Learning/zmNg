@@ -1,3 +1,11 @@
+/**
+ * Route Error Boundary Component
+ *
+ * A specialized error boundary for wrapping route components.
+ * It catches errors that occur during route rendering and displays a
+ * user-friendly error page with options to go home or reload.
+ */
+
 import { Component, type ReactNode } from 'react';
 import { AlertCircle } from 'lucide-react';
 import { Button } from './ui/button';

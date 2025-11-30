@@ -1,3 +1,11 @@
+/**
+ * Profile Switcher Component
+ *
+ * A dropdown menu component that allows users to switch between different
+ * ZoneMinder profiles (servers). It displays the current profile and
+ * provides options to add new profiles or switch to existing ones.
+ */
+
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProfileStore } from '../stores/profile';
@@ -15,6 +23,10 @@ import { toast } from 'sonner';
 import { log } from '../lib/logger';
 import { useTranslation } from 'react-i18next';
 
+/**
+ * ProfileSwitcher component.
+ * Renders a button that opens a dropdown menu for profile management.
+ */
 export function ProfileSwitcher() {
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -23,6 +35,11 @@ export function ProfileSwitcher() {
   const switchProfile = useProfileStore((state) => state.switchProfile);
   const [isLoading, setIsLoading] = useState(false);
 
+  /**
+   * Handles switching to a selected profile.
+   *
+   * @param profileId - The ID of the profile to switch to
+   */
   const handleSwitch = async (profileId: string) => {
     if (profileId === currentProfile?.id) return;
 

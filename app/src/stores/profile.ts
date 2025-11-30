@@ -1,3 +1,16 @@
+/**
+ * Profile Store
+ * 
+ * Manages the list of ZoneMinder server profiles and the current active profile.
+ * Handles secure storage of passwords and profile switching logic.
+ * 
+ * Key features:
+ * - Persists profiles to localStorage (excluding passwords)
+ * - Stores passwords in secure storage (native Keychain/Keystore or encrypted in localStorage)
+ * - Handles profile switching with full state cleanup (auth, cache, API client)
+ * - Manages app initialization state
+ */
+
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Profile } from '../api/types';
@@ -34,11 +47,18 @@ export const useProfileStore = create<ProfileState>()(
       currentProfileId: null,
       isInitialized: false,
 
+      /**
+       * Get the currently active profile object.
+       */
       currentProfile: () => {
         const { profiles, currentProfileId } = get();
         return profiles.find((p) => p.id === currentProfileId) || null;
       },
 
+      /**
+       * Check if a profile with the given name already exists.
+       * Case-insensitive.
+       */
       profileExists: (name, excludeId) => {
         const { profiles } = get();
         return profiles.some(
@@ -46,6 +66,12 @@ export const useProfileStore = create<ProfileState>()(
         );
       },
 
+      /**
+       * Add a new profile.
+       * 
+       * Generates a UUID, encrypts the password (if provided), and adds to the list.
+       * If it's the first profile, it becomes the default and current profile.
+       */
       addProfile: async (profileData) => {
         // Check for duplicate names
         if (get().profileExists(profileData.name)) {
@@ -90,6 +116,12 @@ export const useProfileStore = create<ProfileState>()(
         }
       },
 
+      /**
+       * Update an existing profile.
+       * 
+       * Handles password updates by re-encrypting and storing in secure storage.
+       * Re-initializes API client if the current profile's URL changes.
+       */
       updateProfile: async (id, updates) => {
         log.profile(`updateProfile called for profile ID: ${id}`, updates);
 
@@ -125,6 +157,12 @@ export const useProfileStore = create<ProfileState>()(
         log.profile('updateProfile complete');
       },
 
+      /**
+       * Delete a profile.
+       * 
+       * Removes the profile from the list and deletes its password from secure storage.
+       * If the current profile is deleted, switches to another available profile or null.
+       */
       deleteProfile: async (id) => {
         // Remove password from secure storage
         try {
@@ -153,6 +191,12 @@ export const useProfileStore = create<ProfileState>()(
         }
       },
 
+      /**
+       * Delete all profiles.
+       * 
+       * Clears all profiles and removes all passwords from secure storage.
+       * Resets the API client.
+       */
       deleteAllProfiles: async () => {
         const { profiles } = get();
 
@@ -176,6 +220,19 @@ export const useProfileStore = create<ProfileState>()(
         log.profile('All profiles deleted');
       },
 
+      /**
+       * Switch to a different profile.
+       * 
+       * Performs a full context switch:
+       * 1. Clears auth state (logout)
+       * 2. Clears query cache (React Query)
+       * 3. Resets API client
+       * 4. Sets new profile as current
+       * 5. Initializes API client with new URL
+       * 6. Attempts to authenticate with stored credentials
+       * 
+       * Includes rollback logic if switching fails.
+       */
       switchProfile: async (id) => {
         const profile = get().profiles.find((p) => p.id === id);
         if (!profile) {
@@ -318,6 +375,11 @@ export const useProfileStore = create<ProfileState>()(
         }));
       },
 
+      /**
+       * Retrieve decrypted password for a profile.
+       * 
+       * Fetches the encrypted password from secure storage and decrypts it.
+       */
       getDecryptedPassword: async (profileId) => {
         const profile = get().profiles.find((p) => p.id === profileId);
         if (!profile?.password || profile.password !== 'stored-securely') {

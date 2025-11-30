@@ -1,3 +1,10 @@
+/**
+ * Sheet Component
+ *
+ * A slide-out panel component (also known as a drawer).
+ * Built on Radix UI Dialog.
+ */
+
 import * as React from "react"
 import * as SheetPrimitive from "@radix-ui/react-dialog"
 import { cva, type VariantProps } from "class-variance-authority"

@@ -1,3 +1,10 @@
+/**
+ * Event Montage Page
+ *
+ * Displays a grid of event thumbnails for quick visual scanning.
+ * Supports custom grid layouts and filtering.
+ */
+
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useShallow } from 'zustand/react/shallow';

@@ -1,3 +1,10 @@
+/**
+ * Dropdown Menu Component
+ *
+ * A menu that displays a list of options to the user.
+ * Built on Radix UI Dropdown Menu.
+ */
+
 import * as React from "react"
 import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu"
 import { Check, ChevronRight, Circle } from "lucide-react"

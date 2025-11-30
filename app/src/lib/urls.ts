@@ -1,6 +1,9 @@
 /**
  * URL Derivation Utilities
- * Handles the complexities of ZoneMinder URL patterns
+ * 
+ * Handles the complexities of ZoneMinder URL patterns and discovery.
+ * ZoneMinder installations can vary widely in their path structure (e.g., /zm, /zoneminder, root).
+ * These utilities help normalize and discover the correct API and CGI paths.
  */
 
 export interface DerivedUrls {
@@ -9,7 +12,7 @@ export interface DerivedUrls {
 }
 
 /**
- * Derive API and CGI URL patterns from a portal URL
+ * Derive API and CGI URL patterns from a portal URL.
  *
  * ZoneMinder can be installed in various configurations:
  * - Root: http://server.com (API: /api or /zm/api, CGI: /cgi-bin or /zm/cgi-bin)
@@ -17,6 +20,9 @@ export interface DerivedUrls {
  * - Custom: http://server.com/custom (API: /custom/api, CGI: /custom/cgi-bin)
  *
  * This function generates all possible patterns to try in order of likelihood.
+ * 
+ * @param portalUrl - The base URL entered by the user
+ * @returns Object containing arrays of potential API and CGI URLs
  */
 export function deriveZoneminderUrls(portalUrl: string): DerivedUrls {
   // Add URL scheme if missing (try https:// first, then http://)
@@ -78,8 +84,8 @@ export function deriveZoneminderUrls(portalUrl: string): DerivedUrls {
 }
 
 /**
- * Try to discover working API URL from a list of patterns
- * Returns the first pattern that responds successfully
+ * Try to discover working API URL from a list of patterns.
+ * Returns the first pattern that responds successfully.
  *
  * @param patterns - Array of API URL patterns to try
  * @param testFn - Async function that tests if a URL works (should throw on failure)

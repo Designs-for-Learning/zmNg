@@ -1,3 +1,10 @@
+/**
+ * Notification Settings Page
+ *
+ * Configures notification preferences, including server connection,
+ * monitor filters, and push notification settings.
+ */
+
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
