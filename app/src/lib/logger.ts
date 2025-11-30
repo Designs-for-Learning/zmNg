@@ -40,7 +40,7 @@ class Logger {
     this.isDev = import.meta.env.DEV;
     // Check for saved log level
     const savedLevel = typeof localStorage !== 'undefined' ? localStorage.getItem('zm_log_level') : null;
-    
+
     if (savedLevel !== null && !isNaN(parseInt(savedLevel, 10))) {
       this.level = parseInt(savedLevel, 10) as LogLevel;
     } else {
@@ -129,19 +129,35 @@ class Logger {
 
   // Specialized loggers for common contexts
   api(message: string, details?: unknown): void {
-    this.debug(message, { component: 'API' }, details);
+    if (details !== undefined && details !== null && !(typeof details === 'object' && Object.keys(details as object).length === 0)) {
+      this.debug(message, { component: 'API' }, details);
+    } else {
+      this.debug(message, { component: 'API' });
+    }
   }
 
   auth(message: string, details?: unknown): void {
-    this.info(message, { component: 'Auth' }, details);
+    if (details !== undefined && details !== null && !(typeof details === 'object' && Object.keys(details as object).length === 0)) {
+      this.info(message, { component: 'Auth' }, details);
+    } else {
+      this.info(message, { component: 'Auth' });
+    }
   }
 
   profile(message: string, details?: unknown): void {
-    this.info(message, { component: 'Profile' }, details);
+    if (details !== undefined && details !== null && !(typeof details === 'object' && Object.keys(details as object).length === 0)) {
+      this.info(message, { component: 'Profile' }, details);
+    } else {
+      this.info(message, { component: 'Profile' });
+    }
   }
 
   monitor(message: string, details?: unknown): void {
-    this.debug(message, { component: 'Monitor' }, details);
+    if (details !== undefined && details !== null && !(typeof details === 'object' && Object.keys(details as object).length === 0)) {
+      this.debug(message, { component: 'Monitor' }, details);
+    } else {
+      this.debug(message, { component: 'Monitor' });
+    }
   }
 }
 
