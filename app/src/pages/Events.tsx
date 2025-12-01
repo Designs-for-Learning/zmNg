@@ -179,7 +179,7 @@ export default function Events() {
                   )}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[calc(100vw-2rem)] sm:w-80 max-w-sm">
+              <PopoverContent className="w-[calc(100vw-2rem)] sm:w-80 max-w-sm max-h-[80vh] overflow-y-auto no-scrollbar">
                 <div className="grid gap-4">
                   <div className="space-y-2">
                     <h4 className="text-sm sm:text-base font-medium leading-none">{t('events.filters')}</h4>
