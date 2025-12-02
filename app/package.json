@@ -34,7 +34,10 @@
     "ios:open": "npx cap open ios",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
-    "tauri:build": "tauri build"
+    "tauri:build": "tauri build",
+    "icons:tauri": "tauri icon assets/logo.png",
+    "icons:mobile": "capacitor-assets generate --ios --android",
+    "icons": "npm run icons:tauri && npm run icons:mobile"
   },
   "dependencies": {
     "@aparajita/capacitor-secure-storage": "^7.1.6",
@@ -90,6 +93,7 @@
     "zustand": "^5.0.8"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
     "@eslint/js": "^9.39.1",
     "@playwright/test": "^1.57.0",
     "@radix-ui/react-slot": "^1.2.4",

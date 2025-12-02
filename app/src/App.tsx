@@ -6,7 +6,7 @@
  */
 
 import { lazy, Suspense, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useProfileStore } from './stores/profile';
 import { useSettingsStore } from './stores/settings';
@@ -243,10 +243,10 @@ function App() {
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider defaultTheme="dark" storageKey="zmng-ui-theme">
-          <BrowserRouter>
+          <HashRouter>
             <NotificationHandler />
             <AppRoutes />
-          </BrowserRouter>
+          </HashRouter>
           <Toaster />
         </ThemeProvider>
       </QueryClientProvider>

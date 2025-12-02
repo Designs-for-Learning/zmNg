@@ -2,7 +2,7 @@
 
 [View Comparison with zmNinja](notes/COMPARISON.md)
 
-<img src="docs/images/logo.png" align="right" width="120" />
+<img src="app/assets/logo.png" align="right" width="120" />
 
 A modern web and mobile application for ZoneMinder home surveillance systems, providing a clean, intuitive interface for viewing live camera feeds, reviewing events, and managing multiple server profiles. It is a ground-up rewrite of the original [zmNinja](https://zmninja.zoneminder.com/) application, using modern web technologies and a more intuitive user interface. The code was 99% Claude CLI generated.
 
@@ -457,5 +457,23 @@ api_key = <your-firebase-server-key>
 ```
 
 See [Capacitor Push Notifications](https://capacitorjs.com/docs/apis/push-notifications) for platform-specific details.
+
+## Regenerating App Icons
+
+The application uses a consolidated asset workflow. The source of truth for icons is `app/assets/logo.png` (and `app/assets/splash.png` for mobile splash screens).
+
+To regenerate icons for all platforms (Desktop, Android, iOS):
+
+1. Ensure your new logo is at `app/assets/logo.png` (High-res PNG, e.g., 1024x1024).
+2. (Optional) Ensure your splash screen is at `app/assets/splash.png`.
+3. Run the following command from the `app` directory:
+
+```bash
+npm run icons
+```
+
+This single command will:
+- Generate all desktop icons for Tauri (`src-tauri/icons/`)
+- Generate all mobile icons and splash screens for Android and iOS (`android/` and `ios/`)
 
 ---
