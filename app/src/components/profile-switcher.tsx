@@ -9,6 +9,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProfileStore } from '../stores/profile';
+import { useShallow } from 'zustand/react/shallow';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,7 +32,12 @@ export function ProfileSwitcher() {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const profiles = useProfileStore((state) => state.profiles);
-  const currentProfile = useProfileStore((state) => state.currentProfile());
+  const currentProfile = useProfileStore(
+    useShallow((state) => {
+      const { profiles, currentProfileId } = state;
+      return profiles.find((p) => p.id === currentProfileId) || null;
+    })
+  );
   const switchProfile = useProfileStore((state) => state.switchProfile);
   const [isLoading, setIsLoading] = useState(false);
 
