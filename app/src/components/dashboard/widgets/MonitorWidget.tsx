@@ -12,10 +12,10 @@
  * - Hover overlay with monitor name
  */
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { getMonitor, getStreamUrl } from '../../../api/monitors';
+import { getMonitor, getMonitors, getStreamUrl } from '../../../api/monitors';
 import { useProfileStore } from '../../../stores/profile';
 import { useAuthStore } from '../../../stores/auth';
 import { useMonitorStore } from '../../../stores/monitors';
@@ -26,6 +26,7 @@ import { Skeleton } from '../../ui/skeleton';
 import { useTranslation } from 'react-i18next';
 import { calculateGridDimensions, getGridTemplateStyle } from '../../../lib/grid-utils';
 import { ZM_CONSTANTS } from '../../../lib/constants';
+import { filterEnabledMonitors } from '../../../lib/filters';
 
 interface MonitorWidgetProps {
     /** Array of monitor IDs to display */
@@ -139,6 +140,11 @@ function SingleMonitor({ monitorId }: { monitorId: string }) {
         );
     }
 
+    // Don't show deleted monitors
+    if (monitor.Monitor.Deleted === true) {
+        return null;
+    }
+
     return (
         <div
             className="w-full h-full bg-black relative group overflow-hidden cursor-pointer"
@@ -167,6 +173,22 @@ function SingleMonitor({ monitorId }: { monitorId: string }) {
 export function MonitorWidget({ monitorIds }: MonitorWidgetProps) {
     const { t } = useTranslation();
 
+    // Fetch all monitors to check which ones are deleted
+    const { data: monitorsData } = useQuery({
+        queryKey: ['monitors'],
+        queryFn: getMonitors,
+    });
+
+    // Filter out deleted monitors
+    const activeMonitorIds = useMemo(() => {
+        if (!monitorsData?.monitors) return monitorIds;
+
+        const enabledMonitors = filterEnabledMonitors(monitorsData.monitors);
+        const enabledIds = new Set(enabledMonitors.map(m => m.Monitor.Id));
+
+        return monitorIds.filter(id => enabledIds.has(id));
+    }, [monitorIds, monitorsData?.monitors]);
+
     if (!monitorIds || monitorIds.length === 0) {
         return (
             <div className="w-full h-full flex items-center justify-center text-muted-foreground">
@@ -175,12 +197,20 @@ export function MonitorWidget({ monitorIds }: MonitorWidgetProps) {
         );
     }
 
-    if (monitorIds.length === 1) {
-        return <SingleMonitor monitorId={monitorIds[0]} />;
+    if (activeMonitorIds.length === 0) {
+        return (
+            <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                {t('dashboard.no_monitors_available')}
+            </div>
+        );
+    }
+
+    if (activeMonitorIds.length === 1) {
+        return <SingleMonitor monitorId={activeMonitorIds[0]} />;
     }
 
     // Calculate optimal grid layout for multiple monitors
-    const { cols, rows } = calculateGridDimensions(monitorIds.length);
+    const { cols, rows } = calculateGridDimensions(activeMonitorIds.length);
     const gridStyle = getGridTemplateStyle(cols, rows);
 
     return (
@@ -188,7 +218,7 @@ export function MonitorWidget({ monitorIds }: MonitorWidgetProps) {
             className="w-full h-full grid gap-0.5 bg-black"
             style={gridStyle}
         >
-            {monitorIds.map((id) => (
+            {activeMonitorIds.map((id) => (
                 <div key={id} className="relative overflow-hidden">
                     <SingleMonitor monitorId={id} />
                 </div>

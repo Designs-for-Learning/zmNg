@@ -46,6 +46,7 @@
     "cancel": "Annuler",
     "add": "Ajouter un widget",
     "no_monitors_selected": "Aucun moniteur sélectionné",
+    "no_monitors_available": "No monitors available",
     "offline": "Hors ligne",
     "no_recent_events": "Aucun événement récent"
   },

@@ -46,6 +46,7 @@
     "cancel": "取消",
     "add": "添加小部件",
     "no_monitors_selected": "未选择监控",
+    "no_monitors_available": "No monitors available",
     "offline": "离线",
     "no_recent_events": "没有最近的事件"
   },

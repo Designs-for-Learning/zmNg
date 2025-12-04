@@ -46,6 +46,7 @@
     "cancel": "Cancelar",
     "add": "Agregar Widget",
     "no_monitors_selected": "No hay monitores seleccionados",
+    "no_monitors_available": "No monitors available",
     "offline": "Desconectado",
     "no_recent_events": "No hay eventos recientes"
   },

@@ -52,39 +52,18 @@ export function DashboardLayout() {
     // Track current breakpoint for responsive behavior
     const [currentBreakpoint, setCurrentBreakpoint] = useState<string>('lg');
     const [mounted, setMounted] = useState(false);
-    const [forceUpdate, setForceUpdate] = useState(0);
 
     // Force component to mount properly
     useEffect(() => {
         setMounted(true);
     }, []);
 
-    // Force re-render on window resize to ensure proper reflow
-    useEffect(() => {
-        let timeoutId: NodeJS.Timeout;
-
-        const handleResize = () => {
-            clearTimeout(timeoutId);
-            timeoutId = setTimeout(() => {
-                setForceUpdate(prev => prev + 1);
-            }, 200);
+    const layouts = useMemo(() => {
+        // Only define lg layout, let react-grid-layout automatically adapt to other breakpoints
+        return {
+            lg: widgets.map(w => ({ ...w.layout, i: w.id })),
         };
-
-        window.addEventListener('resize', handleResize);
-
-        return () => {
-            window.removeEventListener('resize', handleResize);
-            clearTimeout(timeoutId);
-        };
-    }, []);
-
-    const layouts = useMemo(() => ({
-        lg: widgets.map(w => ({ ...w.layout, i: w.id })),
-        md: widgets.map(w => ({ ...w.layout, i: w.id })),
-        sm: widgets.map(w => ({ ...w.layout, i: w.id })),
-        xs: widgets.map(w => ({ ...w.layout, i: w.id })),
-        xxs: widgets.map(w => ({ ...w.layout, i: w.id })),
-    }), [widgets]);
+    }, [widgets]);
 
     const handleLayoutChange = (currentLayout: Layout[]) => {
         // Only update if we are editing or if it's a drag/resize event
@@ -156,7 +135,6 @@ export function DashboardLayout() {
     return (
         <div className="p-4 min-h-screen w-full">
             <ResponsiveGridLayout
-                key={forceUpdate}
                 className="layout"
                 layouts={layouts}
                 breakpoints={BREAKPOINTS}
@@ -168,7 +146,6 @@ export function DashboardLayout() {
                 isResizable={isEditing}
                 draggableHandle=".drag-handle"
                 margin={[16, 16]}
-                containerPadding={[0, 0]}
                 compactType="vertical"
                 preventCollision={false}
             >
