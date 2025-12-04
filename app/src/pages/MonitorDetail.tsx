@@ -5,7 +5,7 @@
  * Includes PTZ controls (if applicable) and quick actions.
  */
 
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useShallow } from 'zustand/react/shallow';
 import { useQuery } from '@tanstack/react-query';
 import { getMonitor, getStreamUrl } from '../api/monitors';
@@ -25,7 +25,11 @@ import { useTranslation } from 'react-i18next';
 export default function MonitorDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { t } = useTranslation();
+
+  // Check if user came from another page (navigation state tracking)
+  const referrer = location.state?.from as string | undefined;
   const [scale, setScale] = useState(100);
   const [mode, setMode] = useState<'jpeg' | 'stream'>('jpeg');
   const [corsAllowed, setCorsAllowed] = useState(true);
@@ -186,7 +190,7 @@ export default function MonitorDetail() {
           <AlertTriangle className="h-5 w-5" />
           {t('monitor_detail.load_error')}
         </div>
-        <Button onClick={() => navigate(-1)} className="mt-4">
+        <Button onClick={() => referrer ? navigate(referrer) : navigate(-1)} className="mt-4">
           {t('common.go_back')}
         </Button>
       </div>
@@ -198,7 +202,13 @@ export default function MonitorDetail() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-2 sm:p-3 border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="flex items-center gap-2 sm:gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)} aria-label={t('common.go_back')} className="h-8 w-8">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => referrer ? navigate(referrer) : navigate(-1)}
+            aria-label={t('common.go_back')}
+            className="h-8 w-8"
+          >
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>

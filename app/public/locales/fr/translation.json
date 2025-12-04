@@ -1,7 +1,5 @@
 {
   "common": {
-    "pip": "Image dans l'image",
-    "pip_failed": "Échec de l'ouverture de l'image dans l'image",
     "go_back": "Retour",
     "refresh": "Actualiser",
     "close": "Fermer",
@@ -87,7 +85,6 @@
     "snapshot_downloaded": "Instantané téléchargé",
     "snapshot_failed": "Échec de l'instantané",
     "stream_connection_lost": "Connexion au flux perdue",
-    "pip_needs_cors": "L'image dans l'image nécessite des en-têtes CORS sur le serveur ZoneMinder",
     "ptz_capable": "Compatible PTZ",
     "view_events": "Voir les événements",
     "offline": "Hors ligne"
@@ -181,6 +178,10 @@
     "events_per_page_desc": "Nombre d'événements à charger à la fois",
     "events_per_page_suffix": "événements",
     "event_limit_tip": "Des limites plus élevées peuvent affecter les performances",
+    "dashboard_settings": "Paramètres du tableau de bord",
+    "dashboard_settings_desc": "Configurer les widgets du tableau de bord",
+    "dashboard_refresh_interval": "Intervalle de rafraîchissement du tableau de bord",
+    "dashboard_refresh_interval_desc": "Fréquence de rafraîchissement des widgets du tableau de bord (sauf flux de moniteur)",
     "snapshot": "Instantané",
     "streaming": "Diffusion",
     "streaming_mode": "Mode de diffusion",
@@ -223,8 +224,11 @@
     "snapshot_saved": "Instantané enregistré",
     "snapshot_failed": "Échec de l'instantané",
     "stream_lost": "Connexion au flux perdue",
+    "pip_needs_cors": "L'image dans l'image nécessite des en-têtes CORS sur le serveur ZoneMinder",
     "load_error": "Erreur de chargement du moniteur",
-    "maximize": "Maximiser"
+    "maximize": "Maximiser",
+    "pip": "Image dans l'image",
+    "pip_failed": "Échec de l'ouverture de l'image dans l'image"
   },
   "montage": {
     "title": "Montage",
@@ -397,6 +401,7 @@
     "cgi_url_hint": "https://serveur.com/zm/cgi-bin"
   },
   "sidebar": {
+    "dashboard": "Tableau de bord",
     "events": "Événements",
     "timeline": "Chronologie",
     "settings": "Paramètres",

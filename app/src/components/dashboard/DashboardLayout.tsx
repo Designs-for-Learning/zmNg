@@ -21,7 +21,7 @@ import { Responsive, WidthProvider } from 'react-grid-layout';
 import type { Layout } from 'react-grid-layout';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
@@ -48,6 +48,35 @@ export function DashboardLayout() {
     );
     const updateLayouts = useDashboardStore((state) => state.updateLayouts);
     const isEditing = useDashboardStore((state) => state.isEditing);
+
+    // Track current breakpoint for responsive behavior
+    const [currentBreakpoint, setCurrentBreakpoint] = useState<string>('lg');
+    const [mounted, setMounted] = useState(false);
+    const [forceUpdate, setForceUpdate] = useState(0);
+
+    // Force component to mount properly
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    // Force re-render on window resize to ensure proper reflow
+    useEffect(() => {
+        let timeoutId: NodeJS.Timeout;
+
+        const handleResize = () => {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => {
+                setForceUpdate(prev => prev + 1);
+            }, 200);
+        };
+
+        window.addEventListener('resize', handleResize);
+
+        return () => {
+            window.removeEventListener('resize', handleResize);
+            clearTimeout(timeoutId);
+        };
+    }, []);
 
     const layouts = useMemo(() => ({
         lg: widgets.map(w => ({ ...w.layout, i: w.id })),
@@ -89,6 +118,10 @@ export function DashboardLayout() {
         updateLayouts(profileId, newLayouts);
     };
 
+    const handleBreakpointChange = (newBreakpoint: string) => {
+        setCurrentBreakpoint(newBreakpoint);
+    };
+
     if (widgets.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center h-[60vh] text-center p-8">
@@ -115,19 +148,29 @@ export function DashboardLayout() {
         );
     }
 
+    // Don't render until mounted to avoid hydration issues
+    if (!mounted) {
+        return null;
+    }
+
     return (
-        <div className="p-4 min-h-screen">
+        <div className="p-4 min-h-screen w-full">
             <ResponsiveGridLayout
+                key={forceUpdate}
                 className="layout"
                 layouts={layouts}
                 breakpoints={BREAKPOINTS}
                 cols={COLS}
                 rowHeight={ROW_HEIGHT}
                 onLayoutChange={handleLayoutChange}
+                onBreakpointChange={handleBreakpointChange}
                 isDraggable={isEditing}
                 isResizable={isEditing}
                 draggableHandle=".drag-handle"
                 margin={[16, 16]}
+                containerPadding={[0, 0]}
+                compactType="vertical"
+                preventCollision={false}
             >
                 {widgets.map((widget) => (
                     <div key={widget.id}>

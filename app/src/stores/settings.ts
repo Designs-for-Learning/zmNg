@@ -10,6 +10,7 @@ export interface ProfileSettings {
   displayMode: DisplayMode;
   snapshotRefreshInterval: number; // in seconds
   defaultEventLimit: number; // Default number of events to fetch when no filters applied
+  dashboardRefreshInterval: number; // in seconds, for dashboard widgets (events/timeline)
   montageLayouts: Layouts; // Store montage layouts per profile
   eventMontageLayouts: Layouts; // Store event montage layouts per profile
   montageGridRows: number; // Grid rows for Montage page
@@ -56,6 +57,7 @@ const DEFAULT_SETTINGS: ProfileSettings = {
   displayMode: getDefaultDisplayMode(),
   snapshotRefreshInterval: 3,
   defaultEventLimit: 300,
+  dashboardRefreshInterval: 30,
   montageLayouts: {},
   eventMontageLayouts: {},
   montageGridRows: 4,

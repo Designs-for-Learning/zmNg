@@ -1,7 +1,5 @@
 {
   "common": {
-    "pip": "Bild-in-Bild",
-    "pip_failed": "Bild-in-Bild konnte nicht gestartet werden",
     "go_back": "Zurück",
     "refresh": "Aktualisieren",
     "close": "Schließen",
@@ -87,7 +85,6 @@
     "snapshot_downloaded": "Schnappschuss heruntergeladen",
     "snapshot_failed": "Schnappschuss fehlgeschlagen",
     "stream_connection_lost": "Stream-Verbindung verloren",
-    "pip_needs_cors": "Bild-in-Bild erfordert CORS-Header auf dem ZoneMinder-Server",
     "ptz_capable": "PTZ-fähig",
     "view_events": "Ereignisse ansehen",
     "offline": "Offline"
@@ -181,6 +178,10 @@
     "events_per_page_desc": "Anzahl der Ereignisse, die auf einmal geladen werden",
     "events_per_page_suffix": "Ereignisse",
     "event_limit_tip": "Höhere Limits können die Leistung beeinträchtigen",
+    "dashboard_settings": "Dashboard-Einstellungen",
+    "dashboard_settings_desc": "Dashboard-Widgets konfigurieren",
+    "dashboard_refresh_interval": "Dashboard-Aktualisierungsintervall",
+    "dashboard_refresh_interval_desc": "Wie oft Dashboard-Widgets aktualisiert werden (außer Monitor-Streams)",
     "snapshot": "Schnappschuss",
     "streaming": "Streaming",
     "streaming_mode": "Streaming-Modus",
@@ -223,8 +224,11 @@
     "snapshot_saved": "Schnappschuss gespeichert",
     "snapshot_failed": "Schnappschuss fehlgeschlagen",
     "stream_lost": "Stream-Verbindung verloren",
+    "pip_needs_cors": "Bild-in-Bild erfordert CORS-Header auf dem ZoneMinder-Server",
     "load_error": "Fehler beim Laden des Monitors",
-    "maximize": "Maximieren"
+    "maximize": "Maximieren",
+    "pip": "Bild-in-Bild",
+    "pip_failed": "Bild-in-Bild konnte nicht gestartet werden"
   },
   "montage": {
     "title": "Montage",
@@ -397,6 +401,7 @@
     "cgi_url_hint": "https://server.com/zm/cgi-bin"
   },
   "sidebar": {
+    "dashboard": "Dashboard",
     "events": "Ereignisse",
     "timeline": "Zeitachse",
     "settings": "Einstellungen",

@@ -12,7 +12,7 @@
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useLocation } from 'react-router-dom';
 import { useProfileStore } from '../stores/profile';
 import { useSettingsStore } from '../stores/settings';
 import { useShallow } from 'zustand/react/shallow';
@@ -40,6 +40,7 @@ interface UseEventFiltersReturn {
  */
 export function useEventFilters(): UseEventFiltersReturn {
   const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
   const currentProfile = useProfileStore((state) => state.currentProfile());
   const settings = useSettingsStore(
     useShallow((state) => state.getProfileSettings(currentProfile?.id || ''))
@@ -88,7 +89,11 @@ export function useEventFilters(): UseEventFiltersReturn {
     if (startDateInput) newParams.startDateTime = startDateInput;
     if (endDateInput) newParams.endDateTime = endDateInput;
 
-    setSearchParams(newParams);
+    // Preserve navigation state when updating search params
+    setSearchParams(newParams, {
+      replace: true,
+      state: location.state,
+    });
   }, [
     selectedMonitorIds,
     startDateInput,
@@ -96,6 +101,7 @@ export function useEventFilters(): UseEventFiltersReturn {
     filters.sort,
     filters.direction,
     setSearchParams,
+    location.state,
   ]);
 
   // Clear all filters
@@ -103,11 +109,17 @@ export function useEventFilters(): UseEventFiltersReturn {
     setSelectedMonitorIds([]);
     setStartDateInput('');
     setEndDateInput('');
-    setSearchParams({
-      sort: 'StartDateTime',
-      direction: 'desc',
-    });
-  }, [setSearchParams]);
+    setSearchParams(
+      {
+        sort: 'StartDateTime',
+        direction: 'desc',
+      },
+      {
+        replace: true,
+        state: location.state,
+      }
+    );
+  }, [setSearchParams, location.state]);
 
   // Toggle monitor selection
   const toggleMonitorSelection = useCallback((monitorId: string) => {

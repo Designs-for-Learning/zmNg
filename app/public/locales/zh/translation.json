@@ -1,7 +1,5 @@
 {
   "common": {
-    "pip": "画中画",
-    "pip_failed": "无法进入画中画模式",
     "go_back": "返回",
     "refresh": "刷新",
     "close": "关闭",
@@ -87,7 +85,6 @@
     "snapshot_downloaded": "快照已下载",
     "snapshot_failed": "快照失败",
     "stream_connection_lost": "流连接丢失",
-    "pip_needs_cors": "画中画需要在 ZoneMinder 服务器上配置 CORS 头",
     "ptz_capable": "支持 PTZ",
     "view_events": "查看事件",
     "offline": "离线"
@@ -181,6 +178,10 @@
     "events_per_page_desc": "一次加载的事件数量",
     "events_per_page_suffix": "事件",
     "event_limit_tip": "更高的限制可能会影响性能",
+    "dashboard_settings": "仪表板设置",
+    "dashboard_settings_desc": "配置仪表板小部件",
+    "dashboard_refresh_interval": "仪表板刷新间隔",
+    "dashboard_refresh_interval_desc": "仪表板小部件刷新频率（监控流除外）",
     "snapshot": "快照",
     "streaming": "流媒体",
     "streaming_mode": "流媒体模式",
@@ -223,8 +224,11 @@
     "snapshot_saved": "快照已保存",
     "snapshot_failed": "快照失败",
     "stream_lost": "流连接丢失",
+    "pip_needs_cors": "画中画需要在 ZoneMinder 服务器上配置 CORS 头",
     "load_error": "加载监控错误",
-    "maximize": "最大化"
+    "maximize": "最大化",
+    "pip": "画中画",
+    "pip_failed": "无法进入画中画模式"
   },
   "montage": {
     "title": "蒙太奇",
@@ -397,6 +401,7 @@
     "cgi_url_hint": "https://server.com/zm/cgi-bin"
   },
   "sidebar": {
+    "dashboard": "仪表板",
     "events": "事件",
     "timeline": "时间轴",
     "settings": "设置",

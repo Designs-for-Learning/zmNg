@@ -178,6 +178,10 @@
     "events_per_page_desc": "Number of events to load at once",
     "events_per_page_suffix": "events",
     "event_limit_tip": "Higher limits may affect performance",
+    "dashboard_settings": "Dashboard Settings",
+    "dashboard_settings_desc": "Configure dashboard widgets",
+    "dashboard_refresh_interval": "Dashboard Refresh Interval",
+    "dashboard_refresh_interval_desc": "How often dashboard widgets refresh (except monitor streams)",
     "snapshot": "Snapshot",
     "streaming": "Streaming",
     "streaming_mode": "Streaming Mode",
@@ -397,6 +401,7 @@
     "cgi_url_hint": "https://server.com/zm/cgi-bin"
   },
   "sidebar": {
+    "dashboard": "Dashboard",
     "events": "Events",
     "timeline": "Timeline",
     "settings": "Settings",

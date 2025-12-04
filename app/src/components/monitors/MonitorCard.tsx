@@ -109,7 +109,7 @@ function MonitorCardComponent({
       {/* Thumbnail Preview - Clickable */}
       <div
         className="relative aspect-video bg-black/90 cursor-pointer"
-        onClick={() => navigate(`/monitors/${monitor.Id}`)}
+        onClick={() => navigate(`/monitors/${monitor.Id}`, { state: { from: '/monitors' } })}
       >
         <img
           ref={imgRef}
@@ -188,7 +188,7 @@ function MonitorCardComponent({
             variant="outline"
             size="sm"
             className="flex-1 text-xs h-8 relative"
-            onClick={() => navigate(`/events?monitorId=${monitor.Id}`)}
+            onClick={() => navigate(`/events?monitorId=${monitor.Id}`, { state: { from: '/monitors' } })}
           >
             <Video className="h-3 w-3 mr-1" />
             {t('sidebar.events')}

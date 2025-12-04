@@ -5,7 +5,7 @@
  * Includes video playback (or image fallback), metadata, and download options.
  */
 
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { getEvent, getEventVideoUrl, getEventImageUrl, getEventZmsUrl } from '../api/events';
 import { useProfileStore } from '../stores/profile';
@@ -26,7 +26,11 @@ import { useTranslation } from 'react-i18next';
 export default function EventDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { t } = useTranslation();
+
+  // Check if user came from another page (navigation state tracking)
+  const referrer = location.state?.from as string | undefined;
   const [useZmsFallback, setUseZmsFallback] = useState(false);
   const [showFallbackBadge, setShowFallbackBadge] = useState(false);
 
@@ -113,7 +117,13 @@ export default function EventDetail() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-2 sm:p-3 border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="flex items-center gap-2 sm:gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)} aria-label={t('common.go_back')} className="h-8 w-8">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => referrer ? navigate(referrer) : navigate(-1)}
+            aria-label={t('common.go_back')}
+            className="h-8 w-8"
+          >
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>

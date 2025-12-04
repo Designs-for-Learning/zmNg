@@ -65,7 +65,7 @@ export function EventsWidget({ monitorId, limit = 5, refreshInterval = 30000 }: 
                     <div
                         key={event.Event.Id}
                         className="p-3 hover:bg-muted/50 cursor-pointer transition-colors flex items-center gap-3"
-                        onClick={() => navigate(`/events/${event.Event.Id}`)}
+                        onClick={() => navigate(`/events/${event.Event.Id}`, { state: { from: '/dashboard' } })}
                     >
                         <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between mb-1">

@@ -13,7 +13,6 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useDashboardStore } from '../dashboard';
-import type { DashboardWidget, WidgetType } from '../dashboard';
 
 describe('Dashboard Store', () => {
     beforeEach(() => {

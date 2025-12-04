@@ -42,7 +42,7 @@ function EventCardComponent({ event, monitorName, thumbnailUrl }: EventCardProps
   return (
     <Card
       className="group overflow-hidden cursor-pointer hover:shadow-lg transition-all duration-200 hover:ring-2 hover:ring-primary/50"
-      onClick={() => navigate(`/events/${event.Id}`)}
+      onClick={() => navigate(`/events/${event.Id}`, { state: { from: '/events' } })}
     >
       <div className="flex gap-2 sm:gap-3 p-2 sm:p-3">
         {/* Thumbnail */}

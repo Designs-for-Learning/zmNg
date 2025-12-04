@@ -1,10 +1,11 @@
 import type { ReactNode } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
-import { X, GripVertical } from 'lucide-react';
+import { X, GripVertical, Pencil } from 'lucide-react';
 import { useDashboardStore } from '../../stores/dashboard';
 import { cn } from '../../lib/utils';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
+import { WidgetEditDialog } from './WidgetEditDialog';
 
 /**
  * Props for the DashboardWidget component
@@ -61,7 +62,12 @@ export function DashboardWidget({
 }: DashboardWidgetProps) {
     const isEditing = useDashboardStore((state) => state.isEditing);
     const removeWidget = useDashboardStore((state) => state.removeWidget);
+    const widgets = useDashboardStore((state) => state.widgets[profileId] ?? []);
     const widgetRef = useRef<HTMLDivElement>(null);
+    const [editDialogOpen, setEditDialogOpen] = useState(false);
+
+    // Get widget data for editing
+    const widget = widgets.find(w => w.id === id);
 
     return (
         <Card
@@ -74,20 +80,43 @@ export function DashboardWidget({
             data-grid={dataGrid}
         >
             {isEditing && (
-                <div className="absolute top-2 right-2 z-50 flex gap-2">
-                    <Button
-                        variant="destructive"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={(e) => {
-                            e.stopPropagation(); // Prevent drag start
-                            removeWidget(profileId, id);
-                        }}
-                        onMouseDown={(e) => e.stopPropagation()} // Prevent drag start
-                    >
-                        <X className="h-3 w-3" />
-                    </Button>
-                </div>
+                <>
+                    <div className="absolute top-2 right-2 z-50 flex gap-2">
+                        <Button
+                            variant="secondary"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={(e) => {
+                                e.stopPropagation(); // Prevent drag start
+                                setEditDialogOpen(true);
+                            }}
+                            onMouseDown={(e) => e.stopPropagation()} // Prevent drag start
+                        >
+                            <Pencil className="h-3 w-3" />
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={(e) => {
+                                e.stopPropagation(); // Prevent drag start
+                                removeWidget(profileId, id);
+                            }}
+                            onMouseDown={(e) => e.stopPropagation()} // Prevent drag start
+                        >
+                            <X className="h-3 w-3" />
+                        </Button>
+                    </div>
+
+                    {widget && (
+                        <WidgetEditDialog
+                            open={editDialogOpen}
+                            onOpenChange={setEditDialogOpen}
+                            widget={widget}
+                            profileId={profileId}
+                        />
+                    )}
+                </>
             )}
 
             {title && (

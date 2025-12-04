@@ -7,6 +7,7 @@
 
 import { useMemo, useRef, useState, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { useShallow } from 'zustand/react/shallow';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { getEvents, getEventImageUrl } from '../api/events';
@@ -19,7 +20,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Badge } from '../components/ui/badge';
-import { RefreshCw, Filter, AlertCircle, Video, X, Loader2 } from 'lucide-react';
+import { RefreshCw, Filter, AlertCircle, Video, X, Loader2, ArrowLeft } from 'lucide-react';
 import { getEnabledMonitorIds, filterEnabledMonitors } from '../lib/filters';
 import { Popover, PopoverContent, PopoverTrigger } from '../components/ui/popover';
 import { Checkbox } from '../components/ui/checkbox';
@@ -27,6 +28,8 @@ import { EventCard } from '../components/events/EventCard';
 import { useTranslation } from 'react-i18next';
 
 export default function Events() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const currentProfile = useProfileStore((state) => state.currentProfile());
   const settings = useSettingsStore(
     useShallow((state) => state.getProfileSettings(currentProfile?.id || ''))
@@ -34,6 +37,9 @@ export default function Events() {
   const accessToken = useAuthStore((state) => state.accessToken);
   const parentRef = useRef<HTMLDivElement>(null);
   const { t } = useTranslation();
+
+  // Check if user came from another page (navigation state tracking)
+  const referrer = location.state?.from as string | undefined;
 
   // Helper to format date in local timezone for datetime-local input
   const formatLocalDateTime = (date: Date): string => {
@@ -58,6 +64,23 @@ export default function Events() {
     toggleMonitorSelection,
     activeFilterCount,
   } = useEventFilters();
+
+  const [searchParams] = useSearchParams();
+
+  // Handle query parameters for date filtering (from timeline widget clicks)
+  useEffect(() => {
+    const startParam = searchParams.get('start');
+    const endParam = searchParams.get('end');
+
+    if (startParam && endParam) {
+      setStartDateInput(startParam);
+      setEndDateInput(endParam);
+      // Auto-apply the filters
+      setTimeout(() => applyFilters(), 100);
+    }
+    // Only run once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Pagination state
   const [eventLimit, setEventLimit] = useState(settings.defaultEventLimit || 300);
@@ -159,9 +182,21 @@ export default function Events() {
     <div ref={parentRef} className="h-full overflow-auto p-3 sm:p-4 md:p-6">
       <div className="flex flex-col gap-3 sm:gap-4 mb-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight">{t('events.title')}</h1>
-            <p className="text-xs text-muted-foreground hidden sm:block">{t('events.subtitle')}</p>
+          <div className="flex items-center gap-3">
+            {referrer && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate(referrer)}
+                title={t('common.go_back')}
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+            )}
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight">{t('events.title')}</h1>
+              <p className="text-xs text-muted-foreground hidden sm:block">{t('events.subtitle')}</p>
+            </div>
           </div>
 
           <div className="flex items-center gap-2">

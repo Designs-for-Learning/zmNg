@@ -1,7 +1,5 @@
 {
   "common": {
-    "pip": "Imagen en Imagen",
-    "pip_failed": "Error al entrar en Imagen en Imagen",
     "go_back": "Volver",
     "refresh": "Actualizar",
     "close": "Cerrar",
@@ -87,7 +85,6 @@
     "snapshot_downloaded": "Instantánea descargada",
     "snapshot_failed": "Fallo al descargar instantánea",
     "stream_connection_lost": "Conexión de transmisión perdida",
-    "pip_needs_cors": "Imagen en Imagen requiere encabezados CORS en el servidor ZoneMinder",
     "ptz_capable": "Capacidad PTZ",
     "view_events": "Ver Eventos",
     "offline": "Fuera de línea"
@@ -181,6 +178,10 @@
     "events_per_page_desc": "Número de eventos a cargar a la vez",
     "events_per_page_suffix": "eventos",
     "event_limit_tip": "Límites más altos pueden afectar el rendimiento",
+    "dashboard_settings": "Configuración del Panel",
+    "dashboard_settings_desc": "Configurar widgets del panel",
+    "dashboard_refresh_interval": "Intervalo de Actualización del Panel",
+    "dashboard_refresh_interval_desc": "Con qué frecuencia se actualizan los widgets del panel (excepto transmisiones de monitor)",
     "snapshot": "Instantánea",
     "streaming": "Transmisión",
     "streaming_mode": "Modo de Transmisión",
@@ -223,8 +224,11 @@
     "snapshot_saved": "Instantánea guardada",
     "snapshot_failed": "Fallo de instantánea",
     "stream_lost": "Conexión de transmisión perdida",
+    "pip_needs_cors": "Imagen en Imagen requiere encabezados CORS en el servidor ZoneMinder",
     "load_error": "Error al cargar monitor",
-    "maximize": "Maximizar"
+    "maximize": "Maximizar",
+    "pip": "Imagen en Imagen",
+    "pip_failed": "Error al entrar en Imagen en Imagen"
   },
   "montage": {
     "title": "Montaje",
@@ -397,6 +401,7 @@
     "cgi_url_hint": "https://servidor.com/zm/cgi-bin"
   },
   "sidebar": {
+    "dashboard": "Panel de Control",
     "events": "Eventos",
     "timeline": "Línea de Tiempo",
     "settings": "Configuración",
