@@ -89,8 +89,8 @@ function MontageMonitorComponent({
   const streamUrl = currentProfile
     ? getStreamUrl(currentProfile.cgiUrl, monitor.Id, {
       mode: settings.viewMode === 'snapshot' ? 'single' : 'jpeg',
-      scale: ZM_CONSTANTS.montageStreamScale,
-      maxfps: settings.viewMode === 'streaming' ? ZM_CONSTANTS.streamMaxFPS : undefined,
+      scale: settings.streamScale,
+      maxfps: settings.viewMode === 'streaming' ? settings.streamMaxFps : undefined,
       token: accessToken || undefined,
       connkey: connKey,
       cacheBuster: cacheBuster,

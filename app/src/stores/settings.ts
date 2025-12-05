@@ -9,6 +9,8 @@ export interface ProfileSettings {
   viewMode: ViewMode;
   displayMode: DisplayMode;
   snapshotRefreshInterval: number; // in seconds
+  streamMaxFps: number; // Max FPS for live streams
+  streamScale: number; // Scale percentage for live streams (1-100)
   defaultEventLimit: number; // Default number of events to fetch when no filters applied
   dashboardRefreshInterval: number; // in seconds, for dashboard widgets (events/timeline)
   montageLayouts: Layouts; // Store montage layouts per profile
@@ -56,6 +58,8 @@ const DEFAULT_SETTINGS: ProfileSettings = {
   viewMode: 'snapshot',
   displayMode: getDefaultDisplayMode(),
   snapshotRefreshInterval: 3,
+  streamMaxFps: 10,
+  streamScale: 50,
   defaultEventLimit: 300,
   dashboardRefreshInterval: 30,
   montageLayouts: {},

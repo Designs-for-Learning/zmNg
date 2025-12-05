@@ -19,7 +19,6 @@ import { useMonitorStore } from '../stores/monitors';
 import { useProfileStore } from '../stores/profile';
 import { useAuthStore } from '../stores/auth';
 import { useSettingsStore } from '../stores/settings';
-import { ZM_CONSTANTS } from '../lib/constants';
 import { log } from '../lib/logger';
 import type { StreamOptions } from '../api/types';
 
@@ -94,10 +93,10 @@ export function useMonitorStream({
   const streamUrl = currentProfile
     ? getStreamUrl(currentProfile.cgiUrl, monitorId, {
       mode: settings.viewMode === 'snapshot' ? 'single' : 'jpeg',
-      scale: ZM_CONSTANTS.monitorStreamScale,
+      scale: settings.streamScale,
       maxfps:
         settings.viewMode === 'streaming'
-          ? ZM_CONSTANTS.streamMaxFPS
+          ? settings.streamMaxFps
           : undefined,
       token: accessToken || undefined,
       connkey: connKey,

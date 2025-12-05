@@ -25,7 +25,6 @@ import { AlertTriangle, VideoOff } from 'lucide-react';
 import { Skeleton } from '../../ui/skeleton';
 import { useTranslation } from 'react-i18next';
 import { calculateGridDimensions, getGridTemplateStyle } from '../../../lib/grid-utils';
-import { ZM_CONSTANTS } from '../../../lib/constants';
 import { filterEnabledMonitors } from '../../../lib/filters';
 
 interface MonitorWidgetProps {
@@ -99,8 +98,8 @@ function SingleMonitor({ monitorId }: { monitorId: string }) {
     const streamUrl = currentProfile && monitor
         ? getStreamUrl(currentProfile.cgiUrl, monitor.Monitor.Id, {
             mode: settings.viewMode === 'snapshot' ? 'single' : 'jpeg',
-            scale: 100,
-            maxfps: settings.viewMode === 'streaming' ? ZM_CONSTANTS.streamMaxFPS : undefined,
+            scale: settings.streamScale,
+            maxfps: settings.viewMode === 'streaming' ? settings.streamMaxFps : undefined,
             token: accessToken || undefined,
             connkey: connKey,
             cacheBuster: cacheBuster,

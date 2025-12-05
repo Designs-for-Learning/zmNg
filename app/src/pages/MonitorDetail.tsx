@@ -30,7 +30,6 @@ export default function MonitorDetail() {
 
   // Check if user came from another page (navigation state tracking)
   const referrer = location.state?.from as string | undefined;
-  const [scale, setScale] = useState(100);
   const [mode, setMode] = useState<'jpeg' | 'stream'>('jpeg');
   const [corsAllowed, setCorsAllowed] = useState(true);
 
@@ -46,6 +45,7 @@ export default function MonitorDetail() {
   const settings = useSettingsStore(
     useShallow((state) => state.getProfileSettings(currentProfile?.id || ''))
   );
+  const [scale, setScale] = useState(settings.streamScale);
   const [connKey, setConnKey] = useState(0);
   const [cacheBuster, setCacheBuster] = useState(Date.now());
   const [displayedImageUrl, setDisplayedImageUrl] = useState<string>('');
@@ -147,7 +147,7 @@ export default function MonitorDetail() {
     ? getStreamUrl(currentProfile.cgiUrl, monitor.Monitor.Id, {
       mode: settings.viewMode === 'snapshot' ? 'single' : mode,
       scale,
-      maxfps: settings.viewMode === 'streaming' && mode === 'jpeg' ? undefined : undefined,
+      maxfps: settings.viewMode === 'streaming' && mode === 'jpeg' ? settings.streamMaxFps : undefined,
       token: accessToken || undefined,
       connkey: connKey,
       cacheBuster: cacheBuster,
@@ -314,7 +314,7 @@ export default function MonitorDetail() {
                   variant="ghost"
                   size="sm"
                   className="text-white hover:bg-white/20 text-xs"
-                  onClick={() => setScale(scale === 100 ? 150 : 100)}
+                  onClick={() => setScale(scale === settings.streamScale ? 150 : settings.streamScale)}
                 >
                   {scale}%
                 </Button>

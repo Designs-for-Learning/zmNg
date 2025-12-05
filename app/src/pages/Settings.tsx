@@ -46,6 +46,20 @@ export default function Settings() {
     });
   };
 
+  const handleStreamMaxFpsChange = (value: number) => {
+    if (!currentProfile) return;
+    updateSettings(currentProfile.id, {
+      streamMaxFps: value,
+    });
+  };
+
+  const handleStreamScaleChange = (value: number) => {
+    if (!currentProfile) return;
+    updateSettings(currentProfile.id, {
+      streamScale: value,
+    });
+  };
+
   const handleRefreshIntervalChange = (value: number) => {
     if (!currentProfile) return;
     updateSettings(currentProfile.id, {
@@ -215,6 +229,115 @@ export default function Settings() {
                 </div>
               </div>
             )}
+
+            {/* Stream FPS */}
+            <div className="space-y-3 p-4 rounded-lg border bg-muted/50">
+              <div>
+                <Label htmlFor="stream-fps" className="text-base font-semibold">
+                  {t('settings.stream_fps')}
+                </Label>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {t('settings.stream_fps_desc')}
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                <Input
+                  id="stream-fps"
+                  type="number"
+                  min="1"
+                  max="30"
+                  value={settings.streamMaxFps}
+                  onChange={(e) => handleStreamMaxFpsChange(Number(e.target.value))}
+                  className="w-24"
+                />
+                <span className="text-sm text-muted-foreground">FPS</span>
+                <div className="flex flex-wrap gap-2 sm:ml-auto">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleStreamMaxFpsChange(5)}
+                  >
+                    5 FPS
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleStreamMaxFpsChange(10)}
+                  >
+                    10 FPS ({t('settings.default')})
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleStreamMaxFpsChange(15)}
+                  >
+                    15 FPS
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleStreamMaxFpsChange(30)}
+                  >
+                    30 FPS
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Stream Scale */}
+            <div className="space-y-3 p-4 rounded-lg border bg-muted/50">
+              <div>
+                <Label htmlFor="stream-scale" className="text-base font-semibold">
+                  {t('settings.stream_scale')}
+                </Label>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {t('settings.stream_scale_desc')}
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                <Input
+                  id="stream-scale"
+                  type="number"
+                  min="10"
+                  max="100"
+                  step="10"
+                  value={settings.streamScale}
+                  onChange={(e) => handleStreamScaleChange(Number(e.target.value))}
+                  className="w-24"
+                />
+                <span className="text-sm text-muted-foreground">%</span>
+                <div className="flex flex-wrap gap-2 sm:ml-auto">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleStreamScaleChange(25)}
+                  >
+                    25%
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleStreamScaleChange(50)}
+                  >
+                    50% ({t('settings.default')})
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleStreamScaleChange(75)}
+                  >
+                    75%
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleStreamScaleChange(100)}
+                  >
+                    100%
+                  </Button>
+                </div>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
