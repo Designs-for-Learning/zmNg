@@ -274,7 +274,7 @@ export async function downloadEventVideo(
   try {
     await downloadFile(videoUrl, filename);
   } catch (error) {
-    console.error('[Download] Failed to download video:', error);
+    log.error('Failed to download video', { component: 'Download', eventId }, error);
     throw error;
   }
 }
@@ -299,7 +299,7 @@ export async function downloadEventImage(
   try {
     await downloadFile(imageUrl, filename);
   } catch (error) {
-    console.error('[Download] Failed to download event image:', error);
+    log.error('Failed to download event image', { component: 'Download', eventId }, error);
     throw error;
   }
 }

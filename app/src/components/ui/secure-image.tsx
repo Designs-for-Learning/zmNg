@@ -11,6 +11,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { getApiClient } from '../../api/client';
 import { cn } from '../../lib/utils';
+import { log } from '../../lib/logger';
 
 interface SecureImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   /** The source URL of the image */
@@ -89,7 +90,7 @@ export function SecureImage({ src, fallbackSrc, className, alt, ...props }: Secu
           return; // Success, don't trigger parent onError yet
         }
       } catch (err) {
-        console.error('Native fallback fetch failed:', err);
+        log.error('Native fallback fetch failed', { component: 'SecureImage' }, err);
       }
     }
 

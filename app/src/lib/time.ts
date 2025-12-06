@@ -3,6 +3,7 @@
  */
 
 import { useProfileStore } from '../stores/profile';
+import { log } from './logger';
 
 /**
  * Format a date for the ZM API using the server's timezone.
@@ -34,7 +35,7 @@ export function formatForServer(date: Date): string {
             hour12: false
         }).format(date).replace(', ', ' ');
     } catch (e) {
-        console.warn('Timezone conversion failed, falling back to local ISO', e);
+        log.warn('Timezone conversion failed, falling back to local ISO', { component: 'Time' }, e);
         const pad = (num: number) => num.toString().padStart(2, '0');
         return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
     }

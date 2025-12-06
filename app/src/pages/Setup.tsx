@@ -17,6 +17,7 @@ import { createApiClient, setApiClient } from '../api/client';
 import { discoverZoneminder, DiscoveryError } from '../lib/discovery';
 import { Video, Server, ShieldCheck, ArrowRight, Loader2, Eye, EyeOff } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { log } from '../lib/logger';
 
 export default function Setup() {
   const navigate = useNavigate();
@@ -43,7 +44,7 @@ export default function Setup() {
   // Update state if currentProfile changes (e.g. after switching profiles)
   useEffect(() => {
     if (currentProfile) {
-      console.log('Loading profile data into form:', currentProfile.name);
+      log.info('Loading profile data into form', { component: 'Setup', profileName: currentProfile.name });
       setProfileName(currentProfile.name || '');
       setPortalUrl(currentProfile.portalUrl || 'https://demo.zoneminder.com');
       setUsername(currentProfile.username || '');
@@ -56,7 +57,7 @@ export default function Setup() {
         getDecryptedPassword(currentProfile.id).then((decrypted) => {
           setPassword(decrypted || '');
         }).catch((error) => {
-          console.error('Failed to decrypt password:', error);
+          log.error('Failed to decrypt password', { component: 'Setup' }, error);
           setPassword('');
         });
       } else {
@@ -75,12 +76,12 @@ export default function Setup() {
       setApiClient(client);
 
       const version = await getVersion();
-      console.log(`✓ Successfully connected to ${result.apiUrl}`, version);
+      log.info('Successfully connected', { component: 'Setup', apiUrl: result.apiUrl, version });
 
       return result;
     } catch (e) {
       if (e instanceof DiscoveryError) {
-        console.warn(`Discovery failed: ${e.message} (code: ${e.code})`);
+        log.warn('Discovery failed', { component: 'Setup', message: e.message, code: e.code });
         throw e;
       }
       throw new Error(t('setup.discovery_failed'));
@@ -102,9 +103,11 @@ export default function Setup() {
       // If we have a current profile AND the portal URL hasn't changed, use existing URLs
       // Otherwise, discover URLs (either new profile OR portal URL changed)
       if (currentProfile && !portalUrlChanged) {
-        console.log('[Setup] Using existing profile URLs (skipping discovery)');
-        console.log('[Setup]   - API URL:', currentProfile.apiUrl);
-        console.log('[Setup]   - CGI URL:', currentProfile.cgiUrl);
+        log.info('Using existing profile URLs (skipping discovery)', {
+          component: 'Setup',
+          apiUrl: currentProfile.apiUrl,
+          cgiUrl: currentProfile.cgiUrl
+        });
         apiUrl = currentProfile.apiUrl;
         cgiUrl = currentProfile.cgiUrl;
 
@@ -113,14 +116,13 @@ export default function Setup() {
         setApiClient(client);
       } else if (showManualUrls) {
         // Manual URL entry mode
-        console.log('[Setup] Using manual URLs');
+        log.info('Using manual URLs', { component: 'Setup' });
         if (!manualApiUrl || !manualCgiUrl) {
           throw new Error(t('setup.enter_both_urls'));
         }
         apiUrl = manualApiUrl;
         cgiUrl = manualCgiUrl;
-        console.log('[Setup]   - Manual API URL:', apiUrl);
-        console.log('[Setup]   - Manual CGI URL:', cgiUrl);
+        log.info('Manual URLs set', { component: 'Setup', apiUrl, cgiUrl });
 
         // Initialize API client with manual URL
         const client = createApiClient(apiUrl);
@@ -129,20 +131,21 @@ export default function Setup() {
         // New profile OR portal URL changed - discover URLs
         try {
           if (portalUrlChanged) {
-            console.log('[Setup] Portal URL changed - discovering new URLs...');
-            console.log('[Setup]   - Old portal:', currentProfile?.portalUrl);
-            console.log('[Setup]   - New portal:', portalUrl);
+            log.info('Portal URL changed - discovering new URLs', {
+              component: 'Setup',
+              oldPortal: currentProfile?.portalUrl,
+              newPortal: portalUrl
+            });
           } else {
-            console.log('[Setup] New profile - discovering URLs...');
+            log.info('New profile - discovering URLs', { component: 'Setup' });
           }
           const discovered = await discoverUrls(portalUrl);
           apiUrl = discovered.apiUrl;
           cgiUrl = discovered.cgiUrl;
-          console.log('[Setup]   - Discovered API URL:', apiUrl);
-          console.log('[Setup]   - Discovered CGI URL:', cgiUrl);
+          log.info('URLs discovered', { component: 'Setup', apiUrl, cgiUrl });
         } catch (discoveryError) {
           // Discovery failed - offer manual entry
-          console.error('[Setup] URL discovery failed:', discoveryError);
+          log.error('URL discovery failed', { component: 'Setup' }, discoveryError);
           // Only force manual if strictly discovery failed, 
           // but we can pass the error message through if it tells the user to check their URL.
 
@@ -156,14 +159,13 @@ export default function Setup() {
 
       // If credentials are provided, try to login
       if (username && password) {
-        console.log('[Setup] Attempting login with provided credentials...');
-        console.log('[Setup]   - Username:', username);
+        log.info('Attempting login with provided credentials', { component: 'Setup', username });
         try {
           const { useAuthStore } = await import('../stores/auth');
           await useAuthStore.getState().login(username, password);
-          console.log('[Setup]   ✓ Login successful');
+          log.info('Login successful', { component: 'Setup' });
         } catch (loginError: unknown) {
-          console.error('[Setup]   ✗ Login failed:', loginError);
+          log.error('Login failed', { component: 'Setup' }, loginError);
           throw new Error(t('setup.login_failed', { error: (loginError as Error).message || 'Unknown error' }));
         }
       }
@@ -179,7 +181,7 @@ export default function Setup() {
 
       if (currentProfile) {
         // If we are editing/logging in to an existing profile, update it
-        console.log('[Setup] Updating existing profile:', currentProfile.name);
+        log.info('Updating existing profile', { component: 'Setup', profileName: currentProfile.name });
         const { updateProfile } = useProfileStore.getState();
         await updateProfile(currentProfile.id, {
           portalUrl: finalPortalUrl,
@@ -191,7 +193,7 @@ export default function Setup() {
         });
       } else {
         // Otherwise add new profile
-        console.log('[Setup] Adding new profile');
+        log.info('Adding new profile', { component: 'Setup' });
         // Use provided profile name, or fall back to auto-generated name
         const finalProfileName = profileName.trim() || (
           finalPortalUrl.includes('demo.zoneminder.com')
@@ -210,7 +212,7 @@ export default function Setup() {
           password: password || undefined,
           isDefault: true,
         });
-        console.log('[Setup]   - Created profile:', finalProfileName);
+        log.info('Profile created', { component: 'Setup', profileName: finalProfileName });
       }
 
       // Navigate to monitors after a short delay

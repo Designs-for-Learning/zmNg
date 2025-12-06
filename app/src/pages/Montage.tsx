@@ -43,6 +43,7 @@ import 'react-resizable/css/styles.css';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { usePinchZoom } from '../hooks/usePinchZoom';
+import { log } from '../lib/logger';
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
@@ -200,7 +201,7 @@ export default function Montage() {
         const missingIds = monitors.filter(m => !savedIds.has(m.Monitor.Id));
 
         if (missingIds.length > 0) {
-          console.log('[Montage] Found new monitors, adding to layout:', missingIds.map(m => m.Monitor.Name));
+          log.info('Found new monitors, adding to layout', { component: 'Montage', monitors: missingIds.map(m => m.Monitor.Name) });
 
           // Generate layout for JUST the new items using current gridCols
           const defaultForNew = generateDefaultLayout(missingIds, gridCols);
@@ -229,11 +230,11 @@ export default function Montage() {
         }
       } else {
         // No saved layout, generate default
-        console.log('[Montage] No saved layout, generating default');
+        log.info('No saved layout, generating default', { component: 'Montage' });
         setLayouts(generateDefaultLayout(monitors, gridCols));
       }
     } catch (e) {
-      console.error('[Montage] Error loading layout:', e);
+      log.error('Error loading layout', { component: 'Montage' }, e);
       setLayouts(generateDefaultLayout(monitors, gridCols));
     }
 

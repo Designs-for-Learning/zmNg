@@ -1,14 +1,15 @@
 /**
  * Query Cache Manager
- * 
+ *
  * Provides a global reference to the React Query client.
  * Allows clearing the cache from outside React components (e.g., in Zustand stores).
- * 
+ *
  * This is critical for profile switching, where we need to ensure data from
  * one profile doesn't leak into another.
  */
 
 import { QueryClient } from '@tanstack/react-query';
+import { log } from '../lib/logger';
 
 // Global query client instance
 let queryClient: QueryClient | null = null;
@@ -38,8 +39,8 @@ export function clearQueryCache() {
   if (queryClient) {
     const queriesCount = queryClient.getQueryCache().getAll().length;
     queryClient.clear();
-    console.log(`[Query Cache] Cleared ${queriesCount} cached queries`);
+    log.info('Query cache cleared', { component: 'QueryCache', queriesCount });
   } else {
-    console.warn('[Query Cache] No query client to clear');
+    log.warn('No query client to clear', { component: 'QueryCache' });
   }
 }

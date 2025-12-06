@@ -36,6 +36,7 @@ import { toast } from 'sonner';
 import { Capacitor } from '@capacitor/core';
 import { getPushService } from '../services/pushNotifications';
 import { useTranslation } from 'react-i18next';
+import { log } from '../lib/logger';
 
 export default function NotificationSettings() {
   const navigate = useNavigate();
@@ -72,7 +73,7 @@ export default function NotificationSettings() {
     if (Capacitor.isNativePlatform() && settings.enabled) {
       const pushService = getPushService();
       pushService.initialize().catch((error) => {
-        console.error('Failed to initialize push notifications:', error);
+        log.error('Failed to initialize push notifications', { component: 'NotificationSettings' }, error);
       });
     }
   }, [settings.enabled]);
@@ -87,7 +88,7 @@ export default function NotificationSettings() {
           const url = new URL(currentProfile.portalUrl);
           updateSettings({ host: url.hostname });
         } catch (error) {
-          console.error('Failed to parse portal URL:', error);
+          log.error('Failed to parse portal URL', { component: 'NotificationSettings' }, error);
         }
       }
 
@@ -140,7 +141,7 @@ export default function NotificationSettings() {
         }
       }
     } catch (error) {
-      console.error('Connection failed:', error);
+      log.error('Connection failed', { component: 'NotificationSettings' }, error);
       toast.error(t('notification_settings.connect_failed', { error: error instanceof Error ? error.message : 'Unknown error' }));
     } finally {
       setIsConnecting(false);

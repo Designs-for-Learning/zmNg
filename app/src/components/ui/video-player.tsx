@@ -13,6 +13,7 @@ import 'video.js/dist/video-js.css';
 // This avoids deep imports which can be problematic with some bundlers
 type Player = ReturnType<typeof videojs>;
 import { cn } from '../../lib/utils';
+import { log } from '../../lib/logger';
 
 interface VideoPlayerProps {
   /** The source URL of the video stream */
@@ -107,7 +108,7 @@ export function VideoPlayer({
       // Handle errors
       player.on('error', () => {
         const err = player.error();
-        console.error('VideoJS Error:', err);
+        log.error('VideoJS playback error', { component: 'VideoPlayer' }, err);
         setError(err?.message || 'An unknown error occurred');
         if (onError) onError(err);
       });

@@ -1,14 +1,16 @@
 /**
  * Encryption Utility
- * 
+ *
  * Provides AES-GCM encryption for secure storage of sensitive data (like passwords)
  * in environments where native secure storage is not available (e.g., web browser).
- * 
+ *
  * Uses the Web Crypto API for standard, secure cryptographic operations.
- * 
+ *
  * Note: On native mobile apps (iOS/Android), we prefer using the Capacitor Secure Storage
  * plugin which uses the device's Keychain/Keystore. This utility is a fallback for web.
  */
+
+import { log } from './logger';
 
 const ENCRYPTION_ALGORITHM = 'AES-GCM';
 const KEY_LENGTH = 256;
@@ -72,7 +74,7 @@ export async function encrypt(plaintext: string): Promise<string> {
 
     return btoa(String.fromCharCode(...combined));
   } catch (error) {
-    console.error('Encryption failed:', error);
+    log.error('Encryption failed', { component: 'Crypto' }, error);
     throw new Error('Failed to encrypt data');
   }
 }
@@ -103,7 +105,7 @@ export async function decrypt(encryptedData: string): Promise<string> {
 
     return new TextDecoder().decode(decrypted);
   } catch (error) {
-    console.error('Decryption failed:', error);
+    log.error('Decryption failed', { component: 'Crypto' }, error);
     throw new Error('Failed to decrypt data');
   }
 }

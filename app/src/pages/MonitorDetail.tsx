@@ -23,6 +23,7 @@ import { downloadSnapshotFromElement } from '../lib/download';
 import { useTranslation } from 'react-i18next';
 import { useSwipeNavigation } from '../hooks/useSwipeNavigation';
 import { filterEnabledMonitors } from '../lib/filters';
+import { log } from '../lib/logger';
 
 export default function MonitorDetail() {
   const { id } = useParams<{ id: string }>();
@@ -144,7 +145,7 @@ export default function MonitorDetail() {
         }, { once: true });
       }
     } catch (err) {
-      console.error('PiP failed:', err);
+      log.error('Picture-in-Picture failed', { component: 'MonitorDetail', monitorId: id }, err);
       toast.error(t('monitor_detail.pip_failed'));
     }
   };
@@ -152,7 +153,7 @@ export default function MonitorDetail() {
   // Force regenerate connKey when component mounts or monitor changes
   useEffect(() => {
     if (monitor) {
-      console.log(`[MonitorDetail] Regenerating connkey for monitor ${monitor.Monitor.Id}`);
+      log.info('Regenerating connkey', { component: 'MonitorDetail', monitorId: monitor.Monitor.Id });
       const newKey = regenerateConnKey(monitor.Monitor.Id);
       setConnKey(newKey);
       setCacheBuster(Date.now());
@@ -176,7 +177,7 @@ export default function MonitorDetail() {
     const monitorId = monitor?.Monitor.Id;
     return () => {
       if (currentImg && monitorId) {
-        console.log(`[MonitorDetail] Cleaning up stream for monitor ${monitorId}`);
+        log.info('Cleaning up stream', { component: 'MonitorDetail', monitorId });
         // Set to empty data URI to abort the connection
         currentImg.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
       }
@@ -297,7 +298,7 @@ export default function MonitorDetail() {
 
               // Check for CORS failure first
               if (corsAllowed) {
-                console.warn("[MonitorDetail] Image load failed with CORS enabled. Disabling CORS and retrying.");
+                log.warn('Image load failed with CORS enabled, disabling CORS and retrying', { component: 'MonitorDetail' });
                 setCorsAllowed(false);
                 setCacheBuster(Date.now()); // Force reload
                 return;
@@ -306,7 +307,7 @@ export default function MonitorDetail() {
               // Only retry if we haven't retried too recently
               if (!img.dataset.retrying) {
                 img.dataset.retrying = "true";
-                console.log(`[MonitorDetail] Stream failed, regenerating connkey...`);
+                log.info('Stream failed, regenerating connkey', { component: 'MonitorDetail' });
                 regenerateConnKey(monitor.Monitor.Id);
                 toast.error(t('monitor_detail.stream_lost'));
 

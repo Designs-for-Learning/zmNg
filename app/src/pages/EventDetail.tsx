@@ -21,6 +21,7 @@ import { toast } from 'sonner';
 import { ZM_CONSTANTS } from '../lib/constants';
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { log } from '../lib/logger';
 
 export default function EventDetail() {
   const { id } = useParams<{ id: string }>();
@@ -79,11 +80,15 @@ export default function EventDetail() {
   const hasVideo = !!(event.Event.DefaultVideo || event.Event.Videoed === '1');
   const hasJPEGs = event.Event.SaveJPEGs !== null && event.Event.SaveJPEGs !== '0';
 
-  console.log('[EventDetail] Event:', event.Event.Id);
-  console.log('[EventDetail] DefaultVideo:', event.Event.DefaultVideo);
-  console.log('[EventDetail] Videoed:', event.Event.Videoed);
-  console.log('[EventDetail] SaveJPEGs:', event.Event.SaveJPEGs);
-  console.log('[EventDetail] hasVideo:', hasVideo, 'hasJPEGs:', hasJPEGs);
+  log.debug('Event details', {
+    component: 'EventDetail',
+    eventId: event.Event.Id,
+    defaultVideo: event.Event.DefaultVideo,
+    videoed: event.Event.Videoed,
+    saveJPEGs: event.Event.SaveJPEGs,
+    hasVideo,
+    hasJPEGs
+  });
 
   const videoUrl = currentProfile && hasVideo
     ? getEventVideoUrl(currentProfile.portalUrl, event.Event.Id, accessToken || undefined, currentProfile.apiUrl)
@@ -218,7 +223,7 @@ export default function EventDetail() {
                     poster={posterUrl}
                     autoplay
                     onError={() => {
-                      console.log('Video playback failed, falling back to ZMS stream');
+                      log.info('Video playback failed, falling back to ZMS stream', { component: 'EventDetail' });
                       toast.error(t('event_detail.video_playback_failed'));
                       setUseZmsFallback(true);
                     }}
