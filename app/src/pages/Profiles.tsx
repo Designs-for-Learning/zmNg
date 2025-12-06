@@ -35,7 +35,8 @@ import { Badge } from '../components/ui/badge';
 import type { Profile } from '../api/types';
 import { useToast } from '../hooks/use-toast';
 import { toast as sonnerToast } from 'sonner';
-import { deriveZoneminderUrls } from '../lib/urls';
+import { createApiClient, setApiClient } from '../api/client';
+import { discoverZoneminder, DiscoveryError } from '../lib/discovery';
 import { useTranslation } from 'react-i18next';
 
 export default function Profiles() {
@@ -70,6 +71,24 @@ export default function Profiles() {
   });
 
   const [showPassword, setShowPassword] = useState(false);
+
+  // Check server connection and discover URLs
+  const discoverUrls = async (portal: string) => {
+    try {
+      const result = await discoverZoneminder(portal);
+
+      // Initialize client with found API
+      const client = createApiClient(result.apiUrl);
+      setApiClient(client);
+
+      return result;
+    } catch (e) {
+      if (e instanceof DiscoveryError) {
+        throw e;
+      }
+      throw new Error(t('setup.discovery_failed'));
+    }
+  };
 
   const handleOpenAddDialog = () => {
     setFormData({ name: '', portalUrl: '', apiUrl: '', cgiUrl: '', username: '', password: '' });
@@ -120,18 +139,15 @@ export default function Profiles() {
     try {
       let portalUrl = formData.portalUrl.replace(/\/$/, '');
 
-      // Add URL scheme if missing (prefer https://)
-      if (!portalUrl.startsWith('http://') && !portalUrl.startsWith('https://')) {
-        portalUrl = `https://${portalUrl}`;
-      }
-
-      const { apiPatterns, cgiPatterns } = deriveZoneminderUrls(portalUrl);
+      // Discover working URLs
+      // Pass the URL as-is (with or without scheme)
+      const { apiUrl, cgiUrl, portalUrl: finalPortalUrl } = await discoverUrls(portalUrl);
 
       await addProfile({
         name: formData.name,
-        portalUrl,
-        apiUrl: apiPatterns[0],
-        cgiUrl: cgiPatterns[0],
+        portalUrl: finalPortalUrl,
+        apiUrl,
+        cgiUrl,
         username: formData.username || undefined,
         password: formData.password || undefined,
         isDefault: profiles.length === 0,
@@ -169,20 +185,23 @@ export default function Profiles() {
     try {
       let portalUrl = formData.portalUrl.replace(/\/$/, '');
 
-      // Add URL scheme if missing (prefer https://)
-      if (!portalUrl.startsWith('http://') && !portalUrl.startsWith('https://')) {
-        portalUrl = `https://${portalUrl}`;
-      }
-
-      // If URLs were manually edited, use them; otherwise derive from portal URL
+      // If URLs were manually edited, use them; otherwise discover from portal URL
       let apiUrl = formData.apiUrl;
       let cgiUrl = formData.cgiUrl;
 
-      // If URLs are empty or look like they need re-derivation, derive them
+      // If URLs are empty, discover working URLs
       if (!apiUrl || !cgiUrl) {
-        const { apiPatterns, cgiPatterns } = deriveZoneminderUrls(portalUrl);
-        apiUrl = apiUrl || apiPatterns[0];
-        cgiUrl = cgiUrl || cgiPatterns[0];
+        const discovered = await discoverUrls(portalUrl);
+        apiUrl = discovered.apiUrl;
+        cgiUrl = discovered.cgiUrl;
+        // Update portalUrl to match the discovered confirmed one
+        portalUrl = discovered.portalUrl;
+      } else {
+        // URLs were manually provided - ensure portalUrl has a scheme
+        if (!portalUrl.startsWith('http://') && !portalUrl.startsWith('https://')) {
+          // Derive scheme from apiUrl if available
+          portalUrl = apiUrl.startsWith('https://') ? `https://${portalUrl}` : `http://${portalUrl}`;
+        }
       }
 
       const updates: Partial<Profile> = {
@@ -221,11 +240,14 @@ export default function Profiles() {
     }
   };
 
-  const handleDeleteProfile = () => {
+  const handleDeleteProfile = async () => {
     if (!selectedProfile) return;
 
     try {
-      deleteProfile(selectedProfile.id);
+      // Store current/active status before deletion
+      const isDeletingCurrent = selectedProfile.id === currentProfile?.id;
+
+      await deleteProfile(selectedProfile.id);
 
       toast({
         title: t('common.success'),
@@ -235,9 +257,16 @@ export default function Profiles() {
       setIsDeleteDialogOpen(false);
       setSelectedProfile(null);
 
-      // If we deleted the current profile, redirect to setup
-      if (selectedProfile.id === currentProfile?.id) {
+      // Check remaining profiles from FRESH state
+      const remainingProfiles = useProfileStore.getState().profiles;
+
+      if (remainingProfiles.length === 0) {
+        // If no profiles left, go to setup
         navigate('/setup');
+      } else if (isDeletingCurrent) {
+        // If we deleted the active profile, reload to ensure clean state specific
+        // to the new auto-selected profile (which the store selects)
+        window.location.reload();
       }
     } catch (error) {
       toast({

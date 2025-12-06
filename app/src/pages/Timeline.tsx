@@ -7,8 +7,7 @@ import { Card, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import { Badge } from '../components/ui/badge';
-import { RefreshCw, Filter, X, Video, Activity, AlertCircle, Clock } from 'lucide-react';
+import { RefreshCw, Filter, Video, Activity, AlertCircle, Clock } from 'lucide-react';
 import { format, subDays } from 'date-fns';
 import { filterEnabledMonitors } from '../lib/filters';
 import { ZM_CONSTANTS } from '../lib/constants';
@@ -18,7 +17,6 @@ import { Timeline as VisTimeline } from 'vis-timeline/standalone';
 import { DataSet } from 'vis-data';
 import 'vis-timeline/styles/vis-timeline-graph2d.css';
 import '../styles/timeline.css';
-import { Checkbox } from '../components/ui/checkbox';
 import {
   Popover,
   PopoverContent,
@@ -28,7 +26,6 @@ import { useTranslation } from 'react-i18next';
 import { QuickDateRangeButtons } from '../components/ui/quick-date-range-buttons';
 import { MonitorFilterPopoverContent } from '../components/filters/MonitorFilterPopover';
 import { EmptyState } from '../components/ui/empty-state';
-import { formatLocalDateTime } from '../lib/time';
 
 interface TimelineGroup {
   id: string;
@@ -80,14 +77,6 @@ export default function Timeline() {
         limit: 500, // Reduced from 1000 to minimize API calls (5 instead of 10)
       }),
   });
-
-  const toggleMonitorSelection = (monitorId: string) => {
-    setSelectedMonitorIds(prev =>
-      prev.includes(monitorId)
-        ? prev.filter(id => id !== monitorId)
-        : [...prev, monitorId]
-    );
-  };
 
   // Initialize and update timeline
   useEffect(() => {

@@ -21,11 +21,9 @@ import { PullToRefreshIndicator } from '../components/ui/pull-to-refresh-indicat
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import { Badge } from '../components/ui/badge';
-import { RefreshCw, Filter, AlertCircle, Video, X, Loader2, ArrowLeft } from 'lucide-react';
+import { RefreshCw, Filter, AlertCircle, Video, Loader2, ArrowLeft } from 'lucide-react';
 import { getEnabledMonitorIds, filterEnabledMonitors } from '../lib/filters';
 import { Popover, PopoverContent, PopoverTrigger } from '../components/ui/popover';
-import { Checkbox } from '../components/ui/checkbox';
 import { EventCard } from '../components/events/EventCard';
 import { EventHeatmap } from '../components/events/EventHeatmap';
 import { useTranslation } from 'react-i18next';
@@ -58,7 +56,6 @@ export default function Events() {
     setEndDateInput,
     applyFilters,
     clearFilters,
-    toggleMonitorSelection,
     activeFilterCount,
   } = useEventFilters();
 

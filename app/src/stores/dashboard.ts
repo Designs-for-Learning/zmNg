@@ -26,16 +26,17 @@ export interface DashboardWidget {
         autoRefresh?: boolean;
         [key: string]: any;
     };
-    layout: WidgetLayout;
+    layout: WidgetLayout; // kept for backward compatibility and as 'current' layout
+    layouts?: Record<string, WidgetLayout>; // Multi-breakpoint layouts
 }
 
 interface DashboardState {
     widgets: Record<string, DashboardWidget[]>; // Keyed by profileId
     isEditing: boolean;
-    addWidget: (profileId: string, widget: Omit<DashboardWidget, 'id' | 'layout'> & { layout: Omit<WidgetLayout, 'i' | 'x' | 'y'> }) => void;
+    addWidget: (profileId: string, widget: Omit<DashboardWidget, 'id' | 'layout' | 'layouts'> & { layout: Omit<WidgetLayout, 'i' | 'x' | 'y'> }) => void;
     removeWidget: (profileId: string, id: string) => void;
     updateWidget: (profileId: string, id: string, updates: Partial<DashboardWidget>) => void;
-    updateLayouts: (profileId: string, layouts: WidgetLayout[]) => void;
+    updateLayouts: (profileId: string, layouts: Record<string, WidgetLayout[]>) => void;
     toggleEditMode: () => void;
 }
 
@@ -52,6 +53,15 @@ export const useDashboardStore = create<DashboardState>()(
                     // Simple auto-placement: put at the bottom
                     const y = profileWidgets.reduce((max, w) => Math.max(max, w.layout.y + w.layout.h), 0);
 
+                    const initialLayout: WidgetLayout = {
+                        ...widget.layout,
+                        i: id,
+                        x: 0,
+                        y,
+                        minW: 1,
+                        minH: 1
+                    };
+
                     return {
                         widgets: {
                             ...state.widgets,
@@ -60,14 +70,8 @@ export const useDashboardStore = create<DashboardState>()(
                                 {
                                     ...widget,
                                     id,
-                                    layout: {
-                                        ...widget.layout,
-                                        i: id,
-                                        x: 0,
-                                        y,
-                                        minW: 1,
-                                        minH: 1
-                                    }
+                                    layout: initialLayout,
+                                    layouts: { lg: initialLayout, md: initialLayout, sm: initialLayout }
                                 },
                             ]
                         },
@@ -92,16 +96,40 @@ export const useDashboardStore = create<DashboardState>()(
                     }
                 })),
 
-            updateLayouts: (profileId, layouts) =>
+            updateLayouts: (profileId, allLayouts) => {
                 set((state) => ({
                     widgets: {
                         ...state.widgets,
                         [profileId]: (state.widgets[profileId] || []).map((w) => {
-                            const newLayout = layouts.find((l) => l.i === w.id);
-                            return newLayout ? { ...w, layout: { ...w.layout, ...newLayout } } : w;
+                            // Update the main 'layout' with lg (or first available) for legacy/current view
+                            // And update 'layouts' map with all new info
+
+                            const updatedLayouts = { ...(w.layouts || {}) };
+                            let hasChanges = false;
+
+                            // Update each breakpoint persistence
+                            Object.entries(allLayouts).forEach(([breakpoint, layouts]) => {
+                                const newLayout = layouts.find(l => l.i === w.id);
+                                if (newLayout) {
+                                    updatedLayouts[breakpoint] = { ...w.layout, ...newLayout };
+                                    hasChanges = true;
+                                }
+                            });
+
+                            if (!hasChanges) return w;
+
+                            // Prioritize lg > md > sm for the fallback 'layout' property
+                            const primaryLayout = updatedLayouts.lg || updatedLayouts.md || updatedLayouts.sm || w.layout;
+
+                            return {
+                                ...w,
+                                layout: primaryLayout,
+                                layouts: updatedLayouts
+                            };
                         }),
                     }
-                })),
+                }));
+            },
 
             toggleEditMode: () =>
                 set((state) => ({ isEditing: !state.isEditing })),
@@ -109,7 +137,7 @@ export const useDashboardStore = create<DashboardState>()(
         {
             name: 'dashboard-storage',
             partialize: (state) => ({ widgets: state.widgets }), // Only persist widgets
-            version: 2,
+            version: 3,
             migrate: (persistedState: any, version: number) => {
                 let newState = persistedState;
 
@@ -134,7 +162,6 @@ export const useDashboardStore = create<DashboardState>()(
 
                 if (version <= 1) {
                     // Migration from version 1 to 2 (Profile Specificity)
-                    // Move array of widgets to 'default' profile key
                     if (Array.isArray(newState.widgets)) {
                         newState = {
                             ...newState,
@@ -143,6 +170,17 @@ export const useDashboardStore = create<DashboardState>()(
                             }
                         };
                     }
+                }
+
+                if (version <= 2) {
+                    // Migration from version 2 to 3 (Multi-breakpoint layouts)
+                    // Populate w.layouts['lg'] with w.layout
+                    Object.keys(newState.widgets || {}).forEach(profileKey => {
+                        newState.widgets[profileKey] = newState.widgets[profileKey].map((w: any) => ({
+                            ...w,
+                            layouts: { lg: w.layout, md: w.layout, sm: w.layout } // Init all to current to prevent reset
+                        }));
+                    });
                 }
 
                 return newState;

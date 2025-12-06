@@ -32,7 +32,7 @@ interface ProfileState {
   // Actions
   addProfile: (profile: Omit<Profile, 'id' | 'createdAt'>) => Promise<void>;
   updateProfile: (id: string, updates: Partial<Profile>) => Promise<void>;
-  deleteProfile: (id: string) => void;
+  deleteProfile: (id: string) => Promise<void>;
   deleteAllProfiles: () => Promise<void>;
   switchProfile: (id: string) => Promise<void>;
   setDefaultProfile: (id: string) => void;

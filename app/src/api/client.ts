@@ -190,7 +190,10 @@ export function createApiClient(baseURL: string): AxiosInstance {
     (config: InternalAxiosRequestConfig) => {
       const { accessToken } = useAuthStore.getState();
 
-      if (accessToken && config.url) {
+      // Skip adding auth token if this is a discovery/test request
+      const skipAuth = config.headers?.['Skip-Auth'] === 'true';
+
+      if (accessToken && config.url && !skipAuth) {
         // Add token as query parameter for GET requests
         if (config.method?.toLowerCase() === 'get') {
           config.params = {
@@ -280,8 +283,11 @@ export function createApiClient(baseURL: string): AxiosInstance {
     async (error: AxiosError) => {
       const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
+      // Skip auth retry if this is a discovery/test request
+      const skipAuth = originalRequest.headers?.['Skip-Auth'] === 'true';
+
       // Handle 401 Unauthorized - try to refresh token
-      if (error.response?.status === 401 && !originalRequest._retry) {
+      if (error.response?.status === 401 && !originalRequest._retry && !skipAuth) {
         originalRequest._retry = true;
 
         try {

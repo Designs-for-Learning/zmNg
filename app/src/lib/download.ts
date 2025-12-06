@@ -11,7 +11,7 @@
  * - Automatically saves media to device Photo/Video library on mobile
  */
 
-import { Capacitor, CapacitorHttp } from '@capacitor/core';
+import { CapacitorHttp } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Media } from '@capacitor-community/media';
 import { log } from './logger';

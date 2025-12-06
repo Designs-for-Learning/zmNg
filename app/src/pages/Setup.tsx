@@ -7,7 +7,6 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AxiosError } from 'axios';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -15,7 +14,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useProfileStore } from '../stores/profile';
 import { getVersion } from '../api/auth';
 import { createApiClient, setApiClient } from '../api/client';
-import { deriveZoneminderUrls } from '../lib/urls';
+import { discoverZoneminder, DiscoveryError } from '../lib/discovery';
 import { Video, Server, ShieldCheck, ArrowRight, Loader2, Eye, EyeOff } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -50,7 +49,7 @@ export default function Setup() {
       setUsername(currentProfile.username || '');
       setManualApiUrl(currentProfile.apiUrl || '');
       setManualCgiUrl(currentProfile.cgiUrl || '');
-      
+
       // Decrypt password if it's stored securely
       if (currentProfile.password === 'stored-securely') {
         const getDecryptedPassword = useProfileStore.getState().getDecryptedPassword;
@@ -68,48 +67,24 @@ export default function Setup() {
 
   // Try to discover API and CGI URLs from portal URL
   const discoverUrls = async (portal: string) => {
-    // Derive URL patterns using utility function
-    const { apiPatterns, cgiPatterns } = deriveZoneminderUrls(portal);
+    try {
+      const result = await discoverZoneminder(portal);
 
-    let apiUrl = '';
-    let cgiUrl = '';
+      // Initialize client
+      const client = createApiClient(result.apiUrl);
+      setApiClient(client);
 
-    // Test API URLs
-    console.log('Testing API patterns:', apiPatterns);
+      const version = await getVersion();
+      console.log(`✓ Successfully connected to ${result.apiUrl}`, version);
 
-    for (const url of apiPatterns) {
-      try {
-        console.log(`Trying API URL: ${url}`);
-        const client = createApiClient(url);
-        setApiClient(client);
-        const version = await getVersion();
-        console.log(`✓ Successfully connected to ${url}`, version);
-        apiUrl = url;
-        break;
-      } catch (e: unknown) {
-        // 401 means API endpoint exists but requires auth - this is valid!
-        if (e instanceof AxiosError && e.response?.status === 401) {
-          console.log(`✓ API endpoint found at ${url} (requires auth)`);
-          apiUrl = url;
-          break;
-        }
-        // Continue trying other patterns
-        console.log(`✗ Failed to connect to ${url}`, e);
+      return result;
+    } catch (e) {
+      if (e instanceof DiscoveryError) {
+        console.warn(`Discovery failed: ${e.message} (code: ${e.code})`);
+        throw e;
       }
-    }
-
-    if (!apiUrl) {
       throw new Error(t('setup.discovery_failed'));
     }
-
-    // For now, use the first CGI pattern - we'll validate this later
-    cgiUrl = cgiPatterns[0];
-
-    // If we are in Tauri, we need to make sure we don't use localhost proxy for images
-    // The API client handles this for API calls, but for images we need the real URL
-    // This is handled by the fact that we store the real URL in the profile
-    
-    return { apiUrl, cgiUrl };
   };
 
   const handleTestConnection = async () => {
@@ -168,9 +143,14 @@ export default function Setup() {
         } catch (discoveryError) {
           // Discovery failed - offer manual entry
           console.error('[Setup] URL discovery failed:', discoveryError);
-          throw new Error(
-            t('setup.discovery_failed_manual')
-          );
+          // Only force manual if strictly discovery failed, 
+          // but we can pass the error message through if it tells the user to check their URL.
+
+          let errorMsg = t('setup.discovery_failed_manual');
+          if (discoveryError instanceof DiscoveryError) {
+            errorMsg = discoveryError.message + ' ' + t('setup.discovery_failed_manual');
+          }
+          throw new Error(errorMsg);
         }
       }
 

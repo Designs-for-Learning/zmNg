@@ -11,3 +11,4 @@ Global Rules
 - For all functionality, add test cases 
 - Write high quality documentation
 - When you implement clicks inside views that navigate to other views, always implement a "stacked" navigation, which means a back arrow to go back to the screen you came from
+- Always use proper log functions, not console logs

@@ -19,63 +19,58 @@ export interface DerivedUrls {
  * - Subpath: http://server.com/zm (API: /zm/api, CGI: /zm/cgi-bin)
  * - Custom: http://server.com/custom (API: /custom/api, CGI: /custom/cgi-bin)
  *
- * This function generates all possible patterns to try in order of likelihood.
- * 
+ * This function ALWAYS generates patterns for both HTTP and HTTPS, trying the
+ * user-specified protocol first (or HTTPS if none specified), then the alternate.
+ *
  * @param portalUrl - The base URL entered by the user
  * @returns Object containing arrays of potential API and CGI URLs
+ * @deprecated Use `discoverZoneminder` from `discovery.ts` instead.
  */
 export function deriveZoneminderUrls(portalUrl: string): DerivedUrls {
-  // Add URL scheme if missing (try https:// first, then http://)
-  let baseUrl = portalUrl.replace(/\/$/, '');
-  
-  if (!baseUrl.startsWith('http://') && !baseUrl.startsWith('https://')) {
-    // No scheme provided - we'll generate patterns for both https and http
-    // The API client will try https first, then fall back to http
-    baseUrl = `https://${baseUrl}`;
-  }
+  const cleanUrl = portalUrl.replace(/\/$/, '');
 
-  // API URL patterns (in order of likelihood)
+  // Determine which scheme was specified (or default to https)
+  const userSpecifiedHttp = cleanUrl.startsWith('http://');
+
+  // Extract base URL without scheme
+  const urlWithoutScheme = cleanUrl.replace(/^https?:\/\//, '');
+
+  // Determine primary and alternate protocols
+  const primaryScheme = userSpecifiedHttp ? 'http' : 'https';
+  const alternateScheme = userSpecifiedHttp ? 'https' : 'http';
+
+  const primaryBase = `${primaryScheme}://${urlWithoutScheme}`;
+  const alternateBase = `${alternateScheme}://${urlWithoutScheme}`;
+
+  // Generate API patterns - primary protocol first, then alternate
   const apiPatterns = [
-    `${baseUrl}/api`,      // Most common
-    `${baseUrl}/zm/api`,   // ZM in subpath
+    `${primaryBase}/api`,      // Most common
+    `${primaryBase}/zm/api`,   // ZM in subpath
+    `${alternateBase}/api`,    // Alternate protocol
+    `${alternateBase}/zm/api`, // Alternate protocol with /zm
   ];
 
-  // If the original URL had no scheme, also add http:// variants
-  if (!portalUrl.startsWith('http://') && !portalUrl.startsWith('https://')) {
-    const httpBaseUrl = `http://${portalUrl.replace(/\/$/, '')}`;
-    apiPatterns.push(`${httpBaseUrl}/api`);
-    apiPatterns.push(`${httpBaseUrl}/zm/api`);
-  }
-
-  // CGI URL patterns - smart detection to avoid duplicating /zm
+  // Generate CGI patterns for primary protocol
   const cgiPatterns: string[] = [];
 
-  if (baseUrl.endsWith('/zm')) {
-    // If URL ends in /zm, assume user pointed to ZM root
-    // Don't duplicate /zm in the path
-    cgiPatterns.push(`${baseUrl}/cgi-bin`);
-  } else {
-    // If URL is root or custom path, try standard ZM paths
-    cgiPatterns.push(`${baseUrl}/zm/cgi-bin`);
-    cgiPatterns.push(`${baseUrl}/cgi-bin`);
-  }
-
-  // Add alternative CGI patterns
-  cgiPatterns.push(`${baseUrl}/cgi-bin-zm`);
-  cgiPatterns.push(`${baseUrl}/zmcgi`);
-
-  // If the original URL had no scheme, also add http:// variants
-  if (!portalUrl.startsWith('http://') && !portalUrl.startsWith('https://')) {
-    const httpBaseUrl = `http://${portalUrl.replace(/\/$/, '')}`;
-    if (httpBaseUrl.endsWith('/zm')) {
-      cgiPatterns.push(`${httpBaseUrl}/cgi-bin`);
+  // Helper to add CGI patterns for a given base URL
+  const addCgiPatterns = (baseUrl: string) => {
+    if (baseUrl.endsWith('/zm')) {
+      // If URL ends in /zm, assume user pointed to ZM root
+      cgiPatterns.push(`${baseUrl}/cgi-bin`);
     } else {
-      cgiPatterns.push(`${httpBaseUrl}/zm/cgi-bin`);
-      cgiPatterns.push(`${httpBaseUrl}/cgi-bin`);
+      // If URL is root or custom path, try standard ZM paths
+      cgiPatterns.push(`${baseUrl}/zm/cgi-bin`);
+      cgiPatterns.push(`${baseUrl}/cgi-bin`);
     }
-    cgiPatterns.push(`${httpBaseUrl}/cgi-bin-zm`);
-    cgiPatterns.push(`${httpBaseUrl}/zmcgi`);
-  }
+    // Add alternative CGI patterns
+    cgiPatterns.push(`${baseUrl}/cgi-bin-zm`);
+    cgiPatterns.push(`${baseUrl}/zmcgi`);
+  };
+
+  // Add patterns for primary protocol first, then alternate
+  addCgiPatterns(primaryBase);
+  addCgiPatterns(alternateBase);
 
   return {
     apiPatterns,

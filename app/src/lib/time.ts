@@ -2,7 +2,6 @@
  * Timezone utilities
  */
 
-import { formatInTimeZone } from 'date-fns-tz'; // We need date-fns-tz for this
 import { useProfileStore } from '../stores/profile';
 
 /**

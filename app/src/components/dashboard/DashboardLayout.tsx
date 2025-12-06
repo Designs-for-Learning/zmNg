@@ -58,47 +58,47 @@ export function DashboardLayout() {
     }, []);
 
     const layouts = useMemo(() => {
-        // Only define lg layout, let react-grid-layout automatically adapt to other breakpoints
-        return {
-            lg: widgets.map(w => ({ ...w.layout, i: w.id })),
-        };
+        // Construct layouts for all breakpoints from stored data
+        const memoizedLayouts: { [key: string]: Layout[] } = { lg: [], md: [], sm: [], xs: [], xxs: [] };
+
+        widgets.forEach(w => {
+            // Apply known layouts
+            if (w.layouts) {
+                Object.entries(w.layouts).forEach(([bp, l]) => {
+                    if (memoizedLayouts[bp]) {
+                        memoizedLayouts[bp].push({ ...l, i: w.id });
+                    }
+                });
+            } else {
+                // Fallback for widgets without multi-layout (shouldn't happen post-migration)
+                memoizedLayouts.lg.push({ ...w.layout, i: w.id });
+            }
+        });
+        return memoizedLayouts;
     }, [widgets]);
 
-    const handleLayoutChange = (currentLayout: Layout[], allLayouts: { [key: string]: Layout[] }) => {
+    const handleLayoutChange = (_currentLayout: Layout[], allLayouts: { [key: string]: Layout[] }) => {
         // Only save layouts when user is actively editing (dragging/resizing)
         // Don't save when react-grid-layout auto-calculates layouts for breakpoint changes
         if (!isEditing) return;
 
-        // Only save the lg layout as source of truth
-        // React-grid-layout will auto-calculate other breakpoints from lg
-        const lgLayout = allLayouts.lg || currentLayout;
+        // Save ALL provided layouts to ensure responsive choices are persisted
+        // Map RGL layouts back to our WidgetLayout format for each breakpoint
+        const newAllLayouts: Record<string, any[]> = {};
 
-        // Check if layout has actually changed to prevent infinite loops
-        const hasChanged = lgLayout.some(l => {
-            const widget = widgets.find(w => w.id === l.i);
-            if (!widget) return false;
-            return (
-                widget.layout.x !== l.x ||
-                widget.layout.y !== l.y ||
-                widget.layout.w !== l.w ||
-                widget.layout.h !== l.h
-            );
+        Object.entries(allLayouts).forEach(([bp, breakpointLayout]) => {
+            newAllLayouts[bp] = breakpointLayout.map(l => ({
+                i: l.i,
+                x: l.x,
+                y: l.y,
+                w: l.w,
+                h: l.h,
+                minW: l.minW,
+                minH: l.minH
+            }));
         });
 
-        if (!hasChanged) return;
-
-        // Map RGL layout back to our WidgetLayout format
-        const newLayouts = lgLayout.map(l => ({
-            i: l.i,
-            x: l.x,
-            y: l.y,
-            w: l.w,
-            h: l.h,
-            minW: l.minW,
-            minH: l.minH
-        }));
-
-        updateLayouts(profileId, newLayouts);
+        updateLayouts(profileId, newAllLayouts);
     };
 
     if (widgets.length === 0) {
