@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { log } from '../lib/logger';
 
 export type WidgetType = 'monitor' | 'events' | 'timeline' | 'heatmap';
 
@@ -37,6 +38,7 @@ interface DashboardState {
     removeWidget: (profileId: string, id: string) => void;
     updateWidget: (profileId: string, id: string, updates: Partial<DashboardWidget>) => void;
     updateLayouts: (profileId: string, layouts: Record<string, WidgetLayout[]>) => void;
+    resetWidgetWidths: (profileId: string) => void;
     toggleEditMode: () => void;
 }
 
@@ -129,6 +131,50 @@ export const useDashboardStore = create<DashboardState>()(
                         }),
                     }
                 }));
+            },
+
+            resetWidgetWidths: (profileId) => {
+                set((state) => {
+                    const widgetCount = (state.widgets[profileId] || []).length;
+                    log.info('Resetting dashboard widget widths to full width', {
+                        component: 'Dashboard',
+                        profileId,
+                        widgetCount
+                    });
+
+                    // Column counts for each breakpoint (matches DashboardLayout)
+                    const maxWidths: Record<string, number> = {
+                        lg: 12,
+                        md: 10,
+                        sm: 6,
+                        xs: 4,
+                        xxs: 2
+                    };
+
+                    return {
+                        widgets: {
+                            ...state.widgets,
+                            [profileId]: (state.widgets[profileId] || []).map((w) => {
+                                const updatedLayouts: Record<string, WidgetLayout> = {};
+
+                                // Reset width for each breakpoint to full width
+                                Object.keys(maxWidths).forEach((bp) => {
+                                    const existingLayout = w.layouts?.[bp] || w.layout;
+                                    updatedLayouts[bp] = {
+                                        ...existingLayout,
+                                        w: maxWidths[bp]
+                                    };
+                                });
+
+                                return {
+                                    ...w,
+                                    layout: { ...updatedLayouts.lg },
+                                    layouts: updatedLayouts
+                                };
+                            })
+                        }
+                    };
+                });
             },
 
             toggleEditMode: () =>

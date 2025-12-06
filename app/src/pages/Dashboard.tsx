@@ -26,6 +26,7 @@ export default function Dashboard() {
     const [isRefreshing, setIsRefreshing] = useState(false);
     const isEditing = useDashboardStore((state) => state.isEditing);
     const toggleEditMode = useDashboardStore((state) => state.toggleEditMode);
+    const resetWidgetWidths = useDashboardStore((state) => state.resetWidgetWidths);
     const currentProfile = useProfileStore(
         useShallow((state) => {
             const { profiles, currentProfileId } = state;
@@ -41,6 +42,8 @@ export default function Dashboard() {
         setIsRefreshing(true);
         // Invalidate all queries to refresh dashboard widgets
         await queryClient.invalidateQueries();
+        // Reset all widget widths to full width
+        resetWidgetWidths(profileId);
         setTimeout(() => setIsRefreshing(false), 500);
     };
 
