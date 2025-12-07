@@ -128,7 +128,7 @@ export function DashboardWidget({
                 </CardHeader>
             )}
 
-            <CardContent className="p-0 flex-1 relative">
+            <CardContent className="p-0 flex-1 relative min-h-0">
                 {children}
             </CardContent>
         </Card>

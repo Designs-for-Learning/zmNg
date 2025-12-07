@@ -12,7 +12,6 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { getEvents } from '../../../api/events';
-import { ScrollArea } from '../../ui/scroll-area';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -59,7 +58,7 @@ export function EventsWidget({ monitorId, limit = 5, refreshInterval = 30000 }: 
     }
 
     return (
-        <ScrollArea className="h-full">
+        <div className="h-full overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             <div className="divide-y">
                 {events.events.map((event) => (
                     <div
@@ -84,6 +83,6 @@ export function EventsWidget({ monitorId, limit = 5, refreshInterval = 30000 }: 
                     </div>
                 ))}
             </div>
-        </ScrollArea>
+        </div>
     );
 }
