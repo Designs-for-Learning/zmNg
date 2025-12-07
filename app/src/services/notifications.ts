@@ -78,8 +78,11 @@ export class ZMNotificationService {
    * Connect to ZM event notification server
    */
   public async connect(config: ZMEventServerConfig): Promise<void> {
-    if (this.ws?.readyState === WebSocket.OPEN) {
-      log.info('Already connected to notification server', { component: 'Notifications' });
+    if (this.state === 'connected' || this.state === 'authenticating' || this.state === 'connecting') {
+      log.info('Already connected or connecting to notification server', { 
+        component: 'Notifications',
+        state: this.state 
+      });
       return;
     }
 
@@ -300,18 +303,32 @@ export class ZMNotificationService {
     });
 
     try {
-      this.ws = new WebSocket(url);
+      const ws = new WebSocket(url);
+      this.ws = ws;
 
-      this.ws.onopen = () => this._handleOpen();
-      this.ws.onmessage = (event) => this._handleMessage(event);
-      this.ws.onerror = (error) => {
-      log.error('WebSocket error', { component: 'Notifications' }, error);
-      if (this.config.ssl) {
-        log.warn('If using self-signed certificates, ensure they are trusted by the device/browser.', { component: 'Notifications' });
-      }
-      this._handleError(error);
-    };
-      this.ws.onclose = (event) => this._handleClose(event);
+      ws.onopen = () => {
+        if (this.ws !== ws) return;
+        this._handleOpen();
+      };
+      
+      ws.onmessage = (event) => {
+        if (this.ws !== ws) return;
+        this._handleMessage(event);
+      };
+
+      ws.onerror = (error) => {
+        if (this.ws !== ws) return;
+        log.error('WebSocket error', { component: 'Notifications' }, error);
+        if (this.config.ssl) {
+          log.warn('If using self-signed certificates, ensure they are trusted by the device/browser.', { component: 'Notifications' });
+        }
+        this._handleError(error);
+      };
+
+      ws.onclose = (event) => {
+        if (this.ws !== ws) return;
+        this._handleClose(event);
+      };
 
       // Wait for authentication to complete
       await this._waitForAuth();

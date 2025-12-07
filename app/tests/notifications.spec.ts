@@ -167,7 +167,7 @@ test.describe('Notification System', () => {
       await monitorSwitch.click();
 
       // Should show interval selector
-      await expect(page.locator('text=Check Interval:')).toBeVisible();
+      await expect(page.locator('text=Notification Interval:')).toBeVisible();
     }
   });
 

@@ -317,7 +317,7 @@
     "monitor_filters_desc": "选择要接收通知的监控",
     "no_monitors": "无可用监控",
     "monitor_id": "监控 {{id}}",
-    "check_interval": "检查间隔",
+    "check_interval": "通知间隔",
     "seconds": "秒",
     "play_sound": "播放声音",
     "play_sound_desc": "收到通知时播放声音",

@@ -108,7 +108,13 @@ function SidebarContent({ onMobileClose, isCollapsed }: SidebarContentProps) {
     })
   );
   const logout = useAuthStore((state) => state.logout);
-  const unreadCount = useNotificationStore((state) => state.unreadCount);
+  const { unreadCount, connectionState, settings } = useNotificationStore(
+    useShallow((state) => ({
+      unreadCount: state.unreadCount,
+      connectionState: state.connectionState,
+      settings: state.settings,
+    }))
+  );
   const { t } = useTranslation();
 
   const handleLogout = () => {
@@ -173,6 +179,25 @@ function SidebarContent({ onMobileClose, isCollapsed }: SidebarContentProps) {
                 {!isCollapsed && (
                   <>
                     <span className="truncate">{item.label}</span>
+                    
+                    {item.path === '/notifications' && (
+                      <div 
+                        className={cn(
+                          "h-2 w-2 rounded-full ml-2 flex-shrink-0",
+                          !settings.enabled ? "bg-muted-foreground/50" :
+                          connectionState === 'connected' ? "bg-green-500" :
+                          connectionState === 'disconnected' || connectionState === 'error' ? "bg-red-500" :
+                          "bg-orange-500 animate-pulse"
+                        )} 
+                        title={
+                          !settings.enabled ? "Disabled" :
+                          connectionState === 'connected' ? "Connected" :
+                          connectionState === 'disconnected' ? "Disconnected" :
+                          "Connecting..."
+                        }
+                      />
+                    )}
+
                     {item.path === '/notifications' && unreadCount > 0 && (
                       <span className="ml-auto h-5 min-w-5 px-1.5 flex items-center justify-center text-xs font-bold rounded-full bg-destructive text-destructive-foreground flex-shrink-0">
                         {unreadCount > 99 ? '99+' : unreadCount}

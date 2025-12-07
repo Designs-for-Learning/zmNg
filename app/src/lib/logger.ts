@@ -83,12 +83,21 @@ class Logger {
     const sanitizedContext = sanitizeObject(context) as LogContext;
     const sanitizedArgs = args.length > 0 ? sanitizeLogArgs(args) : [];
 
+    // Prepare context for console (exclude component/action as they are in prefix)
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { component, action, ...consoleContext } = sanitizedContext;
+    const hasContext = Object.keys(consoleContext).length > 0;
+
     // Log sanitized data to console
-    if (sanitizedArgs.length > 0) {
-      console.log(prefix, sanitizedMessage, ...sanitizedArgs);
-    } else {
-      console.log(prefix, sanitizedMessage);
+    const consoleArgs: unknown[] = [prefix, sanitizedMessage];
+    if (hasContext) {
+      consoleArgs.push(consoleContext);
     }
+    if (sanitizedArgs.length > 0) {
+      consoleArgs.push(...sanitizedArgs);
+    }
+
+    console.log(...consoleArgs);
 
     // Add to store
     useLogStore.getState().addLog({

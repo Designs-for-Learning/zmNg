@@ -317,7 +317,7 @@
     "monitor_filters_desc": "Seleccionar de qué monitores recibir notificaciones",
     "no_monitors": "No hay monitores disponibles",
     "monitor_id": "Monitor {{id}}",
-    "check_interval": "Intervalo de Verificación",
+    "check_interval": "Intervalo de Notificación",
     "seconds": "segundos",
     "play_sound": "Reproducir Sonido",
     "play_sound_desc": "Reproducir un sonido cuando llegue una notificación",

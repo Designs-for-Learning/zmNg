@@ -29,17 +29,30 @@ export function NotificationHandler() {
     settings,
     events,
     isConnected,
+    connectionState,
     connect,
   } = useNotificationStore();
 
   const lastEventId = useRef<number | null>(null);
   const hasAttemptedAutoConnect = useRef(false);
 
+  // Reset auto-connect flag when profile changes or disabled
+  useEffect(() => {
+    if (!settings.enabled) {
+      hasAttemptedAutoConnect.current = false;
+    }
+  }, [settings.enabled]);
+
+  useEffect(() => {
+    hasAttemptedAutoConnect.current = false;
+  }, [currentProfile?.id]);
+
   // Auto-connect when profile loads (if enabled)
   useEffect(() => {
     if (
       settings.enabled &&
       !isConnected &&
+      connectionState === 'disconnected' &&
       currentProfile &&
       currentProfile.username &&
       currentProfile.password &&
@@ -49,28 +62,40 @@ export function NotificationHandler() {
 
       log.info('Auto-connecting to notification server', { component: 'Notifications' });
 
-      getDecryptedPassword(currentProfile.id)
-        .then((password) => {
+      const attemptConnect = async (retries = 3) => {
+        try {
+          const password = await getDecryptedPassword(currentProfile.id);
+          
+          // Check state again right before connecting to avoid race conditions
+          // This is crucial because getDecryptedPassword is async and state might have changed
+          const currentState = useNotificationStore.getState().connectionState;
+          if (currentState !== 'disconnected') {
+             log.info('Skipping auto-connect - already connected or connecting', { 
+               component: 'Notifications',
+               state: currentState 
+             });
+             return;
+          }
+
           if (password) {
-            return connect(currentProfile.username!, password);
+            await connect(currentProfile.username!, password);
+            log.info('Auto-connected to notification server', { component: 'Notifications' });
           } else {
             throw new Error('Failed to get password');
           }
-        })
-        .then(() => {
-          log.info('Auto-connected to notification server', { component: 'Notifications' });
-        })
-        .catch((error) => {
-          log.error('Auto-connect failed', { component: 'Notifications' }, error);
-          // Don't show error toast for auto-connect failures
-        });
-    }
-  }, [settings.enabled, isConnected, currentProfile, connect, getDecryptedPassword]);
+        } catch (error) {
+          log.error(`Auto-connect failed (retries left: ${retries})`, { component: 'Notifications' }, error);
+          
+          if (retries > 0) {
+            setTimeout(() => attemptConnect(retries - 1), 2000);
+          }
+        }
+      };
 
-  // Reset auto-connect flag when profile changes
-  useEffect(() => {
-    hasAttemptedAutoConnect.current = false;
-  }, [currentProfile?.id]);
+      // Add a small delay to ensure everything is initialized
+      setTimeout(() => attemptConnect(), 500);
+    }
+  }, [settings.enabled, isConnected, connectionState, currentProfile, connect, getDecryptedPassword]);
 
   // Listen for new events and show toasts
   useEffect(() => {

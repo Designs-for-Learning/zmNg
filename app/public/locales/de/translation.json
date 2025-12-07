@@ -317,7 +317,7 @@
     "monitor_filters_desc": "Wählen Sie aus, für welche Monitore Sie Benachrichtigungen erhalten möchten",
     "no_monitors": "Keine Monitore verfügbar",
     "monitor_id": "Monitor {{id}}",
-    "check_interval": "Prüfintervall",
+    "check_interval": "Benachrichtigungsintervall",
     "seconds": "Sekunden",
     "play_sound": "Ton abspielen",
     "play_sound_desc": "Einen Ton abspielen, wenn eine Benachrichtigung eintrifft",

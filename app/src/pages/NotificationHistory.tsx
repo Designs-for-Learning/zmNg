@@ -121,8 +121,8 @@ export default function NotificationHistory() {
                       <span className="text-sm font-medium">{event.Cause}</span>
                     </div>
                     <div className="text-xs text-muted-foreground space-y-1">
-                      <div>{t('notification_history.event_id')}: {event.EventId}</div>
-                      <div>{t('notification_history.monitor_id')}: {event.MonitorId}</div>
+                      <div>{t('notification_history.event_id', { id: event.EventId })}</div>
+                      <div>{t('notification_history.monitor_id', { id: event.MonitorId })}</div>
                     </div>
                     {!event.read && (
                       <Button
