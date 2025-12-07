@@ -283,7 +283,15 @@ export class ZMNotificationService {
 
     const protocol = this.config.ssl ? 'wss' : 'ws';
     const path = this.config.path || '/';
-    const url = `${protocol}://${this.config.host}:${this.config.port}${path}`;
+    
+    // Strip protocol if user entered it in host field
+    let host = this.config.host;
+    if (host.startsWith('wss://')) host = host.replace('wss://', '');
+    if (host.startsWith('ws://')) host = host.replace('ws://', '');
+    if (host.startsWith('https://')) host = host.replace('https://', '');
+    if (host.startsWith('http://')) host = host.replace('http://', '');
+
+    const url = `${protocol}://${host}:${this.config.port}${path}`;
 
     log.info('Connecting to notification server', {
       component: 'Notifications',
@@ -344,6 +352,7 @@ export class ZMNotificationService {
         component: 'Notifications',
         event: message.event,
         status: message.status,
+        fullMessage: message // Log full message for debugging
       });
 
       // Handle authentication response
@@ -471,7 +480,7 @@ export class ZMNotificationService {
     const messageStr = JSON.stringify(message);
     log.info('Sending message', {
       component: 'Notifications',
-      message: messageStr.substring(0, 200), // Truncate for logging
+      message: message, // Log full object instead of truncated string
     });
 
     this.ws.send(messageStr);
