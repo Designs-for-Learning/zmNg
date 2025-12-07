@@ -463,7 +463,7 @@ export default function NotificationSettings() {
                           {monitorData.Name}
                         </Label>
                         <p className="text-sm text-muted-foreground mt-0.5">
-                          {t('notification_settings.monitor_id')}: {monitorData.Id} • {t('notification_settings.function')}: {monitorData.Function}
+                          {t('notification_settings.monitor_id', { id: monitorData.Id })} • {t('notification_settings.function')}: {monitorData.Function}
                         </p>
                       </div>
                       <Switch
