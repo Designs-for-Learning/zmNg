@@ -15,11 +15,11 @@ import { Card } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { VideoPlayer } from '../components/ui/video-player';
 import { ZmsEventPlayer } from '../components/events/ZmsEventPlayer';
-import { ArrowLeft, Calendar, Clock, HardDrive, AlertTriangle, Download, Archive, Video, ListVideo, Info } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, HardDrive, AlertTriangle, Download, Archive, Video, ListVideo } from 'lucide-react';
 import { format } from 'date-fns';
 import { downloadEventVideo } from '../lib/download';
 import { toast } from 'sonner';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { log } from '../lib/logger';
 
@@ -32,17 +32,6 @@ export default function EventDetail() {
   // Check if user came from another page (navigation state tracking)
   const referrer = location.state?.from as string | undefined;
   const [useZmsFallback, setUseZmsFallback] = useState(false);
-  const [showFallbackBadge, setShowFallbackBadge] = useState(false);
-
-  useEffect(() => {
-    if (useZmsFallback) {
-      setShowFallbackBadge(true);
-      const timer = setTimeout(() => {
-        setShowFallbackBadge(false);
-      }, 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [useZmsFallback]);
 
   const { data: event, isLoading, error } = useQuery({
     queryKey: ['event', id],

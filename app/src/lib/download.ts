@@ -11,11 +11,11 @@
  * - Automatically saves media to device Photo/Video library on mobile
  */
 
-import { CapacitorHttp } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Media } from '@capacitor-community/media';
 import { log } from './logger';
 import { Platform } from './platform';
+import { httpGet } from './http';
 import { getApiClient } from '../api/client';
 
 /**
@@ -30,20 +30,18 @@ import { getApiClient } from '../api/client';
 export async function downloadFile(url: string, filename: string): Promise<void> {
   try {
     if (Platform.isNative) {
-      // Mobile: Use native HTTP to bypass CORS and network restrictions
+      // Mobile: Use unified HTTP client to bypass CORS
       log.info('[Download] Downloading via native HTTP', { component: 'Download', url });
 
-      const response = await CapacitorHttp.get({
-        url: url,
-        responseType: 'blob',
-      });
+      const response = await httpGet<Blob>(url, { responseType: 'blob' });
 
       if (response.status !== 200) {
         throw new Error(`Failed to download: HTTP ${response.status}`);
       }
 
-      // CapacitorHttp returns blob data as base64 string
-      const base64Data = response.data as string;
+      // Convert blob to base64 for Capacitor Filesystem
+      const blob = response.data;
+      const base64Data = await blobToBase64(blob);
 
       const result = await Filesystem.writeFile({
         path: filename,
@@ -129,6 +127,23 @@ export async function downloadFile(url: string, filename: string): Promise<void>
     log.error('[Download] Failed to download file', { component: 'Download', url }, error);
     throw error;
   }
+}
+
+/**
+ * Convert Blob to base64 string
+ */
+function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64 = reader.result as string;
+      // Remove the data URL prefix (e.g., "data:image/jpeg;base64,")
+      const base64Data = base64.split(',')[1];
+      resolve(base64Data);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
 }
 
 /**

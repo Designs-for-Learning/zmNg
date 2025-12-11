@@ -21,9 +21,7 @@ import {
 } from 'lucide-react';
 import { getEventImageUrl } from '../../api/events';
 import { useTranslation } from 'react-i18next';
-import { Platform } from '../../lib/platform';
-import { CapacitorHttp } from '@capacitor/core';
-import { fetch as tauriFetch } from '@tauri-apps/plugin-http';
+import { httpGet } from '../../lib/http';
 
 // ZoneMinder stream command constants
 const ZM_CMD = {
@@ -134,33 +132,18 @@ export function ZmsEventPlayer({
 
   // Send control command to the stream
   const sendCommand = useCallback(async (cmd: number, offset?: number) => {
-    const params = new URLSearchParams({
+    const params: Record<string, string> = {
       command: cmd.toString(),
       connkey: connKey,
       view: 'request',
       request: 'stream',
-      ...(token && { token }),
       ...(offset !== undefined && { offset: offset.toString() }),
-    });
+    };
 
-    const fullUrl = `${baseUrl}/index.php?${params.toString()}`;
+    const url = `${baseUrl}/index.php`;
 
     try {
-      if (Platform.isNative) {
-        // Use Capacitor HTTP on mobile
-        await CapacitorHttp.get({ url: fullUrl });
-      } else if (Platform.isTauri) {
-        // Use Tauri fetch on desktop
-        await tauriFetch(fullUrl);
-      } else if (Platform.shouldUseProxy) {
-        // Use proxy in dev mode
-        await fetch(`http://localhost:3001/proxy/index.php?${params.toString()}`, {
-          headers: { 'X-Target-Host': baseUrl },
-        });
-      } else {
-        // Direct fetch in production web
-        await fetch(fullUrl);
-      }
+      await httpGet(url, { params, token });
     } catch (err) {
       console.error('Stream command failed:', err);
     }
@@ -378,7 +361,7 @@ export function ZmsEventPlayer({
               onClick={jumpToAlarmFrame}
             >
               <img
-                src={getEventImageUrl(portalUrl, eventId, 'alarm', {
+                src={getEventImageUrl(portalUrl, eventId, parseInt(alarmFrameId), {
                   token,
                   width: 120,
                   apiUrl,
