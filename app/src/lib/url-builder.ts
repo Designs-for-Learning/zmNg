@@ -12,13 +12,13 @@
 
 /**
  * Normalize a portal URL to ensure it has a proper protocol.
- * Coordinates with apiUrl to match http/https.
+ * Preserves the existing protocol if present, otherwise defaults to http.
  *
  * @param portalUrl - The portal URL (may or may not have protocol)
- * @param apiUrl - Optional API URL to coordinate protocol with
+ * @param _apiUrl - Unused parameter (kept for backwards compatibility)
  * @returns Normalized URL with protocol
  */
-export function normalizePortalUrl(portalUrl: string, apiUrl?: string): string {
+export function normalizePortalUrl(portalUrl: string, _apiUrl?: string): string {
   let baseUrl = portalUrl;
 
   // Add protocol if missing (default to http)
@@ -26,17 +26,8 @@ export function normalizePortalUrl(portalUrl: string, apiUrl?: string): string {
     baseUrl = `http://${baseUrl}`;
   }
 
-  // Coordinate protocol with apiUrl if provided
-  if (apiUrl) {
-    if (apiUrl.startsWith('http://')) {
-      // API uses http, force portal to http
-      baseUrl = baseUrl.replace(/^https:\/\//, 'http://');
-    } else if (apiUrl.startsWith('https://')) {
-      // API uses https, force portal to https
-      baseUrl = baseUrl.replace(/^http:\/\//, 'https://');
-    }
-  }
-
+  // Preserve the existing protocol - do NOT force protocol coordination
+  // The portalUrl and apiUrl can have different protocols if needed
   return baseUrl;
 }
 
