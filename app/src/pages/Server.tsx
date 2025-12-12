@@ -364,7 +364,7 @@ export default function Server() {
               </div>
               <div className="flex gap-2">
                 <Select value={selectedAction} onValueChange={setSelectedAction}>
-                  <SelectTrigger className="flex-1">
+                  <SelectTrigger className="flex-1 [&>span]:!block [&>span]:!overflow-visible">
                     <SelectValue placeholder={t('server.select_state_or_action')} />
                   </SelectTrigger>
                   <SelectContent>
