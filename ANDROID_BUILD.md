@@ -71,8 +71,8 @@ To enable push notifications, you need to configure Firebase Cloud Messaging (FC
 ### 1. Create Firebase Project
 
 1. Go to [Firebase Console](https://console.firebase.google.com/)
-2. Click **Add project** (or select an existing one)
-3. Follow the setup wizard to create your project
+2. Click **Add project** 
+3. Follow the setup wizard to create your project (call it anything, I called mine zmNg)
 
 ### 2. Add Android App to Firebase
 
@@ -95,6 +95,13 @@ The project already includes the necessary Firebase dependencies. The `google-se
 
 > **Note:** Push notifications will only work on emulators/devices with **Google Play Services** installed.
 
+### 5. Configure ZoneMinder Event Notification Server
+zmNg works out of the box with zmES web socket notifications.
+If you want push notification support, the ZoneMinder event notification server (`zmeventnotification.pl`) needs to be configured to work with your Firebase project.
+You will need to use a modified version that I provided [here](https://github.com/pliablepixels/zm_docker_macos/tree/master). Follow its README
+
+
+
 ## Building and Running
 
 ### Debug Build
@@ -104,6 +111,9 @@ To build and run the app on an emulator or connected device:
 ```bash
 # Build web assets, sync to Android, and run
 npm run android
+
+# Open in Android Studio
+npm run android:open
 ```
 
 This command will:
@@ -186,6 +196,20 @@ Make sure you've set the `ANDROID_HOME` environment variable and restarted your 
 - Ensure you're using an emulator/device with **Google Play Services**
 - Verify `google-services.json` is in the correct location
 - Check that the package name in Firebase matches `com.zmng.app`
+- If using your own Firebase project, ensure the ZoneMinder server is configured with your FCM credentials
+- Check for "sender ID mismatch" errors in logcat - this means your app's Firebase project doesn't match the server's
+
+### FCM Image Errors ("Failed to decode image")
+If you see this error in the Android logs:
+```
+Failed to download image: java.io.IOException: Failed to decode image
+```
+
+This means the ZoneMinder server is sending an incorrectly formatted image URL. Fix it by:
+1. Editing `/etc/zm/zmeventnotification.ini` on your ZoneMinder server
+2. Setting `picture_url` to use `view=image` instead of `view=frame`
+3. Removing username/password from the URL (use tokens instead)
+4. Example: `picture_url = http://your-server/index.php?view=image&eid=EVENTID&fid=snapshot&width=600`
 
 ### App Won't Connect to ZoneMinder Server (HTTP)
 - Android 9+ blocks cleartext HTTP by default

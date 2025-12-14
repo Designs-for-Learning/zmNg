@@ -163,6 +163,36 @@ export class ZMNotificationService {
   }
 
   /**
+   * Deregister mobile push token with server
+   */
+  public async deregisterPushToken(
+    token: string,
+    platform: 'ios' | 'android'
+  ): Promise<void> {
+    if (!this._isConnected()) {
+      log.warn('Cannot deregister push token - not connected', { component: 'Notifications' });
+      return;
+    }
+
+    const message = {
+      event: 'push',
+      data: {
+        type: 'token',
+        token,
+        platform,
+        state: 'disabled',
+      },
+    };
+
+    log.info('Deregistering push token', {
+      component: 'Notifications',
+      platform,
+    });
+
+    this._send(message);
+  }
+
+  /**
    * Update monitor filter
    */
   public async setMonitorFilter(monitorIds: number[], intervals: number[]): Promise<void> {

@@ -116,6 +116,12 @@ You need to create an APNs authentication key in your Apple Developer account:
    - Remote notifications
    - Background fetch (if needed)
 
+### 6. Configure ZoneMinder Event Notification Server
+
+zmNg works out of the box with zmES web socket notifications.
+If you want push notification support, the ZoneMinder event notification server (`zmeventnotification.pl`) needs to be configured to work with your Firebase project.
+You will need to use a modified version that I provided [here](https://github.com/pliablepixels/zm_docker_macos/tree/master). Follow its README
+
 ## Building and Running
 
 ### Debug Build
@@ -220,6 +226,22 @@ cd ../..
 - Check that push notifications capability is enabled in Xcode
 - Test on a real device (push notifications don't work on simulator)
 - Verify the bundle ID matches in Firebase, Xcode, and Apple Developer Portal
+- If using your own Firebase project, ensure the ZoneMinder server is configured with your FCM credentials
+- Check for "sender ID mismatch" errors in device logs - this means your app's Firebase project doesn't match the server's
+
+### FCM Image Errors ("Failed to decode image")
+
+If you see image loading failures in push notifications, the ZoneMinder server is likely sending an incorrectly formatted image URL. The app expects:
+```
+http://your-server/index.php?view=image&eid=123&fid=snapshot&width=600&token=YOUR_TOKEN
+```
+
+Fix by editing `/etc/zm/zmeventnotification.ini` on your ZoneMinder server:
+1. Set `picture_url` to use `view=image` instead of `view=frame`
+2. Remove username/password from the URL (use tokens instead)
+3. Example: `picture_url = http://your-server/index.php?view=image&eid=EVENTID&fid=snapshot&width=600`
+
+The app automatically constructs proper image URLs with authentication tokens for in-app display.
 
 ### Signing Errors
 

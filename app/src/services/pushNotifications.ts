@@ -15,12 +15,15 @@ import {
 import { log } from '../lib/logger';
 import { navigationService } from '../lib/navigation';
 import { useNotificationStore } from '../stores/notifications';
+import { useProfileStore } from '../stores/profile';
+import { useAuthStore } from '../stores/auth';
 
 export interface PushNotificationData {
   monitorId?: string;
   monitorName?: string;
   eventId?: string;
   cause?: string;
+  imageUrl?: string;
 }
 
 export class MobilePushService {
@@ -36,11 +39,6 @@ export class MobilePushService {
       return;
     }
 
-    if (this.isInitialized) {
-      log.info('Push notifications already initialized', { component: 'Push' });
-      return;
-    }
-
     log.info('Initializing push notifications', { component: 'Push' });
 
     try {
@@ -51,14 +49,17 @@ export class MobilePushService {
         log.info('Push notification permission granted', { component: 'Push' });
 
         // Setup listeners BEFORE registering to ensure we catch the registration event
-        this._setupListeners();
+        if (!this.isInitialized) {
+          this._setupListeners();
+          this.isInitialized = true;
+        }
 
-        // Register with FCM
+        // Always register with FCM on initialization to get the current token
+        // This ensures we retrieve the token on every app start
         log.info('Calling PushNotifications.register()', { component: 'Push' });
         await PushNotifications.register();
         log.info('PushNotifications.register() called successfully', { component: 'Push' });
 
-        this.isInitialized = true;
         log.info('Push notifications initialized successfully', { component: 'Push' });
       } else {
         log.warn('Push notification permission denied', {
@@ -87,14 +88,59 @@ export class MobilePushService {
   }
 
   /**
-   * Unregister from push notifications
+   * Register token with notification server if connected
+   * Can be called after connection is established
    */
-  public async unregister(): Promise<void> {
+  public async registerTokenWithServer(): Promise<void> {
+    if (!this.currentToken) {
+      log.warn('No FCM token available to register', { component: 'Push' });
+      return;
+    }
+
+    await this._registerWithServer(this.currentToken);
+  }
+
+  /**
+   * Deregister from push notifications and notify server
+   */
+  public async deregister(): Promise<void> {
     if (!Capacitor.isNativePlatform()) {
       return;
     }
 
-    log.info('Unregistering from push notifications', { component: 'Push' });
+    if (!this.currentToken) {
+      log.info('No FCM token to deregister', { component: 'Push' });
+      return;
+    }
+
+    log.info('Deregistering from push notifications', { component: 'Push' });
+
+    try {
+      // Send disabled state to server if connected
+      const notificationStore = useNotificationStore.getState();
+      if (notificationStore.isConnected) {
+        const platform = Capacitor.getPlatform() as 'ios' | 'android';
+        log.info('Sending disabled state to notification server', { component: 'Push', platform });
+        await notificationStore.deregisterPushToken(this.currentToken, platform);
+      }
+
+      // Unregister locally
+      await this._unregister();
+    } catch (error) {
+      log.error('Failed to deregister from push notifications', { component: 'Push' }, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Unregister from push notifications (local only)
+   */
+  private async _unregister(): Promise<void> {
+    if (!Capacitor.isNativePlatform()) {
+      return;
+    }
+
+    log.info('Unregistering from push notifications locally', { component: 'Push' });
 
     try {
       // Remove all listeners
@@ -185,7 +231,7 @@ export class MobilePushService {
     const notificationStore = useNotificationStore.getState();
 
     if (!notificationStore.isConnected) {
-      log.warn('Cannot register push token - not connected to notification server', {
+      log.info('Storing FCM token - will register when connected to notification server', {
         component: 'Push',
       });
       return;
@@ -210,10 +256,11 @@ export class MobilePushService {
   private _handleNotification(notification: PushNotificationSchema): void {
     const data = notification.data as PushNotificationData;
 
-    log.info('Processing notification', {
+    log.info('Processing FCM notification', {
       component: 'Push',
-      monitorId: data.monitorId,
-      eventId: data.eventId,
+      title: notification.title,
+      body: notification.body,
+      data: notification.data,
     });
 
     // Extract event data and add to notification store
@@ -233,12 +280,32 @@ export class MobilePushService {
       const profileId = notificationStore.currentProfileId;
 
       if (profileId) {
+        // Construct image URL using the app's portal URL and auth token
+        // Don't use the image URL from the server as it may have incorrect format
+        let imageUrl: string | undefined;
+
+        // Get current profile to construct proper image URL
+        const profileStore = useProfileStore.getState();
+        const currentProfile = profileStore.currentProfile();
+        const authStore = useAuthStore.getState();
+
+        if (currentProfile && authStore.accessToken) {
+          imageUrl = `${currentProfile.portalUrl}/index.php?view=image&eid=${data.eventId}&fid=snapshot&width=600&token=${authStore.accessToken}`;
+
+          log.info('Constructed image URL for FCM notification', {
+            component: 'Push',
+            eventId: data.eventId,
+            imageUrl,
+          });
+        }
+
         notificationStore.addEvent(profileId, {
           MonitorId: parseInt(data.monitorId, 10),
           MonitorName: data.monitorName || 'Unknown',
           EventId: parseInt(data.eventId, 10),
           Cause: data.cause || notification.body || 'Motion detected',
           Name: data.monitorName || 'Unknown',
+          ImageUrl: imageUrl,
         });
       }
     }
@@ -284,7 +351,8 @@ export function getPushService(): MobilePushService {
 
 export function resetPushService(): void {
   if (pushService) {
-    pushService.unregister().catch((error) => {
+    // Use private _unregister to avoid sending disabled state to server during cleanup
+    pushService['_unregister']().catch((error) => {
       log.error('Failed to unregister push service', { component: 'Push' }, error);
     });
     pushService = null;

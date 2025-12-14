@@ -14,3 +14,6 @@ Global Rules
 - Always use proper log functions, not console logs
 - If you land up changing core iOS/Android code, make sure that they will not be overwritten and re-generated
 - Make sure test cases are comprehensive
+- When you make changes to the app, always make sure to run the test suite and make sure it passes
+- If you make changes to the UI, make sure to also update the test cases, if selectors or navigation elements have changed
+

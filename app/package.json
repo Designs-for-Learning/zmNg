@@ -24,6 +24,7 @@
     "android:sync": "npm run build && npx cap sync android",
     "android:run": "npx cap run android",
     "android": "npm run android:sync && npm run android:run",
+    "android:open": "npx cap open android",
     "android:logs": "$ANDROID_HOME/platform-tools/adb logcat | grep -E '(Capacitor|Console|chromium)'",
     "android:devices": "$ANDROID_HOME/platform-tools/adb devices",
     "android:release": "cd android && ./gradlew assembleRelease && cd ..",

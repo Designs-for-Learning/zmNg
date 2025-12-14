@@ -56,9 +56,12 @@ export function NotificationHandler() {
   }, [settings?.enabled]);
 
   // Initialize push notifications on mobile
+  // This runs whenever notifications are enabled to ensure we get the FCM token
   useEffect(() => {
     if (Capacitor.isNativePlatform() && settings && settings.enabled) {
       const pushService = getPushService();
+
+      // Initialize push service - this will call register() to get the current FCM token
       pushService.initialize().catch((error) => {
         log.error('Failed to initialize push notifications', { component: 'NotificationHandler' }, error);
       });

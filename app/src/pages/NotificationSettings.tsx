@@ -34,7 +34,6 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Capacitor } from '@capacitor/core';
-import { getPushService } from '../services/pushNotifications';
 import { useTranslation } from 'react-i18next';
 import { log } from '../lib/logger';
 
@@ -99,6 +98,18 @@ export default function NotificationSettings() {
 
       toast.info(t('notification_settings.notifications_enabled'));
     } else {
+      // Deregister push notifications on mobile platforms
+      if (Capacitor.isNativePlatform()) {
+        try {
+          const { getPushService } = await import('../services/pushNotifications');
+          const pushService = getPushService();
+          await pushService.deregister();
+          log.info('Deregistered from push notifications', { component: 'NotificationSettings' });
+        } catch (error) {
+          log.error('Failed to deregister from push notifications', { component: 'NotificationSettings' }, error);
+        }
+      }
+
       disconnect();
       toast.info(t('notification_settings.notifications_disabled'));
     }
@@ -132,18 +143,7 @@ export default function NotificationSettings() {
       await connect(currentProfile.id, currentProfile.username, password, currentProfile.portalUrl);
       toast.success(t('notification_settings.connected_success'));
 
-      // Initialize push on mobile
-      if (Capacitor.isNativePlatform()) {
-        const pushService = getPushService();
-        if (pushService.isReady()) {
-          const token = pushService.getToken();
-          const platform = Capacitor.getPlatform() as 'ios' | 'android';
-          if (token) {
-            await useNotificationStore.getState().registerPushToken(token, platform);
-            toast.success(t('notification_settings.push_registered'));
-          }
-        }
-      }
+      // Push token will be registered automatically by the connect method
     } catch (error) {
       log.error('Connection failed', { component: 'NotificationSettings' }, error);
       toast.error(t('notification_settings.connect_failed', { error: error instanceof Error ? error.message : 'Unknown error' }));

@@ -69,12 +69,14 @@ interface NotificationState {
 
   // Actions - Push (Mobile)
   registerPushToken: (token: string, platform: 'ios' | 'android') => Promise<void>;
+  deregisterPushToken: (token: string, platform: 'ios' | 'android') => Promise<void>;
 
   // Internal
   _initialize: () => void;
   _cleanup: () => void;
   _syncMonitorFilters: () => Promise<void>;
   _updateBadge: () => Promise<void>;
+  _registerPushTokenIfAvailable: () => Promise<void>;
 }
 
 const MAX_EVENTS = 100; // Keep last 100 events
@@ -257,6 +259,9 @@ export const useNotificationStore = create<NotificationState>()(
             component: 'Notifications',
             profileId,
           });
+
+          // Register push token if on mobile and token is available
+          get()._registerPushTokenIfAvailable();
         } catch (error) {
           log.error('Failed to connect to notification server', { component: 'Notifications', profileId }, error);
           throw error;
@@ -445,6 +450,20 @@ export const useNotificationStore = create<NotificationState>()(
         await service.registerPushToken(token, platform, monitorIds, intervals);
       },
 
+      deregisterPushToken: async (token: string, platform: 'ios' | 'android') => {
+        const { isConnected, currentProfileId } = get();
+
+        if (!isConnected || !currentProfileId) {
+          log.warn('Cannot deregister push token - not connected', { component: 'Notifications' });
+          return;
+        }
+
+        log.info('Deregistering push token', { component: 'Notifications', platform, profileId: currentProfileId });
+
+        const service = getNotificationService();
+        await service.deregisterPushToken(token, platform);
+      },
+
       // ========== Internal Methods ==========
 
       _initialize: () => {
@@ -543,6 +562,32 @@ export const useNotificationStore = create<NotificationState>()(
           await service.updateBadgeCount(badgeCount);
         } catch (error) {
           log.error('Failed to update badge count', { component: 'Notifications', profileId: currentProfileId }, error);
+        }
+      },
+
+      _registerPushTokenIfAvailable: async () => {
+        // Only runs on mobile platforms
+        if (typeof window === 'undefined') {
+          return;
+        }
+
+        try {
+          const { Capacitor } = await import('@capacitor/core');
+          if (!Capacitor.isNativePlatform()) {
+            return;
+          }
+
+          const { getPushService } = await import('../services/pushNotifications');
+          const pushService = getPushService();
+
+          if (pushService.isReady()) {
+            log.info('Registering FCM token after connection', { component: 'Notifications' });
+            await pushService.registerTokenWithServer();
+          } else {
+            log.info('FCM token not yet available - will register when received', { component: 'Notifications' });
+          }
+        } catch (error) {
+          log.error('Failed to register push token', { component: 'Notifications' }, error);
         }
       },
     }),
