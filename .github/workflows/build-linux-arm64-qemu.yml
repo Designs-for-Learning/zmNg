@@ -3,13 +3,10 @@ name: Build Linux ARM64 (QEMU)
 on:
   workflow_dispatch:
     inputs:
-      version:
-        description: 'Release version (e.g., 1.0.0)'
+      release_tag:
+        description: 'Release tag to build for (e.g., zmNg-1.0.0)'
         required: true
         type: string
-  push:
-    tags:
-      - 'v*'
 
 jobs:
   build-linux-arm64:
@@ -17,6 +14,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.release_tag }}
 
       - name: Build on ARM64 via QEMU
         uses: uraimo/run-on-arch-action@v2
@@ -44,21 +43,32 @@ jobs:
       - name: Upload AppImage artifact
         uses: actions/upload-artifact@v4
         with:
-          name: zmNg-linux-arm64-appimage-${{ github.event.inputs.version || github.ref_name }}
+          name: zmNg-linux-arm64-appimage-${{ inputs.release_tag }}
           path: app/src-tauri/target/release/bundle/appimage/*.AppImage
           retention-days: 30
 
       - name: Upload DEB package artifact
         uses: actions/upload-artifact@v4
         with:
-          name: zmNg-linux-arm64-deb-${{ github.event.inputs.version || github.ref_name }}
+          name: zmNg-linux-arm64-deb-${{ inputs.release_tag }}
           path: app/src-tauri/target/release/bundle/deb/*.deb
           retention-days: 30
 
       - name: Upload RPM package artifact (if exists)
         uses: actions/upload-artifact@v4
         with:
-          name: zmNg-linux-arm64-rpm-${{ github.event.inputs.version || github.ref_name }}
+          name: zmNg-linux-arm64-rpm-${{ inputs.release_tag }}
           path: app/src-tauri/target/release/bundle/rpm/*.rpm
           retention-days: 30
           if-no-files-found: ignore
+
+      - name: Upload to Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ inputs.release_tag }}
+          files: |
+            app/src-tauri/target/release/bundle/appimage/*.AppImage
+            app/src-tauri/target/release/bundle/deb/*.deb
+            app/src-tauri/target/release/bundle/rpm/*.rpm
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
