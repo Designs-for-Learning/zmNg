@@ -1,0 +1,184 @@
+name: Build All Platforms
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., 1.0.0)'
+        required: true
+        type: string
+      platforms:
+        description: 'Platforms to build (comma-separated: android,macos,linux,windows)'
+        required: false
+        default: 'android,macos,linux,windows'
+        type: string
+
+jobs:
+  build-android:
+    if: contains(github.event.inputs.platforms, 'android')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: app/package-lock.json
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Install dependencies
+        working-directory: ./app
+        run: npm ci
+
+      - name: Build web app
+        working-directory: ./app
+        run: npm run build
+
+      - name: Sync Capacitor
+        working-directory: ./app
+        run: npx cap sync android
+
+      - name: Build Android APK
+        working-directory: ./app/android
+        run: ./gradlew assembleRelease
+
+      - name: Build Android App Bundle (AAB)
+        working-directory: ./app/android
+        run: ./gradlew bundleRelease
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zmNg-android-apk-${{ github.event.inputs.version }}
+          path: app/android/app/build/outputs/apk/release/app-release.apk
+
+      - name: Upload AAB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zmNg-android-aab-${{ github.event.inputs.version }}
+          path: app/android/app/build/outputs/bundle/release/app-release.aab
+
+  build-macos:
+    if: contains(github.event.inputs.platforms, 'macos')
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: app/package-lock.json
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install dependencies
+        working-directory: ./app
+        run: npm ci
+
+      - name: Build Tauri app (macOS)
+        working-directory: ./app
+        run: npm run tauri:build
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+
+      - name: Upload DMG artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zmNg-macos-dmg-${{ github.event.inputs.version }}
+          path: app/src-tauri/target/release/bundle/dmg/*.dmg
+
+  build-linux:
+    if: contains(github.event.inputs.platforms, 'linux')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: app/package-lock.json
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - name: Install dependencies
+        working-directory: ./app
+        run: npm ci
+
+      - name: Build Tauri app (Linux)
+        working-directory: ./app
+        run: npm run tauri:build
+
+      - name: Upload AppImage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zmNg-linux-appimage-${{ github.event.inputs.version }}
+          path: app/src-tauri/target/release/bundle/appimage/*.AppImage
+
+      - name: Upload DEB package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zmNg-linux-deb-${{ github.event.inputs.version }}
+          path: app/src-tauri/target/release/bundle/deb/*.deb
+
+  build-windows:
+    if: contains(github.event.inputs.platforms, 'windows')
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: app/package-lock.json
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install dependencies
+        working-directory: ./app
+        run: npm ci
+
+      - name: Build Tauri app (Windows)
+        working-directory: ./app
+        run: npm run tauri:build
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+
+      - name: Upload MSI installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zmNg-windows-msi-${{ github.event.inputs.version }}
+          path: app/src-tauri/target/release/bundle/msi/*.msi
+
+      - name: Upload NSIS installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zmNg-windows-nsis-${{ github.event.inputs.version }}
+          path: app/src-tauri/target/release/bundle/nsis/*.exe
+          if-no-files-found: ignore

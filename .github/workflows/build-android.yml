@@ -1,0 +1,79 @@
+name: Build Android Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., 1.0.0)'
+        required: true
+        type: string
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: app/package-lock.json
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Install dependencies
+        working-directory: ./app
+        run: npm ci
+
+      - name: Build web app
+        working-directory: ./app
+        run: npm run build
+
+      - name: Sync Capacitor
+        working-directory: ./app
+        run: npx cap sync android
+
+      - name: Build Android APK
+        working-directory: ./app/android
+        run: ./gradlew assembleRelease
+
+      - name: Build Android App Bundle (AAB)
+        working-directory: ./app/android
+        run: ./gradlew bundleRelease
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zmNg-android-apk-${{ github.event.inputs.version || github.ref_name }}
+          path: app/android/app/build/outputs/apk/release/app-release.apk
+          retention-days: 30
+
+      - name: Upload AAB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zmNg-android-aab-${{ github.event.inputs.version || github.ref_name }}
+          path: app/android/app/build/outputs/bundle/release/app-release.aab
+          retention-days: 30
+
+      - name: Create GitHub Release (if tagged)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            app/android/app/build/outputs/apk/release/app-release.apk
+            app/android/app/build/outputs/bundle/release/app-release.aab
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
