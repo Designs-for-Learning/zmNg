@@ -17,6 +17,14 @@ jobs:
         with:
           ref: ${{ inputs.release_tag }}
 
+      - name: Add Swap Space
+        run: |
+          sudo fallocate -l 4G /swapfile
+          sudo chmod 600 /swapfile
+          sudo mkswap /swapfile
+          sudo swapon /swapfile
+          sudo swapon --show
+
       - name: Build on ARM64 via QEMU
         uses: uraimo/run-on-arch-action@v2
         with:
@@ -25,7 +33,7 @@ jobs:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
           install: |
             apt-get update
-            apt-get install -y curl wget file libssl-dev libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf build-essential
+            apt-get install -y curl wget file libssl-dev libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf build-essential rpm
             curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
             apt-get install -y nodejs
             curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
@@ -33,19 +41,23 @@ jobs:
             source $HOME/.cargo/env
             # Set linker flags to reduce memory usage and avoid segfaults
             export RUSTFLAGS="-C link-arg=-Wl,--no-keep-memory -C link-arg=-Wl,--reduce-memory-overheads"
-            # Limit cargo concurrency to avoid OOM
-            export CARGO_BUILD_JOBS=1
+            # Limit cargo concurrency to avoid OOM (increased to 2 with swap)
+            export CARGO_BUILD_JOBS=2
             
             cd app
             npm ci
-            npm run tauri:build
+            # Skip AppImage bundle to avoid linuxdeploy/QEMU issues
+            npm run tauri:build -- --bundles deb,rpm
+            npm run tauri:build -- --bundles deb,rpm
 
-      - name: Upload AppImage artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: zmNg-linux-arm64-appimage-${{ inputs.release_tag }}
-          path: app/src-tauri/target/release/bundle/appimage/*.AppImage
-          retention-days: 30
+      # AppImage generation is skipped due to QEMU issues
+      # AppImage generation is skipped due to QEMU issues
+      # - name: Upload AppImage artifact
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: zmNg-linux-arm64-appimage-${{ inputs.release_tag }}
+      #     path: app/src-tauri/target/release/bundle/appimage/*.AppImage
+      #     retention-days: 30
 
       - name: Upload DEB package artifact
         uses: actions/upload-artifact@v4
@@ -67,7 +79,6 @@ jobs:
         with:
           tag_name: ${{ inputs.release_tag }}
           files: |
-            app/src-tauri/target/release/bundle/appimage/*.AppImage
             app/src-tauri/target/release/bundle/deb/*.deb
             app/src-tauri/target/release/bundle/rpm/*.rpm
         env:
