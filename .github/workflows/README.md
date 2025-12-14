@@ -2,6 +2,16 @@
 
 This directory contains automated build workflows for zmNg across multiple platforms.
 
+## ⚠️ Quick Fix: macOS "Damaged App" Error
+
+If you downloaded a macOS build and get a "damaged" error, run this command:
+
+```bash
+xattr -cr /path/to/zmNg.app
+```
+
+Then open the app normally. See [macOS "Damaged" App Error](#macos-damaged-app-error) for more details.
+
 ## Available Workflows
 
 ### Individual Platform Builds
@@ -69,7 +79,14 @@ After a successful build, artifacts are available for download:
 
 ### Desktop Platforms (macOS, Linux, Windows)
 - Uses Tauri for desktop builds
-- Optional code signing via secrets:
+- **macOS Code Signing** (required to avoid "damaged" error):
+  - `APPLE_CERTIFICATE` - Base64-encoded .p12 certificate
+  - `APPLE_CERTIFICATE_PASSWORD` - Certificate password
+  - `APPLE_SIGNING_IDENTITY` - Developer ID (e.g., "Developer ID Application: Your Name (TEAM_ID)")
+  - `APPLE_ID` - Apple ID email
+  - `APPLE_PASSWORD` - App-specific password
+  - `APPLE_TEAM_ID` - Team ID from Apple Developer account
+- Optional Tauri updater signing:
   - `TAURI_SIGNING_PRIVATE_KEY`
   - `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`
 
@@ -95,6 +112,62 @@ For production releases, you should configure code signing:
 **Windows**: Configure code signing certificate
 
 See Tauri documentation for details: https://tauri.app/v1/guides/distribution/sign-your-application
+
+## macOS "Damaged" App Error
+
+If you get a **"zmNg.app is damaged and can't be opened. You should move it to the Trash"** error, this is because the app is not signed/notarized. You have two options:
+
+### Option 1: Use Unsigned Build (Bypass Gatekeeper)
+
+For unsigned builds, bypass macOS Gatekeeper security:
+
+```bash
+# Remove quarantine attribute
+xattr -cr /Applications/zmNg.app
+
+# Or if that doesn't work, use this before opening:
+sudo xattr -rd com.apple.quarantine /Applications/zmNg.app
+```
+
+**Alternative method:**
+1. Right-click the app and select "Open"
+2. Click "Open" in the security dialog
+3. macOS will remember this choice
+
+### Option 2: Set Up Code Signing (Recommended for Distribution)
+
+To produce properly signed and notarized builds:
+
+1. **Get Apple Developer Account** ($99/year)
+
+2. **Create Developer ID Certificate**:
+   - Go to Apple Developer Portal → Certificates
+   - Create "Developer ID Application" certificate
+   - Download and install in Keychain
+
+3. **Export Certificate**:
+   ```bash
+   # Export from Keychain as .p12
+   # Then convert to base64
+   base64 -i certificate.p12 | pbcopy
+   ```
+
+4. **Create App-Specific Password**:
+   - Go to appleid.apple.com
+   - Sign In → Security → App-Specific Passwords
+   - Generate password for "GitHub Actions"
+
+5. **Add GitHub Secrets**:
+   - Go to repository Settings → Secrets → Actions
+   - Add the following secrets:
+     - `APPLE_CERTIFICATE`: Paste base64 certificate
+     - `APPLE_CERTIFICATE_PASSWORD`: Certificate password
+     - `APPLE_SIGNING_IDENTITY`: "Developer ID Application: Your Name (TEAM_ID)"
+     - `APPLE_ID`: Your Apple ID email
+     - `APPLE_PASSWORD`: App-specific password
+     - `APPLE_TEAM_ID`: Team ID from developer portal
+
+6. **Re-run Workflow** - The app will now be signed and notarized
 
 ## Troubleshooting
 
