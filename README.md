@@ -1,7 +1,5 @@
 # zmNg - Modern ZoneMinder Client
 
-[View Comparison with zmNinja](notes/COMPARISON.md)
-
 <img src="app/assets/logo.png" align="right" width="120" />
 
 A modern web and mobile application for ZoneMinder home surveillance systems, providing a clean, intuitive interface for viewing live camera feeds, reviewing events, and managing multiple server profiles. It is a ground-up rewrite of the original [zmNinja](https://zmninja.zoneminder.com/) application, using modern web technologies and a more intuitive user interface. The code was 99% Claude CLI generated.
@@ -154,5 +152,8 @@ npm run test:e2e -- tests/monitors.spec.ts
 # Run both unit and E2E tests
 npm run test:all
 ```
+
+### New vs Old
+[View Comparison with zmNinja](notes/COMPARISON.md)
 
 
