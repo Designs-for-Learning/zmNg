@@ -142,10 +142,4 @@ npm run test:e2e -- tests/monitors.spec.ts
 npm run test:all
 ```
 
-### Linting
 
-Check code quality with ESLint:
-
-```bash
-npm run lint
-```
