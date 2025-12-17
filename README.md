@@ -87,11 +87,11 @@ npm run tauri:dev
 ### Desktop Production Builds
 
 
-# Desktop production build (Tauri) --> This is the preferred mechanism for desktop
+#### Desktop production build (Tauri): Recommended
 ```bash
 npm run tauri:build    # Output: src-tauri/target/release/bundle/
 ```
-# Web production build
+#### Web production build
 ```bash
 npm run build          # Output: dist/
 npm run preview        # Preview production build
