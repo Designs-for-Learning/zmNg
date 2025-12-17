@@ -106,7 +106,7 @@ After a successful build, artifacts are available for download:
 
 Release notes are automatically generated from commit messages, but you can add custom content:
 
-1. Edit `RELEASE_NOTES.md` in the repository root
+1. Edit `_RELEASE_NOTE_INSERT.md` in the `.github/workflows/` directory
 2. Add installation instructions, warnings, or any other information
 3. Commit and push the changes
 4. The next release will include your custom notes at the top
