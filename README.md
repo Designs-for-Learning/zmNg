@@ -100,8 +100,8 @@ Deploy web build (`dist/`) to: Netlify, Vercel, GitHub Pages, AWS S3, etc.
 
 ### Mobile Builds
 
-📱 **For Android setup and builds, see [docs/building/ANDROID.md](docs/building/ANDROID.md)**
-📱 **For iOS setup and builds, see [docs/building/IOS.md](docs/building/IOS.md)**
+For Android setup and builds, see [ANDROID](docs/building/ANDROID.md)
+For iOS setup and builds, see [IOS](docs/building/IOS.md)
 
 ## Testing
 
