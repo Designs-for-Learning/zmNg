@@ -12,9 +12,14 @@ Global Rules
 - Write high quality documentation & code comments but don't use words like comprehensive and other lofty terms. Be concise, yet clear.
 - When you implement clicks inside views that navigate to other views, always implement a "stacked" navigation, which means a back arrow to go back to the screen you came from
 - Always use proper log functions, not console logs
-- If you land up changing core iOS/Android code, make sure that they will not be overwritten and re-generated
-- Make sure test cases are comprehensive
+- If you land up changing core iOS/Android code, make sure that they will not be overwritten when re-generated
 - If you add or modify and UI or functionality, make sure to modify the tests and make sure all UI components have data tags that can be used for BDD testing
-- When you make changes to the app, always make sure to run the test suite and make sure it passes
 - If you make changes to the UI, make sure to also update the test cases, if selectors or navigation elements have changed
+
+Testing Rules
+---------------
+- When you make changes to the app, always make sure to run the test suite and make sure it passes
+- Please run e2e test cases for any large changes and make sure all tests pass
+- Make sure test cases are comprehensive. What that means is, don't just load views and pass. Interact with components in a page and make sure they all work
+- ALWAYS start with gherkin. NEVER write any tests that are not implemented in Gherkin
 
