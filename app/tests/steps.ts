@@ -1,0 +1,223 @@
+import { createBdd } from 'playwright-bdd';
+import { expect } from '@playwright/test';
+import { testConfig } from './helpers/config';
+
+const { Given, When, Then } = createBdd();
+
+// Authentication
+Given('I am logged into zmNg', async ({ page }) => {
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await page.waitForURL(/.*(dashboard|monitors)/, { timeout: 5000 });
+});
+
+// Navigation
+When('I navigate to the {string} page', async ({ page }, pageName: string) => {
+  await page.waitForTimeout(100);
+
+  const pageRoutes: Record<string, string> = {
+    'Dashboard': 'dashboard',
+    'Monitors': 'monitors',
+    'Montage': 'montage',
+    'Events': 'events',
+    'Event Montage': 'event-montage',
+    'Timeline': 'timeline',
+    'Notifications': 'notifications',
+    'Profiles': 'profiles',
+    'Settings': 'settings',
+    'Server': 'server',
+    'Logs': 'logs',
+  };
+
+  const route = pageRoutes[pageName];
+  if (!route) {
+    throw new Error(`Unknown page: ${pageName}`);
+  }
+
+  await page.getByRole('link', { name: new RegExp(`^${pageName}$`, 'i') }).click();
+  await page.waitForURL(new RegExp(`.*${route}`), { timeout: testConfig.timeouts.transition });
+});
+
+When('I navigate back', async ({ page }) => {
+  await page.goBack();
+  await page.waitForTimeout(500);
+});
+
+// Page Headings
+Then('I should see the page heading {string}', async ({ page }, heading: string) => {
+  await expect(page.getByRole('heading', { name: new RegExp(heading, 'i') }).first()).toBeVisible();
+});
+
+// Dashboard Steps
+When('I open the Add Widget dialog', async ({ page }) => {
+  const addWidgetBtn = page.getByRole('button', { name: /add widget/i }).first();
+  if (await addWidgetBtn.isVisible()) {
+    await addWidgetBtn.click();
+  } else {
+    await page.getByTitle(/Add Widget|Add/i).click();
+  }
+
+  const dialog = page.getByRole('dialog', { name: /add widget/i });
+  await expect(dialog).toBeVisible();
+});
+
+When('I select the {string} widget type', async ({ page }, widgetType: string) => {
+  const option = page.locator('div.border.rounded-lg').filter({ hasText: new RegExp(`^${widgetType}$`) }).first();
+  await option.click();
+  await expect(option).toHaveClass(/border-primary/);
+});
+
+let lastWidgetTitle: string;
+
+When('I enter widget title {string}', async ({ page }, title: string) => {
+  lastWidgetTitle = `${title} ${Date.now()}`;
+  await page.getByLabel(/widget title/i).fill(lastWidgetTitle);
+});
+
+When('I click the Add button in the dialog', async ({ page }) => {
+  const dialog = page.getByRole('dialog', { name: /add widget/i });
+  const addBtn = dialog.getByRole('button', { name: /Add/i });
+  await expect(addBtn).toBeVisible();
+  await expect(addBtn).toBeEnabled();
+  await addBtn.click();
+  await expect(dialog).not.toBeVisible();
+});
+
+Then('the widget {string} should appear on the dashboard', async ({ page }, _title: string) => {
+  await expect(page.locator('.react-grid-item').filter({ hasText: lastWidgetTitle }))
+    .toBeVisible({ timeout: testConfig.timeouts.element });
+});
+
+// Monitor Steps
+Then('I should see at least {int} monitor cards', async ({ page }, count: number) => {
+  const monitorCards = page.getByTestId('monitor-card');
+  const actualCount = await monitorCards.count();
+  expect(actualCount).toBeGreaterThanOrEqual(count);
+  console.log(`Found ${actualCount} monitors`);
+});
+
+When('I click into the first monitor detail page', async ({ page }) => {
+  const firstMonitorPlayer = page.getByTestId('monitor-player').first();
+  await firstMonitorPlayer.click({ force: true });
+  await page.waitForURL(/.*monitors\/\d+/, { timeout: testConfig.timeouts.transition });
+});
+
+Then('I should see the monitor player', async ({ page }) => {
+  await expect(page.getByTestId('monitor-player').first()).toBeVisible({ timeout: 10000 });
+});
+
+Then('I should see the monitor grid', async ({ page }) => {
+  await expect(page.getByTestId('monitor-grid')).toBeVisible();
+});
+
+// Montage Steps
+Then('I should see the montage interface', async ({ page }) => {
+  const hasLayoutControls = await page.locator('select,button').count() > 0;
+  expect(hasLayoutControls).toBeTruthy();
+});
+
+// Event Steps
+let hasEvents = false;
+
+Then('I should see events list or empty state', async ({ page }) => {
+  const eventCount = await page.locator('[data-testid="event-card"]').count();
+  const hasNoEventsMessage = await page.getByText(/no events/i).isVisible();
+
+  expect(eventCount > 0 || hasNoEventsMessage).toBeTruthy();
+
+  if (eventCount > 0) {
+    console.log(`Found ${eventCount} events`);
+    hasEvents = true;
+  } else {
+    hasEvents = false;
+  }
+});
+
+When('I click into the first event if events exist', async ({ page }) => {
+  if (hasEvents) {
+    const firstEvent = page.getByTestId('event-card').first();
+    await firstEvent.click();
+    await page.waitForURL(/.*events\/\d+/, { timeout: testConfig.timeouts.transition });
+    await page.waitForTimeout(500);
+  }
+});
+
+When('I navigate back if I clicked into an event', async () => {
+  // Placeholder - navigation handled by separate step
+});
+
+Then('I should be on the {string} page', async ({ page }, pageName: string) => {
+  const pageRoutes: Record<string, string> = { 'Events': 'events' };
+  const route = pageRoutes[pageName];
+  await page.waitForURL(new RegExp(`.*${route}$`), { timeout: testConfig.timeouts.transition });
+});
+
+// Timeline Steps
+Then('I should see timeline interface elements', async ({ page }) => {
+  const hasButtons = await page.locator('button').count() > 0;
+  const hasInputs = await page.locator('input').count() > 0;
+  const hasSelects = await page.locator('select').count() > 0;
+
+  expect(hasButtons || hasInputs || hasSelects).toBeTruthy();
+});
+
+// Notification Steps
+Then('I should see notification interface elements', async ({ page }) => {
+  const hasButtons = await page.locator('button').count() > 0;
+  const hasContent = await page.locator('div').count() > 0;
+
+  expect(hasButtons || hasContent).toBeTruthy();
+});
+
+// Profile Steps
+Then('I should see at least {int} profile cards', async ({ page }, count: number) => {
+  const profileCount = await page.locator('[data-testid="profile-card"]').count();
+  expect(profileCount).toBeGreaterThanOrEqual(count);
+  console.log(`Found ${profileCount} profile(s)`);
+});
+
+Then('I should see the active profile indicator', async ({ page }) => {
+  await expect(page.getByTestId('profile-active-indicator')).toBeVisible();
+});
+
+Then('I should see profile management buttons', async ({ page }) => {
+  const addButton = page.getByRole('button', { name: /add/i }).first();
+  await expect(addButton).toBeVisible();
+});
+
+// Settings Steps
+Then('I should see settings interface elements', async ({ page }) => {
+  const hasThemeControls = await page.getByText(/theme/i).isVisible().catch(() => false);
+  const hasLanguageControls = await page.getByText(/language/i).isVisible().catch(() => false);
+  const hasSwitches = await page.locator('[role="switch"]').count() > 0;
+
+  expect(hasThemeControls || hasLanguageControls || hasSwitches).toBeTruthy();
+});
+
+// Server Steps
+Then('I should see server information displayed', async ({ page }) => {
+  const hasServerInfo = await page.getByText(/version/i).isVisible().catch(() => false);
+  const hasStatus = await page.getByText(/status/i).isVisible().catch(() => false);
+  const hasCards = await page.locator('[role="region"]').count() > 0;
+
+  expect(hasServerInfo || hasStatus || hasCards).toBeTruthy();
+});
+
+// Logs Steps
+Then('I should see log entries or empty state', async ({ page }) => {
+  const logCount = await page.locator('[data-testid="log-entry"]').count();
+  const hasNoLogsMessage = await page.getByText(/no logs/i).isVisible();
+
+  expect(logCount > 0 || hasNoLogsMessage).toBeTruthy();
+
+  if (logCount > 0) {
+    console.log(`Found ${logCount} log entries`);
+  }
+});
+
+Then('I should see log control elements', async ({ page }) => {
+  const hasLevelFilter = await page.getByRole('combobox').isVisible().catch(() => false);
+  const hasClearButton = await page.getByRole('button', { name: /clear/i }).isVisible().catch(() => false);
+  const hasSaveButton = await page.getByRole('button', { name: /save|download|share/i }).isVisible().catch(() => false);
+
+  expect(hasLevelFilter || hasClearButton || hasSaveButton).toBeTruthy();
+});

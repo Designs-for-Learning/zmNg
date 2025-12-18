@@ -1,16 +1,22 @@
 import { Given, When, Then } from 'playwright-bdd/decorators';
-import { expect } from '@playwright/test';
+import { expect, Page } from '@playwright/test';
 
 export class CommonSteps {
+  page: Page;
+
+  constructor({ page }: { page: Page }) {
+    this.page = page;
+  }
+
   /**
    * Authentication steps
    */
   @Given('I am logged into zmNg')
   async iAmLoggedIn() {
     // Auth is handled by global setup (auth.setup.ts)
-    // Just verify we're not on login page
-    await this.page.goto('/');
-    await expect(this.page).not.toHaveURL(/.*setup/);
+    // Just verify we're logged in and on a valid page
+    await this.page.goto('/', { waitUntil: 'domcontentloaded' });
+    await this.page.waitForURL(/.*(dashboard|monitors)/, { timeout: 5000 });
   }
 
   /**

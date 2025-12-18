@@ -30,6 +30,7 @@ coverage/
 test-results/
 playwright-report/
 playwright/.auth/
+.features-gen/
 
 # Capacitor/Android
 android/app/build/

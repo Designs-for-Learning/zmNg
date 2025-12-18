@@ -1,7 +1,13 @@
 import { Given, When, Then } from 'playwright-bdd/decorators';
-import { expect } from '@playwright/test';
+import { expect, Page } from '@playwright/test';
 
 export class MonitorSteps {
+  page: Page;
+
+  constructor({ page }: { page: Page }) {
+    this.page = page;
+  }
+
   /**
    * Preconditions
    */
