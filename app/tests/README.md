@@ -1,19 +1,165 @@
 # Testing Guide for zmNg
 
-BDD-first E2E testing where Gherkin feature files are the single source of truth.
+Comprehensive testing strategy with unit tests and BDD-first E2E tests.
 
 ## Quick Start
 
 ```bash
+# Run all unit tests (fast)
+npm test
+
 # Run all E2E tests
 npm run test:e2e
 
-# Run with UI mode
+# Run E2E with UI mode
 npm run test:e2e:ui
-
-# View available steps
-npx bddgen export
 ```
+
+## Testing Strategy
+
+zmNg uses a layered testing approach:
+
+1. **Unit Tests** (Vitest) - Test pure functions, utilities, and logic
+   - Fast execution (< 2 seconds)
+   - Test edge cases, algorithms, security functions
+   - Located in `src/lib/__tests__/`, `src/stores/__tests__/`, etc.
+
+2. **E2E Tests** (Playwright + BDD) - Test user flows and integration
+   - Gherkin feature files as source of truth
+   - Test complete user journeys
+   - Located in `tests/features/`
+
+## Current Test Coverage
+
+**Unit Tests**: 352 tests across 12 files
+- ✓ API validation and error handling
+- ✓ Cryptographic functions (AES-GCM)
+- ✓ Log sanitization (security-critical)
+- ✓ URL utilities and derivation
+- ✓ Time/timezone conversions
+- ✓ Grid layout calculations
+- ✓ Monitor filtering
+- ✓ Video markers and timestamps
+- ✓ Dashboard store
+- ✓ Notification service
+
+**E2E Tests**: 11 scenarios covering all major features
+- ✓ Dashboard widgets
+- ✓ Monitor viewing
+- ✓ Montage grid
+- ✓ Event browsing
+- ✓ Timeline interaction
+- ✓ Notifications
+- ✓ Profiles
+- ✓ Settings
+- ✓ Server status
+- ✓ Application logs
+
+---
+
+# Unit Tests
+
+## Running Unit Tests
+
+```bash
+# Run all unit tests
+npm test
+
+# Run specific test file
+npm test -- src/lib/__tests__/crypto.test.ts
+
+# Run tests in watch mode
+npm test -- --watch
+
+# Run tests with coverage
+npm test -- --coverage
+```
+
+## Writing Unit Tests
+
+Unit tests use Vitest and follow this structure:
+
+```typescript
+import { describe, it, expect } from 'vitest';
+import { functionToTest } from '../module';
+
+describe('functionToTest', () => {
+  describe('Success cases', () => {
+    it('handles valid input', () => {
+      const result = functionToTest('valid');
+      expect(result).toBe('expected');
+    });
+  });
+
+  describe('Edge cases', () => {
+    it('handles empty input', () => {
+      const result = functionToTest('');
+      expect(result).toBe('');
+    });
+  });
+});
+```
+
+## What to Unit Test
+
+Focus on:
+- **Pure functions** - Deterministic, no side effects
+- **Algorithms** - Grid calculations, time conversions
+- **Security-critical** - Encryption, sanitization, validation
+- **Edge cases** - null, undefined, empty arrays, invalid input
+- **Error handling** - Throw/catch behavior
+
+Avoid:
+- UI components (use E2E tests)
+- Complex integration (use E2E tests)
+- External API calls (mock or use E2E)
+
+## Test File Location
+
+Place tests next to the code they test:
+
+```
+src/lib/
+├── crypto.ts
+└── __tests__/
+    └── crypto.test.ts
+
+src/stores/
+├── dashboard.ts
+└── __tests__/
+    └── dashboard.test.ts
+```
+
+## Mocking
+
+Use Vitest mocking for dependencies:
+
+```typescript
+import { vi } from 'vitest';
+
+// Mock a module
+vi.mock('../logger', () => ({
+  log: {
+    error: vi.fn(),
+    warn: vi.fn(),
+  },
+}));
+
+// Mock a store
+vi.mock('../../stores/settings', () => ({
+  useSettingsStore: {
+    getState: vi.fn(() => ({
+      getProfileSettings: vi.fn(() => ({
+        disableLogRedaction: false,
+      })),
+    })),
+  },
+}));
+```
+
+---
+
+# E2E Tests
 
 ## Overview
 
@@ -31,8 +177,6 @@ tests/
 └── README.md                         # This file
 ```
 
-That's it. Clean and simple.
-
 ## Configuration
 
 Configure your ZoneMinder server in `.env`:
@@ -48,7 +192,7 @@ Timeout settings in `helpers/config.ts`:
 - Page transitions: 5s max
 - Element visibility: 3s max
 
-## Writing Tests
+## Writing E2E Tests
 
 ### 1. Add Scenarios to the Feature File
 
@@ -109,25 +253,7 @@ npm run test:e2e       # Generate from Gherkin + run tests
 npm run test:e2e:ui    # Run with UI mode
 ```
 
-## Current Test Coverage
-
-The `full-app-walkthrough.feature` includes 11 scenarios:
-
-1. ✓ Dashboard - Add and verify widget
-2. ✓ Monitors - View and interact with monitors
-3. ✓ Montage - View camera grid and controls
-4. ✓ Events - Browse and view event details
-5. ✓ Event Montage - View event grid
-6. ✓ Timeline - View and interact with timeline
-7. ✓ Notifications - View notification settings
-8. ✓ Profiles - View and interact with profiles
-9. ✓ Settings - View and verify settings sections
-10. ✓ Server - View server information and status
-11. ✓ Logs - View and interact with application logs
-
-All tests authenticate automatically via the Background step.
-
-## Best Practices
+## E2E Best Practices
 
 ### Element Selection Priority
 
@@ -171,7 +297,7 @@ Scenario: Monitor works
 4. Reuse existing steps (`npx bddgen export`)
 5. Use parameters: `{string}`, `{int}` for flexibility
 
-## Debugging
+## Debugging E2E Tests
 
 ### View Traces
 
@@ -200,7 +326,7 @@ Then('I verify something', async ({ page }) => {
 });
 ```
 
-## How It Works
+## How E2E Tests Work
 
 1. **Write Gherkin** - Edit `features/full-app-walkthrough.feature`
 2. **BDD generates tests** - `bddgen` creates `.features-gen/*.spec.js`
@@ -209,13 +335,52 @@ Then('I verify something', async ({ page }) => {
 
 The `.features-gen/` directory contains auto-generated tests - never edit these manually.
 
+---
+
+# Testing Workflow
+
+## Before Committing
+
+```bash
+# Run unit tests (fast)
+npm test
+
+# Run E2E tests (slower, ensure server is configured)
+npm run test:e2e
+```
+
+## When to Use Each Type
+
+**Unit Tests** when:
+- Testing pure functions (crypto, sanitization, formatting)
+- Testing algorithms (grid calculations, time conversions)
+- Testing edge cases (null, undefined, empty values)
+- Testing error handling
+- Quick feedback needed
+
+**E2E Tests** when:
+- Testing user flows (login → navigate → interact)
+- Testing integration between components
+- Testing UI interactions
+- Verifying complete features work end-to-end
+
 ## Additional Resources
 
+- [Vitest Documentation](https://vitest.dev)
 - [Playwright Documentation](https://playwright.dev)
 - [playwright-bdd Documentation](https://vitalets.github.io/playwright-bdd)
 - [Gherkin Reference](https://cucumber.io/docs/gherkin/reference/)
 
-## Adding New Tests
+## Contributing Tests
+
+### Adding Unit Tests
+
+1. Create test file next to source: `__tests__/module.test.ts`
+2. Write comprehensive tests (success, failure, edge cases)
+3. Run `npm test` to verify
+4. Commit changes
+
+### Adding E2E Tests
 
 1. Add scenario to `features/full-app-walkthrough.feature`
 2. Implement new steps in `steps.ts` (if needed)
@@ -223,4 +388,4 @@ The `.features-gen/` directory contains auto-generated tests - never edit these 
 4. Verify all tests pass
 5. Commit changes
 
-Keep it simple. Feature file is the source of truth.
+Keep tests focused, well-organized, and comprehensive.
