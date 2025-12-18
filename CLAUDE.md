@@ -21,5 +21,8 @@ Testing Rules
 - When you make changes to the app, always make sure to run the test suite and make sure it passes
 - Please run e2e test cases for any large changes and make sure all tests pass
 - Make sure test cases are comprehensive. What that means is, don't just load views and pass. Interact with components in a page and make sure they all work
-- ALWAYS start with gherkin. NEVER write any tests that are not implemented in Gherkin
+- For e2e test cases: ALWAYS start with gherkin. NEVER write any tests that are not implemented in Gherkin
+- ALWAYS write unit test cases for new functionality
+- ALWAYS ensure test cases (unit+e2e) cover functionality and user journeys comprehensively
+
 
