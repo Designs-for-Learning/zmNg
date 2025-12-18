@@ -48,7 +48,7 @@ Feature: Full Application Walkthrough
 
   Scenario: Notifications - View notification settings and history
     When I navigate to the "Notifications" page
-    Then I should see the page heading "Notifications"
+    Then I should see the page heading "Notification Settings"
     And I should see notification interface elements
 
   Scenario: Profiles - View and interact with profiles

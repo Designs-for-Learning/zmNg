@@ -29,12 +29,12 @@ export default defineConfig({
   },
 
   projects: [
-    { name: 'setup', testMatch: /.*\.setup\.ts/ },
     {
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
-        storageState: 'playwright/.auth/user.json',
+        // Note: BDD tests handle authentication in the Background step
+        // No storageState needed - each test authenticates via Given step
         launchOptions: {
           args: [
             '--disable-web-security',
@@ -42,7 +42,6 @@ export default defineConfig({
           ],
         },
       },
-      dependencies: ['setup'],
     },
   ],
 

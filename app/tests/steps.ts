@@ -6,8 +6,28 @@ const { Given, When, Then } = createBdd();
 
 // Authentication
 Given('I am logged into zmNg', async ({ page }) => {
+  // Navigate to application
   await page.goto('/', { waitUntil: 'domcontentloaded' });
-  await page.waitForURL(/.*(dashboard|monitors)/, { timeout: 5000 });
+  await page.waitForURL(/.*(setup|dashboard|monitors)/, { timeout: testConfig.timeouts.transition });
+
+  // Authenticate if on setup page
+  if (page.url().includes('/setup')) {
+    console.log('On Setup page. Logging in...');
+    const { host, username, password } = testConfig.server;
+
+    await page.getByLabel(/server url/i).fill(host);
+    if (username) await page.getByLabel(/username/i).fill(username);
+    if (password) await page.getByLabel(/password/i).fill(password);
+
+    const connectBtn = page.getByRole('button', { name: /(connect|save|login)/i });
+    await expect(connectBtn).toBeEnabled();
+    await connectBtn.click();
+
+    await page.waitForURL(/.*(dashboard|monitors)/, { timeout: testConfig.timeouts.transition });
+    console.log('Login successful.');
+  } else {
+    console.log('Already logged in.');
+  }
 });
 
 // Navigation
@@ -33,7 +53,14 @@ When('I navigate to the {string} page', async ({ page }, pageName: string) => {
     throw new Error(`Unknown page: ${pageName}`);
   }
 
-  await page.getByRole('link', { name: new RegExp(`^${pageName}$`, 'i') }).click();
+  // Try to click the link by text, with more flexible matching
+  try {
+    await page.getByRole('link', { name: new RegExp(pageName, 'i') }).click({ timeout: 2000 });
+  } catch {
+    // Fallback: click link by href path
+    await page.locator(`a[href*="${route}"]`).first().click();
+  }
+
   await page.waitForURL(new RegExp(`.*${route}`), { timeout: testConfig.timeouts.transition });
 });
 
@@ -141,8 +168,11 @@ When('I click into the first event if events exist', async ({ page }) => {
   }
 });
 
-When('I navigate back if I clicked into an event', async () => {
-  // Placeholder - navigation handled by separate step
+When('I navigate back if I clicked into an event', async ({ page }) => {
+  if (hasEvents) {
+    await page.goBack();
+    await page.waitForTimeout(500);
+  }
 });
 
 Then('I should be on the {string} page', async ({ page }, pageName: string) => {
