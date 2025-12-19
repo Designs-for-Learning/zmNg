@@ -6,7 +6,7 @@
 [![Build Linux](https://github.com/pliablepixels/zmNg/actions/workflows/build-linux-amd64.yml/badge.svg)](https://github.com/pliablepixels/zmNg/actions/workflows/build-linux-amd64.yml)
 [![Tests](https://github.com/pliablepixels/zmNg/actions/workflows/test.yml/badge.svg)](https://github.com/pliablepixels/zmNg/actions/workflows/test.yml)
 [![GitHub release](https://img.shields.io/github/v/release/pliablepixels/zmNg)](https://github.com/pliablepixels/zmNg/releases)
-[![GitHub downloads](https://img.shields.io/github/downloads/pliablepixels/zmNg/total)](https://github.com/pliablepixels/zmNg/releases)
+[![GitHub downloads](https://img.shields.io/github/downloads/pliablepixels/zmNg/total?cache=none)](https://github.com/pliablepixels/zmNg/releases)
 
 <img src="app/assets/logo.png" align="right" width="120" />
 
