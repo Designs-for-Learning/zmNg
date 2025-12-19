@@ -1,4 +1,4 @@
-package com.zmng.app;
+package com.pliablepixels.zmng;
 
 import android.os.Bundle;
 import android.net.http.SslError;

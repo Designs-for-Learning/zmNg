@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.zmng.app',
+  appId: 'com.pliablepixels.zmng',
   appName: 'zmNg',
   webDir: 'dist',
   server: {

@@ -77,7 +77,7 @@ To enable push notifications, you need to configure Firebase Cloud Messaging (FC
 ### 2. Add Android App to Firebase
 
 1. In Firebase Console, click **Add app** and select **Android**
-2. Enter the package name: `com.zmng.app`
+2. Enter the package name: `com.pliablepixels.zmng`
 3. (Optional) Enter an app nickname: "zmNg Android"
 4. Click **Register app**
 
@@ -195,7 +195,7 @@ Make sure you've set the `ANDROID_HOME` environment variable and restarted your 
 ### Push Notifications Don't Work
 - Ensure you're using an emulator/device with **Google Play Services**
 - Verify `google-services.json` is in the correct location
-- Check that the package name in Firebase matches `com.zmng.app`
+- Check that the package name in Firebase matches `com.pliablepixels.zmng`
 - If using your own Firebase project, ensure the ZoneMinder server is configured with your FCM credentials
 - Check for "sender ID mismatch" errors in logcat - this means your app's Firebase project doesn't match the server's
 

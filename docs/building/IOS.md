@@ -68,7 +68,7 @@ To enable push notifications, you need to configure Firebase Cloud Messaging (FC
 ### 2. Add iOS App to Firebase
 
 1. In Firebase Console, click **Add app** and select **iOS**
-2. Enter the bundle ID: `com.zmng.app`
+2. Enter the bundle ID: `com.pliablepixels.zmng`
 3. (Optional) Enter an app nickname: "zmNg iOS"
 4. Click **Register app**
 

@@ -1,10 +1,10 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace "com.zmng.app"
+    namespace "com.pliablepixels.zmng"
     compileSdk rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.zmng.app"
+        applicationId "com.pliablepixels.zmng"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
