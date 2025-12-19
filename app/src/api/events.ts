@@ -41,26 +41,32 @@ export async function getEvents(filters: EventFilters = {}): Promise<EventsRespo
   const client = getApiClient();
 
   // Build filter path for ZM API
-  let filterPath = '';
+  const filterSegments: string[] = [];
+  const addFilterSegment = (segment: string) => {
+    filterSegments.push(`/${encodeURIComponent(segment)}`);
+  };
+
   if (filters.monitorId) {
     // Support multiple monitor IDs separated by commas
     const monitorIds = filters.monitorId.split(',');
     monitorIds.forEach(id => {
-      filterPath += `/MonitorId:${id.trim()}`;
+      addFilterSegment(`MonitorId:${id.trim()}`);
     });
   }
   if (filters.startDateTime) {
     // ZM API expects space instead of T
     const formattedStart = filters.startDateTime.replace('T', ' ');
-    filterPath += `/StartDateTime >=:${formattedStart}`;
+    addFilterSegment(`StartDateTime >=:${formattedStart}`);
   }
   if (filters.endDateTime) {
     const formattedEnd = filters.endDateTime.replace('T', ' ');
-    filterPath += `/EndDateTime <=:${formattedEnd}`;
+    addFilterSegment(`EndDateTime <=:${formattedEnd}`);
   }
   if (filters.minAlarmFrames) {
-    filterPath += `/AlarmFrames >=:${filters.minAlarmFrames}`;
+    addFilterSegment(`AlarmFrames >=:${filters.minAlarmFrames}`);
   }
+
+  const filterPath = filterSegments.join('');
 
   // Use /events/index.json for both filtered and unfiltered requests
   const url = filterPath ? `/events/index${filterPath}.json` : '/events/index.json';

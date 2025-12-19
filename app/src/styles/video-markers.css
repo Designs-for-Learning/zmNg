@@ -1,19 +1,22 @@
 /**
- * Video.js Markers - Triangular Style
+ * Video.js Markers - Pill Tick Style
  *
- * Matches the EventProgressBar design with triangular indicators
+ * Matches the EventProgressBar design with rounded pill indicators
  * for alarm frames (red) and max score frames (yellow)
  */
 
 /* Base marker styling */
 .vjs-marker {
   position: absolute;
-  width: 2px;
-  height: 100%;
+  width: 4px;
+  height: 70%;
+  top: 15%;
   background: currentColor;
+  border-radius: 999px;
   cursor: pointer;
   transition: all 0.2s ease;
   z-index: 10;
+  box-shadow: 0 0 0 1px color-mix(in srgb, currentColor 40%, transparent);
 }
 
 /* Alarm frame marker - Red */
@@ -26,53 +29,9 @@
   color: rgb(234 179 8);
 }
 
-/* Top triangle indicator */
-.vjs-marker::before {
-  content: '';
-  position: absolute;
-  top: -6px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 0;
-  height: 0;
-  border-left: 6px solid transparent;
-  border-right: 6px solid transparent;
-  border-top: 8px solid currentColor;
-  transition: all 0.2s ease;
-}
-
-/* Bottom triangle indicator */
-.vjs-marker::after {
-  content: '';
-  position: absolute;
-  bottom: -6px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 0;
-  height: 0;
-  border-left: 6px solid transparent;
-  border-right: 6px solid transparent;
-  border-bottom: 8px solid currentColor;
-  transition: all 0.2s ease;
-}
-
-/* Hover effect - Enlarge triangles */
-.vjs-marker:hover::before {
-  border-left-width: 8px;
-  border-right-width: 8px;
-  border-top-width: 10px;
-  top: -8px;
-}
-
-.vjs-marker:hover::after {
-  border-left-width: 8px;
-  border-right-width: 8px;
-  border-bottom-width: 10px;
-  bottom: -8px;
-}
-
 .vjs-marker:hover {
-  width: 3px;
+  width: 6px;
+  box-shadow: 0 0 0 1px color-mix(in srgb, currentColor 60%, transparent);
 }
 
 /* Marker tooltip */
@@ -116,28 +75,9 @@
 /* Mobile responsive - Larger touch targets */
 @media (max-width: 768px) {
   .vjs-marker {
-    width: 3px;
-  }
-
-  .vjs-marker::before,
-  .vjs-marker::after {
-    border-left-width: 8px;
-    border-right-width: 8px;
-  }
-
-  .vjs-marker::before {
-    border-top-width: 10px;
-    top: -8px;
-  }
-
-  .vjs-marker::after {
-    border-bottom-width: 10px;
-    bottom: -8px;
-  }
-
-  /* Increase touch target size */
-  .vjs-marker::before {
-    padding: 8px;
+    width: 6px;
+    height: 80%;
+    top: 10%;
   }
 }
 

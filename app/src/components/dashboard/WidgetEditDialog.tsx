@@ -10,7 +10,14 @@
  */
 
 import { useState, useEffect, useMemo } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogFooter,
+} from '../ui/dialog';
 import { Button } from '../ui/button';
 import type { DashboardWidget } from '../../stores/dashboard';
 import { useDashboardStore } from '../../stores/dashboard';
@@ -98,6 +105,9 @@ export function WidgetEditDialog({ open, onOpenChange, widget, profileId }: Widg
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
                     <DialogTitle>{t('dashboard.edit_layout')}</DialogTitle>
+                    <DialogDescription className="sr-only">
+                        Edit dashboard widget settings.
+                    </DialogDescription>
                 </DialogHeader>
 
                 <div className="space-y-4 py-4">

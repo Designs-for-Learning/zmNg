@@ -116,14 +116,11 @@ export function EventProgressBar({
         {alarmFrames.map((alarm, index) => (
           <div
             key={`alarm-${alarm.frameId}-${index}`}
-            className="absolute inset-y-0 w-1 bg-destructive/80 hover:bg-destructive transition-colors"
+            className="group absolute inset-y-0 w-0"
             style={{ left: `${alarm.position}%` }}
             title={`Alarm Frame ${alarm.frameId}`}
           >
-            {/* Top marker triangle */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-0 h-0 border-l-4 border-r-4 border-b-4 border-l-transparent border-r-transparent border-b-destructive" />
-            {/* Bottom marker triangle */}
-            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-destructive" />
+            <div className="absolute top-1/2 left-1/2 h-5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-destructive/80 shadow-sm ring-1 ring-destructive/40 transition-colors group-hover:bg-destructive group-hover:ring-destructive" />
           </div>
         ))}
 

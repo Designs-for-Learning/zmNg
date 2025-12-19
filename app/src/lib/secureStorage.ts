@@ -18,7 +18,13 @@
 
 import { Capacitor } from '@capacitor/core';
 import { SecureStorage } from '@aparajita/capacitor-secure-storage';
-import { encrypt, decrypt, isCryptoAvailable } from './crypto';
+import {
+  encrypt,
+  decrypt,
+  decryptLegacy,
+  isCryptoAvailable,
+  isProbablyEncryptedPayload,
+} from './crypto';
 import { log } from './logger';
 
 const STORAGE_PREFIX = 'zmng_secure_';
@@ -129,14 +135,32 @@ export async function getSecureValue(key: string): Promise<string | null> {
         key,
       });
       return decrypted;
-    } catch (error) {
-      log.error('Failed to decrypt value', { component: 'SecureStorage', key }, error);
-      log.warn(
-        'Returning raw value - may be unencrypted legacy data',
-        { component: 'SecureStorage', key }
-      );
-      // Return encrypted value as fallback (may be unencrypted legacy data)
-      return encrypted;
+    } catch {
+      try {
+        const legacyDecrypted = await decryptLegacy(encrypted);
+        const reencrypted = await encrypt(legacyDecrypted);
+        localStorage.setItem(fullKey, reencrypted);
+        log.info('Migrated legacy encrypted value to new key', {
+          component: 'SecureStorage',
+          key,
+        });
+        return legacyDecrypted;
+      } catch (error) {
+        log.error('Failed to decrypt value', { component: 'SecureStorage', key }, error);
+        if (isProbablyEncryptedPayload(encrypted)) {
+          log.warn(
+            'Encrypted value could not be decrypted; returning null to force re-auth',
+            { component: 'SecureStorage', key }
+          );
+          return null;
+        }
+        log.warn(
+          'Returning raw value - may be unencrypted legacy data',
+          { component: 'SecureStorage', key }
+        );
+        // Return raw value as fallback for legacy plaintext
+        return encrypted;
+      }
     }
   }
 }

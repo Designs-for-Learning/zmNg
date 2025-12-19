@@ -11,7 +11,14 @@
  */
 
 import { useState, useMemo } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogTrigger,
+} from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Plus, LayoutGrid, List, Activity, TrendingUp } from 'lucide-react';
 import type { WidgetType } from '../../stores/dashboard';
@@ -158,6 +165,9 @@ export function DashboardConfig() {
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>{t('dashboard.add_widget')}</DialogTitle>
+                    <DialogDescription className="sr-only">
+                        Add a new widget to the dashboard.
+                    </DialogDescription>
                 </DialogHeader>
 
                 <div className="space-y-4 py-4">

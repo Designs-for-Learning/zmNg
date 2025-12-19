@@ -231,9 +231,9 @@ export function sanitizeObject(obj: unknown): unknown {
     const sanitized: Record<string, unknown> = {};
 
     for (const [key, value] of Object.entries(obj)) {
-        // Skip sanitization for whitelisted keys
+        // Skip sanitization for whitelisted keys, but still sanitize string values
         if (WHITELIST_KEYS.includes(key)) {
-            sanitized[key] = value;
+            sanitized[key] = typeof value === 'string' ? sanitizeObject(value) : value;
             continue;
         }
 

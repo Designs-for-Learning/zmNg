@@ -34,7 +34,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useState, useRef, useEffect } from 'react';
-import { Sheet, SheetContent, SheetTrigger } from '../ui/sheet';
+import { Sheet, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from '../ui/sheet';
 import { useTranslation } from 'react-i18next';
 import {
   DropdownMenu,
@@ -340,6 +340,8 @@ export default function AppLayout() {
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="p-0 w-64 sm:w-72 flex flex-col pt-[env(safe-area-inset-top)]">
+            <SheetTitle className="sr-only">Navigation menu</SheetTitle>
+            <SheetDescription className="sr-only">Primary application navigation.</SheetDescription>
             <div className="flex-1 overflow-y-auto">
               <SidebarContent onMobileClose={() => setIsMobileOpen(false)} />
             </div>
