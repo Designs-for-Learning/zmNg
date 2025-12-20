@@ -2,12 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
-## [zmNg-0.0.4](https://github.com/pliablepixels/zmNg/compare/zmNg-0.0.4..zmNg-0.0.4) - 2025-12-20
+## [zmNg-0.0.5](https://github.com/pliablepixels/zmNg/compare/zmNg-0.0.4..zmNg-0.0.5) - 2025-12-20
 
-### ✅ Tests
+### 🐛 Bug Fixes
 
-- Align secure storage mocks with boolean return - ([1aa7c06](https://github.com/pliablepixels/zmNg/commit/1aa7c06788a3dd57c90414504b288f1f7053c061))
-- Fix unit test type errors - ([edea184](https://github.com/pliablepixels/zmNg/commit/edea18498b35e11116f724444c48c7508ef9dc62))
+- Build debug-signed android artifacts - ([fd52e6a](https://github.com/pliablepixels/zmNg/commit/fd52e6a1dfa166d5ee93cc175726328e64b69013))
+
+### 🔧 Miscellaneous
+
+- Version bump - ([71f8315](https://github.com/pliablepixels/zmNg/commit/71f83154109d0c7e094468bdb2d32854e8773884))
 ## [zmNg-0.0.4](https://github.com/pliablepixels/zmNg/compare/zmNg-0.0.3..zmNg-0.0.4) - 2025-12-20
 
 ### ✨ Features
@@ -23,9 +26,15 @@ All notable changes to this project will be documented in this file.
 
 ### 📚 Documentation
 
+- Update CHANGELOG.md for zmNg-0.0.4 - ([d22938e](https://github.com/pliablepixels/zmNg/commit/d22938eeec3531fe4904077c2d1bc7575bdaf5e1))
 - Update CHANGELOG.md for zmNg-0.0.4 - ([6e85e26](https://github.com/pliablepixels/zmNg/commit/6e85e26e738ccffc5ac8db81ea947037cf68182b))
 - Rewrite CLAUDE.md with improved structure and clarity - ([dfb4a46](https://github.com/pliablepixels/zmNg/commit/dfb4a460d5ae896e3f5ae1dc8e79405f26f24989))
 - Tighten CLAUDE instructions - ([a50c699](https://github.com/pliablepixels/zmNg/commit/a50c6990bbfd9e43a21b4f4b866a2d705dee094c))
+
+### ✅ Tests
+
+- Align secure storage mocks with boolean return - ([1aa7c06](https://github.com/pliablepixels/zmNg/commit/1aa7c06788a3dd57c90414504b288f1f7053c061))
+- Fix unit test type errors - ([edea184](https://github.com/pliablepixels/zmNg/commit/edea18498b35e11116f724444c48c7508ef9dc62))
 
 ### 🔧 Miscellaneous
 
