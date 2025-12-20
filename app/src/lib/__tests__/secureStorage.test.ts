@@ -387,7 +387,7 @@ describe('SecureStorage - Native Platform', () => {
     });
 
     it('removes value from native storage', async () => {
-      vi.mocked(SecureStorage.remove).mockResolvedValue(undefined);
+      vi.mocked(SecureStorage.remove).mockResolvedValue(true);
 
       await removeSecureValue('remove-key');
 
@@ -423,7 +423,7 @@ describe('SecureStorage - Native Platform', () => {
         'other-app-key',
         'zmng_secure_key3',
       ]);
-      vi.mocked(SecureStorage.remove).mockResolvedValue(undefined);
+      vi.mocked(SecureStorage.remove).mockResolvedValue(true);
 
       await clearSecureStorage();
 
@@ -444,7 +444,7 @@ describe('SecureStorage - Native Platform', () => {
       vi.mocked(SecureStorage.keys).mockResolvedValue(['zmng_secure_key1', 'zmng_secure_key2']);
       vi.mocked(SecureStorage.remove)
         .mockRejectedValueOnce(new Error('Remove failed'))
-        .mockResolvedValueOnce(undefined);
+        .mockResolvedValueOnce(true);
 
       await expect(clearSecureStorage()).resolves.not.toThrow();
       expect(SecureStorage.remove).toHaveBeenCalledTimes(2);
