@@ -208,8 +208,8 @@ export function createApiClient(baseURL: string, reLogin?: () => Promise<boolean
 
       // Special handling for login.json
       if (isLoginRequest && !skipAuth) {
-        const now = Date.now() / 1000;
-        const isRefreshTokenValid = refreshToken && refreshTokenExpires && refreshTokenExpires > now;
+        const nowMs = Date.now();
+        const isRefreshTokenValid = refreshToken && refreshTokenExpires && refreshTokenExpires > nowMs;
 
         if (isRefreshTokenValid) {
           // a) If the refreshToken hasn't expired, add the refresh token as the query parameter

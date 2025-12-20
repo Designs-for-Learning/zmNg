@@ -33,6 +33,55 @@ export interface HttpResponse<T = unknown> {
   headers: Record<string, string>;
 }
 
+export interface HttpError extends Error {
+  status: number;
+  statusText: string;
+  data: unknown;
+  headers: Record<string, string>;
+}
+
+function createHttpError(
+  status: number,
+  statusText: string,
+  data: unknown,
+  headers: Record<string, string>
+): HttpError {
+  const error = new Error(`HTTP ${status}: ${statusText}`) as HttpError;
+  error.status = status;
+  error.statusText = statusText;
+  error.data = data;
+  error.headers = headers;
+  return error;
+}
+
+async function parseFetchResponse<T>(
+  response: Response,
+  responseType: string
+): Promise<{ data: T; headers: Record<string, string> }> {
+  const responseHeaders: Record<string, string> = {};
+  response.headers.forEach((value: string, key: string) => {
+    responseHeaders[key] = value;
+  });
+
+  let data: T;
+  if (responseType === 'blob') {
+    data = (await response.blob()) as T;
+  } else if (responseType === 'arraybuffer') {
+    data = (await response.arrayBuffer()) as T;
+  } else if (responseType === 'text') {
+    data = (await response.text()) as T;
+  } else {
+    const text = await response.text();
+    try {
+      data = JSON.parse(text) as T;
+    } catch {
+      data = text as T;
+    }
+  }
+
+  return { data, headers: responseHeaders };
+}
+
 /**
  * Make an HTTP request using the appropriate platform-specific method.
  *
@@ -132,11 +181,16 @@ async function nativeHttpRequest<T>(
     data = response.data as T;
   }
 
+  const responseHeaders = response.headers as Record<string, string>;
+  if (response.status < 200 || response.status >= 300) {
+    throw createHttpError(response.status, '', data, responseHeaders);
+  }
+
   return {
     data,
     status: response.status,
     statusText: '',
-    headers: response.headers as Record<string, string>,
+    headers: responseHeaders,
   };
 }
 
@@ -167,26 +221,9 @@ async function tauriHttpRequest<T>(
     body: requestBody,
   });
 
-  const responseHeaders: Record<string, string> = {};
-  response.headers.forEach((value: string, key: string) => {
-    responseHeaders[key] = value;
-  });
-
-  let data: T;
-  if (responseType === 'blob') {
-    data = (await response.blob()) as T;
-  } else if (responseType === 'arraybuffer') {
-    data = (await response.arrayBuffer()) as T;
-  } else if (responseType === 'text') {
-    data = (await response.text()) as T;
-  } else {
-    // json
-    const text = await response.text();
-    try {
-      data = JSON.parse(text) as T;
-    } catch {
-      data = text as T;
-    }
+  const { data, headers: responseHeaders } = await parseFetchResponse<T>(response, responseType);
+  if (response.status < 200 || response.status >= 300) {
+    throw createHttpError(response.status, response.statusText, data, responseHeaders);
   }
 
   return {
@@ -225,30 +262,9 @@ async function webHttpRequest<T>(
     body: requestBody,
   });
 
+  const { data, headers: responseHeaders } = await parseFetchResponse<T>(response, responseType);
   if (!response.ok) {
-    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-  }
-
-  const responseHeaders: Record<string, string> = {};
-  response.headers.forEach((value, key) => {
-    responseHeaders[key] = value;
-  });
-
-  let data: T;
-  if (responseType === 'blob') {
-    data = (await response.blob()) as T;
-  } else if (responseType === 'arraybuffer') {
-    data = (await response.arrayBuffer()) as T;
-  } else if (responseType === 'text') {
-    data = (await response.text()) as T;
-  } else {
-    // json
-    const text = await response.text();
-    try {
-      data = JSON.parse(text) as T;
-    } catch {
-      data = text as T;
-    }
+    throw createHttpError(response.status, response.statusText, data, responseHeaders);
   }
 
   return {
