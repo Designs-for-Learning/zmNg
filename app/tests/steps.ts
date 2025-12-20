@@ -8,10 +8,17 @@ const { Given, When, Then } = createBdd();
 Given('I am logged into zmNg', async ({ page }) => {
   // Navigate to application
   await page.goto('/', { waitUntil: 'domcontentloaded' });
-  await page.waitForURL(/.*(setup|dashboard|monitors)/, { timeout: testConfig.timeouts.transition });
 
-  // Authenticate if on setup page
-  if (page.url().includes('/setup')) {
+  // Wait for either setup page or authenticated page to load (content-based, not URL-based)
+  await Promise.race([
+    page.waitForSelector('text=/Welcome to zmNg/i', { timeout: testConfig.timeouts.transition }),
+    page.waitForSelector('[data-testid="nav-item-dashboard"]', { timeout: testConfig.timeouts.transition })
+  ]);
+
+  // Check if on setup page by looking for setup form
+  const isSetupPage = await page.locator('text=/Initial Configuration/i').isVisible();
+
+  if (isSetupPage) {
     console.log('On Setup page. Logging in...');
     const { host, username, password } = testConfig.server;
 
@@ -23,7 +30,8 @@ Given('I am logged into zmNg', async ({ page }) => {
     await expect(connectBtn).toBeEnabled();
     await connectBtn.click();
 
-    await page.waitForURL(/.*(dashboard|monitors)/, { timeout: testConfig.timeouts.transition });
+    // Wait for successful navigation by checking for navigation elements
+    await page.waitForSelector('[data-testid^="nav-item-"]', { timeout: testConfig.timeouts.transition });
     console.log('Login successful.');
   } else {
     console.log('Already logged in.');
