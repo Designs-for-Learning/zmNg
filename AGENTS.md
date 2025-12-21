@@ -53,13 +53,13 @@
 
 ## Testing
 
-### Unit Tests (Required for New Functionality)
+### Unit Tests (Required for New Functionality and any changes to existing functionality)
 - **Location**: Next to source in `__tests__/` subdirectory
 - **Example**: `app/src/lib/crypto.ts` → `app/src/lib/__tests__/crypto.test.ts`
 - **Run**: `npm test` (fast, < 2 seconds)
 - **Guide**: `app/tests/README.md`
 
-### E2E Tests (Required for Large Changes)
+### E2E Tests (Required for Large Changes or any UI changes)
 - **Must start with Gherkin** - no non-Gherkin e2e tests
 - **Location**: `app/tests/features/*.feature`
 - **Steps**: `app/tests/steps.ts`
@@ -71,6 +71,7 @@
 ### Test Updates
 - If UI selectors change → update affected tests
 - If navigation changes → update affected tests
+- If functionality changes → update affected tests
 - Tests must interact with UI elements, not just load views
 - Use data-testid selectors for reliability
 
@@ -155,6 +156,10 @@ log.info('Profile loaded', { component: 'Profiles', action: 'loadProfile', profi
 - `test:` - Tests
 - `chore:` - Maintenance
 - `refactor:` - Code restructuring
+
+
+## Issue handling
+- When Github issues are created, make sure code fixes refer to that issue in commit messages
 
 ---
 
