@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MonitorCard } from '../MonitorCard';
+import type { Monitor, MonitorStatus } from '../../../api/types';
 
 vi.mock('../../../hooks/useMonitorStream', () => ({
   useMonitorStream: () => ({
@@ -40,20 +41,26 @@ describe('MonitorCard', () => {
   it('calls settings callback when settings button is clicked', async () => {
     const user = userEvent.setup();
     const onShowSettings = vi.fn();
+    const monitor = {
+      Id: '1',
+      Name: 'Front Door',
+      Type: 'Local',
+      Function: 'Monitor',
+      Enabled: '1',
+      Controllable: '0',
+      Width: '640',
+      Height: '480',
+    } as Monitor;
+    const status = {
+      MonitorId: '1',
+      Status: 'Connected',
+      CaptureFPS: '10',
+    } as MonitorStatus;
 
     render(
       <MonitorCard
-        monitor={{
-          Id: '1',
-          Name: 'Front Door',
-          Type: 'Local',
-          Function: 'Monitor',
-          Enabled: '1',
-          Controllable: '0',
-          Width: '640',
-          Height: '480',
-        }}
-        status={{ Status: 'Connected', CaptureFPS: '10' }}
+        monitor={monitor}
+        status={status}
         eventCount={3}
         onShowSettings={onShowSettings}
       />
