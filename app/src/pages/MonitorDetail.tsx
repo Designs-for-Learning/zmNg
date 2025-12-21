@@ -16,6 +16,7 @@ import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
 import { Switch } from '../components/ui/switch';
 import { Label } from '../components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { ArrowLeft, Settings, Maximize2, Video, AlertTriangle, Clock, Download, ChevronUp, ChevronDown } from 'lucide-react';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { cn } from '../lib/utils';
@@ -139,6 +140,7 @@ export default function MonitorDetail() {
   const settings = useSettingsStore(
     useShallow((state) => state.getProfileSettings(currentProfile?.id || ''))
   );
+  const updateSettings = useSettingsStore((state) => state.updateProfileSettings);
   const [scale, setScale] = useState(settings.streamScale);
   const [connKey, setConnKey] = useState(0);
   const [cacheBuster, setCacheBuster] = useState(Date.now());
@@ -161,6 +163,13 @@ export default function MonitorDetail() {
         return t('monitor_detail.rotation_none');
     }
   }, [monitor?.Monitor.Orientation, t]);
+
+  const handleFeedFitChange = (value: string) => {
+    if (!currentProfile) return;
+    updateSettings(currentProfile.id, {
+      monitorDetailFeedFit: value as typeof settings.monitorDetailFeedFit,
+    });
+  };
 
   // Force regenerate connKey when component mounts or monitor changes
   useEffect(() => {
@@ -300,6 +309,31 @@ export default function MonitorDetail() {
             <Clock className="h-4 w-4 sm:mr-2" />
             <span className="hidden sm:inline">{t('monitor_detail.timeline')}</span>
           </Button>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground hidden md:inline">{t('monitor_detail.feed_fit')}</span>
+            <Select value={settings.monitorDetailFeedFit} onValueChange={handleFeedFitChange}>
+              <SelectTrigger className="h-8 sm:h-9 w-[170px]" data-testid="monitor-detail-fit-select">
+                <SelectValue placeholder={t('monitor_detail.feed_fit')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="contain" data-testid="monitor-detail-fit-contain">
+                  {t('monitor_detail.fit_contain')}
+                </SelectItem>
+                <SelectItem value="cover" data-testid="monitor-detail-fit-cover">
+                  {t('monitor_detail.fit_cover')}
+                </SelectItem>
+                <SelectItem value="fill" data-testid="monitor-detail-fit-fill">
+                  {t('monitor_detail.fit_fill')}
+                </SelectItem>
+                <SelectItem value="none" data-testid="monitor-detail-fit-none">
+                  {t('monitor_detail.fit_none')}
+                </SelectItem>
+                <SelectItem value="scale-down" data-testid="monitor-detail-fit-scale-down">
+                  {t('monitor_detail.fit_scale_down')}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <Button variant="outline" size="sm" onClick={() => setMode(mode === 'jpeg' ? 'stream' : 'jpeg')} className="h-8 sm:h-9 text-xs">
             {mode === 'jpeg' ? 'MJPEG' : 'Stream'}
           </Button>
@@ -319,7 +353,8 @@ export default function MonitorDetail() {
             crossOrigin={corsAllowed ? "anonymous" : undefined}
             src={displayedImageUrl || streamUrl}
             alt={monitor.Monitor.Name}
-            className="w-full h-full object-contain"
+            className="w-full h-full"
+            style={{ objectFit: settings.monitorDetailFeedFit }}
             onError={(e) => {
               const img = e.target as HTMLImageElement;
 

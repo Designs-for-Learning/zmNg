@@ -20,6 +20,7 @@ import type { MonitorCardProps } from '../../api/types';
 import { log } from '../../lib/logger';
 import { useTranslation } from 'react-i18next';
 import { getMonitorAspectRatio } from '../../lib/monitor-rotation';
+import type { CSSProperties } from 'react';
 
 interface MonitorCardComponentProps extends MonitorCardProps {
   /** Callback to open the settings dialog for this monitor */
@@ -41,9 +42,11 @@ function MonitorCardComponent({
   status,
   eventCount,
   onShowSettings,
+  objectFit,
 }: MonitorCardComponentProps) {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const resolvedFit: CSSProperties['objectFit'] = objectFit ?? 'cover';
   const isRunning = status?.Status === 'Connected';
   const aspectRatio = getMonitorAspectRatio(monitor.Width, monitor.Height, monitor.Orientation);
 
@@ -119,7 +122,8 @@ function MonitorCardComponent({
             ref={imgRef}
             src={displayedImageUrl || streamUrl}
             alt={monitor.Name}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            className="w-full h-full transition-transform duration-500 group-hover:scale-105"
+            style={{ objectFit: resolvedFit }}
             onError={handleImageError}
             data-testid="monitor-player"
           />

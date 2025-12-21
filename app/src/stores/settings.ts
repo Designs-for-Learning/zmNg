@@ -23,6 +23,8 @@ export interface ProfileSettings {
   montageIsFullscreen: boolean; // Fullscreen state for Montage page
   montageFeedFit: MonitorFeedFit; // Object-fit for montage feeds
   eventsViewMode: EventsViewMode; // List vs montage view for Events page
+  monitorsFeedFit: MonitorFeedFit; // Object-fit for monitor grid feeds
+  monitorDetailFeedFit: MonitorFeedFit; // Object-fit for monitor detail feed
   eventMontageFilters: {
     monitorIds: string[];
     cause: string;
@@ -75,6 +77,8 @@ const DEFAULT_SETTINGS: ProfileSettings = {
   montageIsFullscreen: false,
   montageFeedFit: 'contain',
   eventsViewMode: 'list',
+  monitorsFeedFit: 'cover',
+  monitorDetailFeedFit: 'contain',
   eventMontageFilters: {
     monitorIds: [],
     cause: 'all',

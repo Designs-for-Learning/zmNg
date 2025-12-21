@@ -384,6 +384,7 @@ export interface MonitorCardProps {
   monitor: Monitor;
   status: MonitorStatus | undefined;
   eventCount?: number;
+  objectFit?: React.CSSProperties['objectFit'];
 }
 
 export interface EventCardProps {

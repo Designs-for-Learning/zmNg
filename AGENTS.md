@@ -3,7 +3,7 @@
 ## Quick Reference
 1. **Internationalization**: Update ALL language files (en, de, es, fr, zh + any future)
 2. **Cross-platform**: iOS, Android, Desktop, mobile portrait
-3. **Settings**: Profile-scoped, never global
+3. **Settings**: Must be profile-scoped; read/write via profile settings only
 4. **Testing**: Data tags required, tests updated
 5. **Logging**: Use log.* functions, never console.*
 
@@ -103,11 +103,8 @@ log.info('Profile loaded', { component: 'Profiles', action: 'loadProfile', profi
 ## Settings & Data Management
 
 ### Profile-Scoped Settings
-- Settings belong to individual profiles, not global app config
-- **Ask**: "Does this apply per-server or globally?"
-  - Per-server → profile-scoped
-  - App-wide (theme, language) → global store
-- **Access**: `useProfileStore → currentProfile() → settings`
+- Settings must be stored under `ProfileSettings` and read/write through `getProfileSettings(currentProfile?.id)` and `updateProfileSettings(profileId, ...)`.
+- Do not read or write settings from any global singleton or module-level state.
 
 ### Breaking Changes
 - Detect version/structure changes in stored data
@@ -149,13 +146,16 @@ log.info('Profile loaded', { component: 'Profiles', action: 'loadProfile', profi
 
 ## Commits
 
-**Use conventional commit format:**
-- `feat:` - New feature
-- `fix:` - Bug fix
-- `docs:` - Documentation
-- `test:` - Tests
-- `chore:` - Maintenance
-- `refactor:` - Code restructuring
+- **Use conventional commit format:**
+    - `feat:` - New feature
+    - `fix:` - Bug fix
+    - `docs:` - Documentation
+    - `test:` - Tests
+    - `chore:` - Maintenance
+    - `refactor:` - Code restructuring
+- When you commit code, and the code contains multiple things, break each item into separate commits
+
+
 
 
 ## Issue handling

@@ -13,9 +13,11 @@ import { getMonitors } from '../api/monitors';
 import { getConsoleEvents } from '../api/events';
 import { useProfileStore } from '../stores/profile';
 import { useAuthStore } from '../stores/auth';
+import { useSettingsStore } from '../stores/settings';
 import { Button } from '../components/ui/button';
 import { RefreshCw, AlertCircle, Settings, Video } from 'lucide-react';
 import { MonitorCard } from '../components/monitors/MonitorCard';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import {
   Dialog,
   DialogContent,
@@ -25,6 +27,7 @@ import {
 } from '../components/ui/dialog';
 import { filterEnabledMonitors } from '../lib/filters';
 import type { Monitor } from '../api/types';
+import { useShallow } from 'zustand/react/shallow';
 
 export default function Monitors() {
   const { t } = useTranslation();
@@ -33,6 +36,10 @@ export default function Monitors() {
   const [showPropertiesDialog, setShowPropertiesDialog] = useState(false);
 
   const currentProfile = useProfileStore((state) => state.currentProfile());
+  const updateSettings = useSettingsStore((state) => state.updateProfileSettings);
+  const settings = useSettingsStore(
+    useShallow((state) => state.getProfileSettings(currentProfile?.id || ''))
+  );
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
   // Allow fetching if authenticated OR if the profile doesn't require authentication (no username)
@@ -83,6 +90,13 @@ export default function Monitors() {
     setShowPropertiesDialog(true);
   };
 
+  const handleFeedFitChange = (value: string) => {
+    if (!currentProfile) return;
+    updateSettings(currentProfile.id, {
+      monitorsFeedFit: value as typeof settings.monitorsFeedFit,
+    });
+  };
+
   if (isLoading) {
     return (
       <div className="p-8 space-y-6">
@@ -119,10 +133,37 @@ export default function Monitors() {
             {t('monitors.count', { count: allMonitors.length })}
           </p>
         </div>
-        <Button onClick={() => refetch()} variant="outline" size="sm" className="gap-2 h-8 sm:h-9">
-          <RefreshCw className="h-4 w-4 sm:mr-0" />
-          <span className="hidden sm:inline">{t('common.refresh')}</span>
-        </Button>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground hidden md:inline">{t('monitors.feed_fit')}</span>
+            <Select value={settings.monitorsFeedFit} onValueChange={handleFeedFitChange}>
+              <SelectTrigger className="h-8 sm:h-9 w-[170px]" data-testid="monitors-fit-select">
+                <SelectValue placeholder={t('monitors.feed_fit')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="contain" data-testid="monitors-fit-contain">
+                  {t('monitors.fit_contain')}
+                </SelectItem>
+                <SelectItem value="cover" data-testid="monitors-fit-cover">
+                  {t('monitors.fit_cover')}
+                </SelectItem>
+                <SelectItem value="fill" data-testid="monitors-fit-fill">
+                  {t('monitors.fit_fill')}
+                </SelectItem>
+                <SelectItem value="none" data-testid="monitors-fit-none">
+                  {t('monitors.fit_none')}
+                </SelectItem>
+                <SelectItem value="scale-down" data-testid="monitors-fit-scale-down">
+                  {t('monitors.fit_scale_down')}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <Button onClick={() => refetch()} variant="outline" size="sm" className="gap-2 h-8 sm:h-9">
+            <RefreshCw className="h-4 w-4 sm:mr-0" />
+            <span className="hidden sm:inline">{t('common.refresh')}</span>
+          </Button>
+        </div>
       </div>
 
       {/* All Cameras */}
@@ -140,6 +181,7 @@ export default function Monitors() {
                 status={Monitor_Status}
                 eventCount={eventCounts?.[Monitor.Id]}
                 onShowSettings={handleShowSettings}
+                objectFit={settings.monitorsFeedFit}
               />
             ))}
           </div>
