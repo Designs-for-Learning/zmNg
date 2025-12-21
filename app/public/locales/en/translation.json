@@ -36,6 +36,17 @@
     "unknown_error": "Unknown error",
     "auth_required": "Authentication required. Please enter a username and password."
   },
+  "app_init": {
+    "toast_title": "Finishing setup",
+    "toast_description": "Preparing your profile and server connection.",
+    "blocking_title": "Finishing setup",
+    "blocking_description": "Preparing your profile and server connection.",
+    "step_start": "Preparing your profile and server connection.",
+    "step_auth": "Authenticating with your server.",
+    "step_timezone": "Fetching server timezone.",
+    "step_zms": "Discovering ZMS path.",
+    "step_finalize": "Finalizing startup."
+  },
   "dashboard": {
     "title": "Dashboard",
     "add_widget": "Add Widget",

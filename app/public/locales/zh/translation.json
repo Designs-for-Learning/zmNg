@@ -37,6 +37,17 @@
     "running": "运行中",
     "stopped": "已停止"
   },
+  "app_init": {
+    "toast_title": "正在完成设置",
+    "toast_description": "正在准备你的个人资料和服务器连接。",
+    "blocking_title": "正在完成设置",
+    "blocking_description": "正在准备你的个人资料和服务器连接。",
+    "step_start": "正在准备你的个人资料和服务器连接。",
+    "step_auth": "正在与你的服务器进行认证。",
+    "step_timezone": "正在获取服务器时区。",
+    "step_zms": "正在发现 ZMS 路径。",
+    "step_finalize": "正在完成启动。"
+  },
   "dashboard": {
     "title": "仪表板",
     "add_widget": "添加小部件",

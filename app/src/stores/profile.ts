@@ -25,6 +25,8 @@ interface ProfileState {
   profiles: Profile[];
   currentProfileId: string | null;
   isInitialized: boolean;
+  isBootstrapping: boolean;
+  bootstrapStep: 'start' | 'auth' | 'timezone' | 'zms' | 'finalize' | null;
 
   // Computed
   currentProfile: () => Profile | null;
@@ -44,12 +46,20 @@ interface ProfileState {
   getDecryptedPassword: (profileId: string) => Promise<string | undefined>;
 }
 
+let storeSet: ((partial: Partial<ProfileState>) => void) | null = null;
+let storeGet: (() => ProfileState) | null = null;
+
 export const useProfileStore = create<ProfileState>()(
   persist(
-    (set, get) => ({
+    (set, get) => {
+      storeSet = set;
+      storeGet = get;
+      return {
       profiles: [],
       currentProfileId: null,
       isInitialized: false,
+      isBootstrapping: false,
+      bootstrapStep: null,
 
       /**
        * Get the currently active profile object.
@@ -480,11 +490,61 @@ export const useProfileStore = create<ProfileState>()(
           return undefined;
         }
       },
-    }),
+      };
+    },
     {
       name: 'zmng-profiles',
       // On load, initialize API client with current profile and authenticate
       onRehydrateStorage: () => async (state) => {
+        const bootstrapStart = Date.now();
+        const BOOTSTRAP_STEP_TIMEOUT_MS = 8000;
+        const BOOTSTRAP_TOTAL_TIMEOUT_MS = 20000;
+        const getState = () => {
+          if (!storeGet) {
+            throw new Error('Profile store not ready');
+          }
+          return storeGet();
+        };
+        const setState = (partial: Partial<ProfileState>) => {
+          if (storeSet) {
+            storeSet(partial);
+          }
+        };
+        const withTimeout = async <T>(
+          label: string,
+          promise: Promise<T>,
+          timeoutMs = BOOTSTRAP_STEP_TIMEOUT_MS
+        ) => {
+          let timeoutId: ReturnType<typeof setTimeout> | undefined;
+          const timeoutPromise = new Promise<never>((_, reject) => {
+            timeoutId = setTimeout(() => {
+              reject(new Error(`${label} timed out after ${timeoutMs}ms`));
+            }, timeoutMs);
+          });
+
+          try {
+            return await Promise.race([promise, timeoutPromise]);
+          } finally {
+            if (timeoutId) {
+              clearTimeout(timeoutId);
+            }
+          }
+        };
+        const logDuration = (message: string, startTime: number, context: Record<string, unknown> = {}) => {
+          log.profile(message, {
+            ...context,
+            durationMs: Date.now() - startTime,
+          });
+        };
+
+        const setInitializationState = (bootstrapping: boolean) => {
+          setState({
+            isBootstrapping: bootstrapping,
+            isInitialized: true,
+            bootstrapStep: bootstrapping ? 'start' : null,
+          });
+        };
+
         try {
           log.profile('onRehydrateStorage called', { hasState: !!state, currentProfileId: state?.currentProfileId });
         } catch {
@@ -497,7 +557,7 @@ export const useProfileStore = create<ProfileState>()(
           } catch {
             // Logger might not be initialized in test environment
           }
-          setTimeout(() => useProfileStore.setState({ isInitialized: true }), 0);
+          setInitializationState(false);
           try {
             log.profile('isInitialized set to true (no profile)');
           } catch {
@@ -517,7 +577,7 @@ export const useProfileStore = create<ProfileState>()(
             // Logger might not be initialized in test environment
           }
           // CRITICAL: Set isInitialized even on error to prevent hanging
-          setTimeout(() => useProfileStore.setState({ isInitialized: true }), 0);
+          setInitializationState(false);
           return;
         }
 
@@ -539,125 +599,151 @@ export const useProfileStore = create<ProfileState>()(
           // Logger might not be initialized in test environment
         }
 
-        // STEP 1: Clear any stale auth state and cache from previous sessions
         try {
-          log.profile('Clearing stale auth and cache');
-        } catch {
-          // Logger might not be initialized in test environment
+          const clearStart = Date.now();
+          try {
+            log.profile('Clearing stale auth and cache');
+          } catch {
+            // Logger might not be initialized in test environment
+          }
+          const { useAuthStore } = await import('./auth');
+          useAuthStore.getState().logout();
+
+          const { clearQueryCache } = await import('./query-cache');
+          clearQueryCache();
+          logDuration('Bootstrap step: cleared auth and cache', clearStart);
+
+          const apiClientStart = Date.now();
+          try {
+            log.profile('Initializing API client', { apiUrl: profile.apiUrl });
+          } catch {
+            // Logger might not be initialized in test environment
+          }
+        setApiClient(createApiClient(profile.apiUrl, getState().reLogin));
+          logDuration('Bootstrap step: API client ready', apiClientStart, { apiUrl: profile.apiUrl });
+        } catch (error) {
+          log.error('Profile bootstrap failed during early initialization', { component: 'Profile' }, error);
+          setInitializationState(false);
+          return;
         }
-        const { useAuthStore } = await import('./auth');
-        useAuthStore.getState().logout();
 
-        const { clearQueryCache } = await import('./query-cache');
-        clearQueryCache();
+        setInitializationState(true);
 
-        // STEP 2: Initialize API client for current profile
-        try {
-          log.profile('Initializing API client', { apiUrl: profile.apiUrl });
-        } catch {
-          // Logger might not be initialized in test environment
-        }
-        setApiClient(createApiClient(profile.apiUrl, useProfileStore.getState().reLogin));
+        let overallTimeoutId: ReturnType<typeof setTimeout> | undefined;
+        overallTimeoutId = setTimeout(() => {
+          if (getState().isBootstrapping) {
+            log.warn('Profile bootstrap exceeded timeout; allowing UI to continue', {
+              component: 'Profile',
+              timeoutMs: BOOTSTRAP_TOTAL_TIMEOUT_MS,
+            });
+            setState({ isBootstrapping: false, bootstrapStep: null });
+          }
+        }, BOOTSTRAP_TOTAL_TIMEOUT_MS);
 
-        // STEP 3: Authenticate if credentials exist
-        // IMPORTANT: Wrap in try-finally to ensure isInitialized is ALWAYS set,
-        // even if authentication hangs or fails. This prevents the app from
-        // hanging on the loading screen indefinitely.
-        try {
-          if (profile.username && profile.password) {
-            try {
-              log.profile('Authenticating with stored credentials', { username: profile.username });
-            } catch {
-              // Logger might not be initialized in test environment
-            }
-            try {
-              // Decrypt password before login
-              const decryptedPassword = await useProfileStore
-                .getState()
-                .getDecryptedPassword(state.currentProfileId);
-              if (!decryptedPassword) {
-                throw new Error('Failed to decrypt password');
-              }
-
-              const { useAuthStore } = await import('./auth');
-              await useAuthStore.getState().login(profile.username, decryptedPassword);
+        const runBootstrapTasks = async () => {
+          try {
+            if (profile.username && profile.password) {
+              setState({ bootstrapStep: 'auth' });
+              const authStart = Date.now();
               try {
-                log.profile('Authentication successful on app load');
+                log.profile('Authenticating with stored credentials', { username: profile.username });
               } catch {
                 // Logger might not be initialized in test environment
               }
-            } catch (error) {
               try {
+                const decryptedPassword = await withTimeout(
+                  'Password decrypt',
+                  getState().getDecryptedPassword(state.currentProfileId)
+                );
+                if (!decryptedPassword) {
+                  throw new Error('Failed to decrypt password');
+                }
+
+                const { useAuthStore } = await import('./auth');
+                await withTimeout(
+                  'Authentication',
+                  useAuthStore.getState().login(profile.username, decryptedPassword)
+                );
+                logDuration('Bootstrap step: authentication complete', authStart, { username: profile.username });
+              } catch (error) {
                 log.warn('Authentication failed on app load - this might be OK if server does not require auth', {
                   component: 'Profile',
                   error,
                 });
-              } catch {
-                // Logger might not be initialized in test environment
-              }
-              // Don't crash the app - some servers work without auth
-            }
-          } else {
-            log.profile('No credentials stored, skipping authentication');
-            log.info('This is normal for public servers', { component: 'Profile' });
-          }
-          // STEP 4: Fetch timezone on load
-          try {
-            log.profile('Fetching server timezone on load');
-            const { useAuthStore } = await import('./auth');
-            const { accessToken } = useAuthStore.getState();
-            const timezone = await getServerTimeZone(accessToken || undefined);
-            if (timezone !== profile.timezone) {
-              // Update profile with new timezone if changed
-              useProfileStore.getState().updateProfile(profile.id, { timezone });
-            }
-          } catch (tzError) {
-            log.warn('Failed to fetch timezone on load', { error: tzError });
-          }
-
-          // STEP 4.5: Fetch ZMS path and update CGI URL if different from inferred
-          try {
-            log.profile('Fetching ZMS path from server config');
-            const zmsPath = await fetchZmsPath();
-            if (zmsPath && profile.portalUrl) {
-              // Construct the full CGI URL from portal + ZMS path
-              try {
-                const url = new URL(profile.portalUrl);
-                const newCgiUrl = `${url.origin}${zmsPath}`;
-
-                // Only update if different from current
-                if (newCgiUrl !== profile.cgiUrl) {
-                  log.profile('ZMS path fetched, updating CGI URL', {
-                    oldCgiUrl: profile.cgiUrl,
-                    zmsPath,
-                    newCgiUrl
-                  });
-                  useProfileStore.getState().updateProfile(profile.id, { cgiUrl: newCgiUrl });
-                } else {
-                  log.profile('ZMS path matches current CGI URL, no update needed', { cgiUrl: profile.cgiUrl });
-                }
-              } catch (urlError) {
-                log.warn('Failed to construct CGI URL from ZMS path', {
-                  portalUrl: profile.portalUrl,
-                  zmsPath,
-                  error: urlError
-                });
+                logDuration('Bootstrap step: authentication failed', authStart);
               }
             } else {
-              log.profile('ZMS path not available, keeping current CGI URL', { cgiUrl: profile.cgiUrl });
+              log.profile('No credentials stored, skipping authentication');
+              log.info('This is normal for public servers', { component: 'Profile' });
             }
-          } catch (zmsError) {
-            log.warn('Failed to fetch ZMS path on load', { error: zmsError });
-            // Don't fail initialization for this
-          }
 
-        } finally {
-          // CRITICAL: Always set isInitialized to true, even if authentication fails
-          // This allows the app to proceed to the UI and show any error messages
-          log.profile('App initialization complete - setting isInitialized to true');
-          setTimeout(() => useProfileStore.setState({ isInitialized: true }), 0);
-          log.profile('isInitialized flag set successfully');
-        }
+            setState({ bootstrapStep: 'timezone' });
+            const timezoneStart = Date.now();
+            try {
+              log.profile('Fetching server timezone on load');
+              const { useAuthStore } = await import('./auth');
+              const { accessToken } = useAuthStore.getState();
+              const timezone = await withTimeout(
+                'Timezone fetch',
+                getServerTimeZone(accessToken || undefined)
+              );
+              if (timezone !== profile.timezone) {
+                getState().updateProfile(profile.id, { timezone });
+              }
+              logDuration('Bootstrap step: timezone fetched', timezoneStart, { timezone });
+            } catch (tzError) {
+              log.warn('Failed to fetch timezone on load', { error: tzError });
+              logDuration('Bootstrap step: timezone fetch failed', timezoneStart);
+            }
+
+            setState({ bootstrapStep: 'zms' });
+            const zmsStart = Date.now();
+            try {
+              log.profile('Fetching ZMS path from server config');
+              const zmsPath = await withTimeout('ZMS path fetch', fetchZmsPath());
+              if (zmsPath && profile.portalUrl) {
+                try {
+                  const url = new URL(profile.portalUrl);
+                  const newCgiUrl = `${url.origin}${zmsPath}`;
+
+                  if (newCgiUrl !== profile.cgiUrl) {
+                    log.profile('ZMS path fetched, updating CGI URL', {
+                      oldCgiUrl: profile.cgiUrl,
+                      zmsPath,
+                      newCgiUrl
+                    });
+                    getState().updateProfile(profile.id, { cgiUrl: newCgiUrl });
+                  } else {
+                    log.profile('ZMS path matches current CGI URL, no update needed', { cgiUrl: profile.cgiUrl });
+                  }
+                } catch (urlError) {
+                  log.warn('Failed to construct CGI URL from ZMS path', {
+                    portalUrl: profile.portalUrl,
+                    zmsPath,
+                    error: urlError
+                  });
+                }
+              } else {
+                log.profile('ZMS path not available, keeping current CGI URL', { cgiUrl: profile.cgiUrl });
+              }
+              logDuration('Bootstrap step: ZMS path fetched', zmsStart);
+            } catch (zmsError) {
+              log.warn('Failed to fetch ZMS path on load', { error: zmsError });
+              logDuration('Bootstrap step: ZMS path fetch failed', zmsStart);
+            }
+            setState({ bootstrapStep: 'finalize' });
+          } finally {
+            logDuration('Profile bootstrap completed', bootstrapStart, {
+              profileId: profile.id,
+            });
+            if (overallTimeoutId) {
+              clearTimeout(overallTimeoutId);
+            }
+            setState({ isBootstrapping: false, bootstrapStep: null });
+          }
+        };
+
+        void runBootstrapTasks();
       },
     }
   )

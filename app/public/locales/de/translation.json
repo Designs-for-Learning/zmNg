@@ -37,6 +37,17 @@
     "running": "Läuft",
     "stopped": "Gestoppt"
   },
+  "app_init": {
+    "toast_title": "Einrichtung wird abgeschlossen",
+    "toast_description": "Profil und Serververbindung werden vorbereitet.",
+    "blocking_title": "Einrichtung wird abgeschlossen",
+    "blocking_description": "Profil und Serververbindung werden vorbereitet.",
+    "step_start": "Profil und Serververbindung werden vorbereitet.",
+    "step_auth": "Anmeldung am Server wird ausgeführt.",
+    "step_timezone": "Serverzeitzone wird abgerufen.",
+    "step_zms": "ZMS-Pfad wird ermittelt.",
+    "step_finalize": "Start wird abgeschlossen."
+  },
   "dashboard": {
     "title": "Dashboard",
     "add_widget": "Widget hinzufügen",

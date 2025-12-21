@@ -8,6 +8,7 @@
 import { lazy, Suspense, useEffect } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { useProfileStore } from './stores/profile';
 import { useSettingsStore } from './stores/settings';
 import { setQueryClient } from './stores/query-cache';
@@ -39,11 +40,12 @@ const Logs = lazy(() => import('./pages/Logs'));
 
 // Loading fallback component
 function RouteLoadingFallback() {
+  const { t } = useTranslation();
   return (
     <div className="flex items-center justify-center min-h-screen">
       <div className="flex flex-col items-center gap-4">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        <div className="text-muted-foreground">Loading...</div>
+        <div className="text-muted-foreground">{t('common.loading')}</div>
       </div>
     </div>
   );
@@ -95,6 +97,30 @@ function AppRoutes() {
       isInitialized,
     });
   }, [profiles.length, currentProfile, isInitialized]);
+
+  // Hide splash screen when app initialization completes
+  useEffect(() => {
+    if (isInitialized) {
+      const hideSplash = async () => {
+        try {
+          const { SplashScreen } = await import('@capacitor/splash-screen');
+          await SplashScreen.hide({
+            fadeOutDuration: 200,
+          });
+          log.info('Splash screen hidden', {
+            component: 'App',
+            timestamp: new Date().toISOString(),
+          });
+        } catch (error) {
+          log.warn('Failed to hide splash screen (may be running on web)', {
+            component: 'App',
+            error,
+          });
+        }
+      };
+      hideSplash();
+    }
+  }, [isInitialized]);
 
   // SAFETY: Timeout fallback to prevent indefinite hanging
   // If initialization doesn't complete within 5 seconds, force it to complete
@@ -263,15 +289,40 @@ function AppRoutes() {
 }
 
 function App() {
+  const { t } = useTranslation();
+  const isBootstrapping = useProfileStore((state) => state.isBootstrapping);
+  const bootstrapStep = useProfileStore((state) => state.bootstrapStep);
+
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <ThemeProvider defaultTheme="dark" storageKey="zmng-ui-theme">
-          <HashRouter>
-            <NotificationHandler />
-            <AppRoutes />
-          </HashRouter>
+        <ThemeProvider defaultTheme="light" storageKey="zmng-ui-theme">
+          <div
+            className={isBootstrapping ? 'pointer-events-none select-none' : ''}
+            aria-busy={isBootstrapping}
+          >
+            <HashRouter>
+              <NotificationHandler />
+              <AppRoutes />
+            </HashRouter>
+          </div>
           <Toaster />
+          {isBootstrapping && (
+            <div
+              className="fixed inset-0 z-[9998] flex items-center justify-center bg-background/60 backdrop-blur-sm pointer-events-auto touch-none"
+              data-testid="app-init-blocker"
+            >
+              <div className="w-[min(90vw,24rem)] rounded-lg border border-border bg-background/95 px-4 py-3 text-center shadow-lg">
+                <div className="flex flex-col items-center gap-2">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  <div className="text-sm font-medium">{t('app_init.toast_title')}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {bootstrapStep ? t(`app_init.step_${bootstrapStep}`) : t('app_init.step_start')}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </ThemeProvider>
       </QueryClientProvider>
     </ErrorBoundary>

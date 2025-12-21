@@ -188,7 +188,7 @@ export default function Events() {
         pullToRefresh.containerRef.current = el;
       }}
       {...pullToRefresh.bind()}
-      className="h-full overflow-auto p-3 sm:p-4 md:p-6 relative touch-none"
+      className="h-full overflow-auto p-3 sm:p-4 md:p-6 relative touch-pan-y"
     >
       <PullToRefreshIndicator
         isPulling={pullToRefresh.isPulling}

@@ -349,7 +349,7 @@ export default function Montage() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-background relative">
+    <div className="min-h-[100dvh] flex flex-col bg-background relative">
       {/* Header - Hidden in fullscreen mode */}
       {!isFullscreen && (
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-2 sm:p-3 border-b bg-card/50 backdrop-blur-sm shrink-0 z-10">
@@ -459,7 +459,7 @@ export default function Montage() {
       <div
         {...pinchZoom.bind()}
         className={cn(
-          "flex-1 overflow-auto bg-muted/10 touch-none",
+          "flex-1 overflow-auto bg-muted/10 touch-pan-y",
           isFullscreen ? "p-0" : "p-2 sm:p-3 md:p-4"
         )}
         onClick={() => {

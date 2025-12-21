@@ -37,6 +37,17 @@
     "running": "En ejecución",
     "stopped": "Detenido"
   },
+  "app_init": {
+    "toast_title": "Finalizando la configuración",
+    "toast_description": "Preparando tu perfil y la conexión al servidor.",
+    "blocking_title": "Finalizando la configuración",
+    "blocking_description": "Preparando tu perfil y la conexión al servidor.",
+    "step_start": "Preparando tu perfil y la conexión al servidor.",
+    "step_auth": "Autenticando con tu servidor.",
+    "step_timezone": "Obteniendo la zona horaria del servidor.",
+    "step_zms": "Descubriendo la ruta ZMS.",
+    "step_finalize": "Finalizando el inicio."
+  },
   "dashboard": {
     "title": "Panel de Control",
     "add_widget": "Agregar Widget",

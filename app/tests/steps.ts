@@ -10,6 +10,11 @@ Given('I am logged into zmNg', async ({ page }) => {
   // Navigate to application
   await page.goto('/', { waitUntil: 'domcontentloaded' });
 
+  await page.waitForTimeout(100);
+  await expect(page.getByTestId('app-init-blocker')).toBeHidden({
+    timeout: testConfig.timeouts.transition * 3,
+  });
+
   // Wait for either setup page or authenticated page to load (content-based, not URL-based)
   await Promise.race([
     page.waitForSelector('text=/Welcome to zmNg/i', { timeout: testConfig.timeouts.transition }),

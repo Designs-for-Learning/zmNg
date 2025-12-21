@@ -37,6 +37,17 @@
     "running": "En cours d'exécution",
     "stopped": "Arrêté"
   },
+  "app_init": {
+    "toast_title": "Finalisation de la configuration",
+    "toast_description": "Préparation de votre profil et de la connexion au serveur.",
+    "blocking_title": "Finalisation de la configuration",
+    "blocking_description": "Préparation de votre profil et de la connexion au serveur.",
+    "step_start": "Préparation de votre profil et de la connexion au serveur.",
+    "step_auth": "Authentification auprès de votre serveur.",
+    "step_timezone": "Récupération du fuseau horaire du serveur.",
+    "step_zms": "Détection du chemin ZMS.",
+    "step_finalize": "Finalisation du démarrage."
+  },
   "dashboard": {
     "title": "Tableau de bord",
     "add_widget": "Ajouter un widget",
