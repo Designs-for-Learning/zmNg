@@ -339,7 +339,7 @@ describe('Dashboard Store', () => {
     });
 
     describe('Widget Width Reset', () => {
-        it('should reset all widget widths to full width for all breakpoints', () => {
+        it('should reset all widget widths to full width', () => {
             const profileId = 'test-profile';
             const { addWidget, resetWidgetWidths, updateLayouts } = useDashboardStore.getState();
 
@@ -382,15 +382,12 @@ describe('Dashboard Store', () => {
             const state = useDashboardStore.getState();
             const updatedWidgets = state.widgets[profileId];
 
-            // Verify all widgets have full width for each breakpoint
+            // Verify all widgets have full width
             updatedWidgets.forEach((w) => {
-                expect(w.layouts?.lg?.w).toBe(12); // lg max width
-                expect(w.layouts?.md?.w).toBe(10); // md max width
-                expect(w.layouts?.sm?.w).toBe(6);  // sm max width
-                expect(w.layouts?.xs?.w).toBe(4);  // xs max width
-                expect(w.layouts?.xxs?.w).toBe(2); // xxs max width
-                // Main layout should match lg
                 expect(w.layout.w).toBe(12);
+                Object.values(w.layouts || {}).forEach((layout) => {
+                    expect(layout.w).toBe(12);
+                });
             });
         });
 

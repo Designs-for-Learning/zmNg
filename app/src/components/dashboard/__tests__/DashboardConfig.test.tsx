@@ -63,7 +63,7 @@ describe('DashboardConfig', () => {
       expect.objectContaining({
         type: 'monitor',
         title: 'My Monitor',
-        settings: { monitorIds: ['1'] },
+        settings: { monitorIds: ['1'], feedFit: 'contain' },
       })
     );
   });

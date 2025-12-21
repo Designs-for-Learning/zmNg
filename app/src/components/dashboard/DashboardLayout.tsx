@@ -3,7 +3,7 @@
  *
  * Manages the grid layout for dashboard widgets using react-grid-layout.
  * Features:
- * - Responsive breakpoints for different screen sizes
+ * - Single responsive grid that scales with the viewport
  * - Drag and drop widget positioning
  * - Resizable widgets
  * - Profile-specific widget configurations
@@ -18,21 +18,18 @@ import { MonitorWidget } from './widgets/MonitorWidget';
 import { EventsWidget } from './widgets/EventsWidget';
 import { TimelineWidget } from './widgets/TimelineWidget';
 import { HeatmapWidget } from './widgets/HeatmapWidget';
-import { Responsive, WidthProvider } from 'react-grid-layout';
+import GridLayout, { WidthProvider } from 'react-grid-layout';
 import type { Layout } from 'react-grid-layout';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 import { useMemo, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
-const ResponsiveGridLayout = WidthProvider(Responsive);
-
-/** Responsive breakpoints for grid layout */
-const BREAKPOINTS = { lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 };
-/** Column counts for each breakpoint */
-const COLS = { lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 };
+const WrappedGridLayout = WidthProvider(GridLayout);
+const GRID_COLS = 12;
 /** Height of each row in pixels */
 const ROW_HEIGHT = 100;
+const GRID_MARGIN = 16;
 
 export function DashboardLayout() {
     const { t } = useTranslation();
@@ -51,6 +48,7 @@ export function DashboardLayout() {
     const isEditing = useDashboardStore((state) => state.isEditing);
 
     const [mounted, setMounted] = useState(false);
+    const [layout, setLayout] = useState<Layout[]>([]);
 
     // Force component to mount properly
     useEffect(() => {
@@ -58,47 +56,33 @@ export function DashboardLayout() {
     }, []);
 
     const layouts = useMemo(() => {
-        // Construct layouts for all breakpoints from stored data
-        const memoizedLayouts: { [key: string]: Layout[] } = { lg: [], md: [], sm: [], xs: [], xxs: [] };
-
-        widgets.forEach(w => {
-            // Apply known layouts
-            if (w.layouts) {
-                Object.entries(w.layouts).forEach(([bp, l]) => {
-                    if (memoizedLayouts[bp]) {
-                        memoizedLayouts[bp].push({ ...l, i: w.id });
-                    }
-                });
-            } else {
-                // Fallback for widgets without multi-layout (shouldn't happen post-migration)
-                memoizedLayouts.lg.push({ ...w.layout, i: w.id });
-            }
-        });
-        return memoizedLayouts;
+        return widgets.map((w) => ({ ...w.layout, i: w.id }));
     }, [widgets]);
 
-    const handleLayoutChange = (_currentLayout: Layout[], allLayouts: { [key: string]: Layout[] }) => {
-        // Only save layouts when user is actively editing (dragging/resizing)
-        // Don't save when react-grid-layout auto-calculates layouts for breakpoint changes
+    const areLayoutsEqual = (a: Layout[], b: Layout[]) => {
+        if (a.length !== b.length) return false;
+        const map = new Map(a.map((item) => [item.i, item]));
+        return b.every((item) => {
+            const match = map.get(item.i);
+            return (
+                match &&
+                match.x === item.x &&
+                match.y === item.y &&
+                match.w === item.w &&
+                match.h === item.h
+            );
+        });
+    };
+
+    useEffect(() => {
+        setLayout((prev) => (areLayoutsEqual(prev, layouts) ? prev : layouts));
+    }, [layouts]);
+
+    const handleLayoutChange = (nextLayout: Layout[]) => {
+        setLayout((prev) => (areLayoutsEqual(prev, nextLayout) ? prev : nextLayout));
         if (!isEditing) return;
 
-        // Save ALL provided layouts to ensure responsive choices are persisted
-        // Map RGL layouts back to our WidgetLayout format for each breakpoint
-        const newAllLayouts: Record<string, any[]> = {};
-
-        Object.entries(allLayouts).forEach(([bp, breakpointLayout]) => {
-            newAllLayouts[bp] = breakpointLayout.map(l => ({
-                i: l.i,
-                x: l.x,
-                y: l.y,
-                w: l.w,
-                h: l.h,
-                minW: l.minW,
-                minH: l.minH
-            }));
-        });
-
-        updateLayouts(profileId, newAllLayouts);
+        updateLayouts(profileId, { lg: nextLayout });
     };
 
     if (widgets.length === 0) {
@@ -132,19 +116,21 @@ export function DashboardLayout() {
         return null;
     }
 
+    const activeLayout = layout.length > 0 ? layout : layouts;
+
     return (
         <div className="p-4 min-h-screen w-full">
-            <ResponsiveGridLayout
+            <WrappedGridLayout
                 className="layout"
-                layouts={layouts}
-                breakpoints={BREAKPOINTS}
-                cols={COLS}
+                layout={activeLayout}
+                cols={GRID_COLS}
                 rowHeight={ROW_HEIGHT}
                 onLayoutChange={handleLayoutChange}
                 isDraggable={isEditing}
                 isResizable={isEditing}
                 draggableHandle=".drag-handle"
-                margin={[16, 16]}
+                margin={[GRID_MARGIN, GRID_MARGIN]}
+                containerPadding={[0, 0]}
                 compactType="vertical"
                 preventCollision={false}
             >
@@ -152,11 +138,17 @@ export function DashboardLayout() {
                     <div key={widget.id}>
                         <DashboardWidget id={widget.id} title={widget.title} profileId={profileId}>
                             {widget.type === 'monitor' && widget.settings.monitorIds && (
-                                <MonitorWidget monitorIds={widget.settings.monitorIds} />
+                                <MonitorWidget
+                                    monitorIds={widget.settings.monitorIds}
+                                    objectFit={widget.settings.feedFit || 'contain'}
+                                />
                             )}
                             {/* Backwards compatibility for single monitorId */}
                             {widget.type === 'monitor' && widget.settings.monitorId && !widget.settings.monitorIds && (
-                                <MonitorWidget monitorIds={[widget.settings.monitorId]} />
+                                <MonitorWidget
+                                    monitorIds={[widget.settings.monitorId]}
+                                    objectFit={widget.settings.feedFit || 'contain'}
+                                />
                             )}
                             {widget.type === 'events' && (
                                 <EventsWidget
@@ -174,7 +166,7 @@ export function DashboardLayout() {
                         </DashboardWidget>
                     </div>
                 ))}
-            </ResponsiveGridLayout>
+            </WrappedGridLayout>
         </div>
     );
 }

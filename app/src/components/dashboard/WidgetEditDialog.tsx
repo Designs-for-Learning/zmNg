@@ -20,6 +20,7 @@ import {
 } from '../ui/dialog';
 import { Button } from '../ui/button';
 import type { DashboardWidget } from '../../stores/dashboard';
+import type { MonitorFeedFit } from '../../stores/settings';
 import { useDashboardStore } from '../../stores/dashboard';
 import { useQuery } from '@tanstack/react-query';
 import { getMonitors } from '../../api/monitors';
@@ -29,6 +30,7 @@ import { Checkbox } from '../ui/checkbox';
 import { ScrollArea } from '../ui/scroll-area';
 import { useTranslation } from 'react-i18next';
 import { filterEnabledMonitors } from '../../lib/filters';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 interface WidgetEditDialogProps {
     open: boolean;
@@ -43,6 +45,7 @@ export function WidgetEditDialog({ open, onOpenChange, widget, profileId }: Widg
     const [selectedMonitors, setSelectedMonitors] = useState<string[]>(
         widget.settings.monitorIds || (widget.settings.monitorId ? [widget.settings.monitorId] : [])
     );
+    const [feedFit, setFeedFit] = useState<MonitorFeedFit>((widget.settings.feedFit as MonitorFeedFit) || 'contain');
     const updateWidget = useDashboardStore((state) => state.updateWidget);
 
     const { data: monitors } = useQuery({
@@ -61,6 +64,7 @@ export function WidgetEditDialog({ open, onOpenChange, widget, profileId }: Widg
         setSelectedMonitors(
             widget.settings.monitorIds || (widget.settings.monitorId ? [widget.settings.monitorId] : [])
         );
+        setFeedFit((widget.settings.feedFit as MonitorFeedFit) || 'contain');
     }, [widget]);
 
     /**
@@ -88,6 +92,7 @@ export function WidgetEditDialog({ open, onOpenChange, widget, profileId }: Widg
 
         if (widget.type === 'monitor') {
             updatedSettings.monitorIds = selectedMonitors;
+            updatedSettings.feedFit = feedFit;
         } else if (widget.type === 'events') {
             updatedSettings.monitorId = selectedMonitors[0] || undefined;
         }
@@ -154,6 +159,33 @@ export function WidgetEditDialog({ open, onOpenChange, widget, profileId }: Widg
                                     {t('dashboard.monitor_required')}
                                 </p>
                             )}
+                        </div>
+                    )}
+                    {widget.type === 'monitor' && (
+                        <div className="space-y-2">
+                            <Label>{t('dashboard.feed_fit')}</Label>
+                            <Select value={feedFit} onValueChange={(value) => setFeedFit(value as MonitorFeedFit)}>
+                                <SelectTrigger data-testid="widget-edit-feed-fit-select">
+                                    <SelectValue placeholder={t('dashboard.feed_fit')} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="contain" data-testid="widget-edit-fit-contain">
+                                        {t('dashboard.fit_contain')}
+                                    </SelectItem>
+                                    <SelectItem value="cover" data-testid="widget-edit-fit-cover">
+                                        {t('dashboard.fit_cover')}
+                                    </SelectItem>
+                                    <SelectItem value="fill" data-testid="widget-edit-fit-fill">
+                                        {t('dashboard.fit_fill')}
+                                    </SelectItem>
+                                    <SelectItem value="none" data-testid="widget-edit-fit-none">
+                                        {t('dashboard.fit_none')}
+                                    </SelectItem>
+                                    <SelectItem value="scale-down" data-testid="widget-edit-fit-scale-down">
+                                        {t('dashboard.fit_scale_down')}
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
                     )}
                 </div>

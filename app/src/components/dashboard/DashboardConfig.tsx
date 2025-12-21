@@ -22,6 +22,7 @@ import {
 import { Button } from '../ui/button';
 import { Plus, LayoutGrid, List, Activity, TrendingUp } from 'lucide-react';
 import type { WidgetType } from '../../stores/dashboard';
+import type { MonitorFeedFit } from '../../stores/settings';
 import { useDashboardStore } from '../../stores/dashboard';
 import { useProfileStore } from '../../stores/profile';
 import { useShallow } from 'zustand/react/shallow';
@@ -41,6 +42,7 @@ export function DashboardConfig() {
     const [selectedType, setSelectedType] = useState<WidgetType>('monitor');
     const [selectedMonitors, setSelectedMonitors] = useState<string[]>([]);
     const [title, setTitle] = useState('');
+    const [feedFit, setFeedFit] = useState<MonitorFeedFit>('contain');
     const addWidget = useDashboardStore((state) => state.addWidget);
     const currentProfile = useProfileStore(
         useShallow((state) => {
@@ -103,11 +105,12 @@ export function DashboardConfig() {
     /**
      * Get widget settings based on type and monitor selection
      */
-    const getWidgetSettings = (type: WidgetType, monitors: string[]) => {
+    const getWidgetSettings = (type: WidgetType, monitors: string[], fit: MonitorFeedFit) => {
         const settings: any = {};
 
         if (type === 'monitor') {
             settings.monitorIds = monitors;
+            settings.feedFit = fit;
         } else if (type === 'events') {
             settings.monitorId = monitors[0] || undefined;
             settings.eventCount = 5;
@@ -128,7 +131,7 @@ export function DashboardConfig() {
         addWidget(profileId, {
             type: selectedType,
             title: title || getDefaultTitle(selectedType),
-            settings: getWidgetSettings(selectedType, selectedMonitors),
+            settings: getWidgetSettings(selectedType, selectedMonitors, feedFit),
             layout: getDefaultLayout(selectedType, selectedMonitors.length),
         });
 
@@ -143,6 +146,7 @@ export function DashboardConfig() {
         setSelectedType('monitor');
         setSelectedMonitors([]);
         setTitle('');
+        setFeedFit('contain');
     };
 
     /**
@@ -243,6 +247,33 @@ export function DashboardConfig() {
                             {selectedMonitors.length === 0 && (
                                 <p className="text-xs text-destructive">{t('dashboard.monitor_required')}</p>
                             )}
+                        </div>
+                    )}
+                    {selectedType === 'monitor' && (
+                        <div className="space-y-2">
+                            <Label>{t('dashboard.feed_fit')}</Label>
+                            <Select value={feedFit} onValueChange={(value) => setFeedFit(value as MonitorFeedFit)}>
+                                <SelectTrigger data-testid="dashboard-monitor-feed-fit-select">
+                                    <SelectValue placeholder={t('dashboard.feed_fit')} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="contain" data-testid="dashboard-monitor-fit-contain">
+                                        {t('dashboard.fit_contain')}
+                                    </SelectItem>
+                                    <SelectItem value="cover" data-testid="dashboard-monitor-fit-cover">
+                                        {t('dashboard.fit_cover')}
+                                    </SelectItem>
+                                    <SelectItem value="fill" data-testid="dashboard-monitor-fit-fill">
+                                        {t('dashboard.fit_fill')}
+                                    </SelectItem>
+                                    <SelectItem value="none" data-testid="dashboard-monitor-fit-none">
+                                        {t('dashboard.fit_none')}
+                                    </SelectItem>
+                                    <SelectItem value="scale-down" data-testid="dashboard-monitor-fit-scale-down">
+                                        {t('dashboard.fit_scale_down')}
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
                     )}
 

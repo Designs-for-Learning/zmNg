@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { log } from '../lib/logger';
+import type { MonitorFeedFit } from './settings';
 
 export type WidgetType = 'monitor' | 'events' | 'timeline' | 'heatmap';
 
@@ -21,6 +22,7 @@ export interface DashboardWidget {
     settings: {
         monitorId?: string;
         monitorIds?: string[];
+        feedFit?: MonitorFeedFit;
         eventCount?: number;
         showThumbnails?: boolean;
         refreshInterval?: number; // in milliseconds
@@ -50,6 +52,7 @@ export const useDashboardStore = create<DashboardState>()(
 
             addWidget: (profileId, widget) =>
                 set((state) => {
+                    const DEFAULT_COLS = 12;
                     const id = crypto.randomUUID();
                     const profileWidgets = state.widgets[profileId] || [];
                     // Simple auto-placement: put at the bottom
@@ -82,7 +85,7 @@ export const useDashboardStore = create<DashboardState>()(
                                     ...widget,
                                     id,
                                     layout: initialLayout,
-                                    layouts: { lg: initialLayout, md: initialLayout, sm: initialLayout }
+                                    layouts: { lg: { ...initialLayout, w: Math.min(initialLayout.w, DEFAULT_COLS) } }
                                 },
                             ]
                         },
@@ -144,6 +147,7 @@ export const useDashboardStore = create<DashboardState>()(
 
             resetWidgetWidths: (profileId) => {
                 set((state) => {
+                    const fullWidth = 12;
                     const widgetCount = (state.widgets[profileId] || []).length;
                     log.info('Resetting dashboard widget widths to full width', {
                         component: 'Dashboard',
@@ -151,33 +155,24 @@ export const useDashboardStore = create<DashboardState>()(
                         widgetCount
                     });
 
-                    // Column counts for each breakpoint (matches DashboardLayout)
-                    const maxWidths: Record<string, number> = {
-                        lg: 12,
-                        md: 10,
-                        sm: 6,
-                        xs: 4,
-                        xxs: 2
-                    };
-
                     return {
                         widgets: {
                             ...state.widgets,
                             [profileId]: (state.widgets[profileId] || []).map((w) => {
                                 const updatedLayouts: Record<string, WidgetLayout> = {};
-
-                                // Reset width for each breakpoint to full width
-                                Object.keys(maxWidths).forEach((bp) => {
+                                const layoutKeys = Object.keys(w.layouts || {});
+                                const keys = layoutKeys.length > 0 ? layoutKeys : ['lg'];
+                                keys.forEach((bp) => {
                                     const existingLayout = w.layouts?.[bp] || w.layout;
                                     updatedLayouts[bp] = {
                                         ...existingLayout,
-                                        w: maxWidths[bp]
+                                        w: fullWidth,
                                     };
                                 });
 
                                 return {
                                     ...w,
-                                    layout: { ...updatedLayouts.lg },
+                                    layout: { ...(updatedLayouts.lg || w.layout), w: fullWidth },
                                     layouts: updatedLayouts
                                 };
                             })

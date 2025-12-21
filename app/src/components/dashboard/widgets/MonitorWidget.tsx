@@ -19,7 +19,7 @@ import { getMonitor, getMonitors, getStreamUrl } from '../../../api/monitors';
 import { useProfileStore } from '../../../stores/profile';
 import { useAuthStore } from '../../../stores/auth';
 import { useMonitorStore } from '../../../stores/monitors';
-import { useSettingsStore } from '../../../stores/settings';
+import { useSettingsStore, type MonitorFeedFit } from '../../../stores/settings';
 import { useShallow } from 'zustand/react/shallow';
 import { AlertTriangle, VideoOff } from 'lucide-react';
 import { Skeleton } from '../../ui/skeleton';
@@ -30,6 +30,7 @@ import { filterEnabledMonitors } from '../../../lib/filters';
 interface MonitorWidgetProps {
     /** Array of monitor IDs to display */
     monitorIds: string[];
+    objectFit?: MonitorFeedFit;
 }
 
 /**
@@ -37,7 +38,7 @@ interface MonitorWidgetProps {
  * Renders a single monitor stream with error handling
  * Respects streaming vs snapshot settings from user preferences
  */
-function SingleMonitor({ monitorId }: { monitorId: string }) {
+function SingleMonitor({ monitorId, objectFit }: { monitorId: string; objectFit: MonitorFeedFit }) {
     const { t } = useTranslation();
     const navigate = useNavigate();
     const { data: monitor, isLoading, error } = useQuery({
@@ -153,7 +154,8 @@ function SingleMonitor({ monitorId }: { monitorId: string }) {
                 ref={imgRef}
                 src={displayedImageUrl}
                 alt={monitor.Monitor.Name}
-                className="w-full h-full object-cover"
+                className="w-full h-full"
+                style={{ objectFit }}
                 onError={(e) => {
                     (e.target as HTMLImageElement).style.display = 'none';
                     (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
@@ -169,7 +171,7 @@ function SingleMonitor({ monitorId }: { monitorId: string }) {
     );
 }
 
-export function MonitorWidget({ monitorIds }: MonitorWidgetProps) {
+export function MonitorWidget({ monitorIds, objectFit = 'contain' }: MonitorWidgetProps) {
     const { t } = useTranslation();
 
     // Fetch all monitors to check which ones are deleted
@@ -205,7 +207,7 @@ export function MonitorWidget({ monitorIds }: MonitorWidgetProps) {
     }
 
     if (activeMonitorIds.length === 1) {
-        return <SingleMonitor monitorId={activeMonitorIds[0]} />;
+        return <SingleMonitor monitorId={activeMonitorIds[0]} objectFit={objectFit} />;
     }
 
     // Calculate optimal grid layout for multiple monitors
@@ -219,7 +221,7 @@ export function MonitorWidget({ monitorIds }: MonitorWidgetProps) {
         >
             {activeMonitorIds.map((id) => (
                 <div key={id} className="relative overflow-hidden">
-                    <SingleMonitor monitorId={id} />
+                    <SingleMonitor monitorId={id} objectFit={objectFit} />
                 </div>
             ))}
         </div>
