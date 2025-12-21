@@ -160,6 +160,7 @@ log.info('Profile loaded', { component: 'Profiles', action: 'loadProfile', profi
 
 ## Issue handling
 - When Github issues are created, make sure code fixes refer to that issue in commit messages
+- Use `refs #<id>` for references and `fixes #<id>` when the commit should close the issue
 
 ---
 
