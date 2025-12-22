@@ -2,11 +2,57 @@
 
 All notable changes to this project will be documented in this file.
 
+## [zmNg-0.0.6](https://github.com/pliablepixels/zmNg/compare/zmNg-0.0.5..zmNg-0.0.6) - 2025-12-22
+
+### ✨ Features
+
+- Enhance monitor detail controls and update monitor APIs - ([09b60ac](https://github.com/pliablepixels/zmNg/commit/09b60ace20cab45c36e960d688516eb892d30550))
+- Update dashboard layout flow and widget feed fit - ([9bcf210](https://github.com/pliablepixels/zmNg/commit/9bcf210ab1bd7ea27d5b629458e0f9f6497e5cdc))
+- Unify events list and montage views - ([50bdab9](https://github.com/pliablepixels/zmNg/commit/50bdab9a4d9f9e0a98d93efc047000456ef07bf4))
+- Refine montage layout controls and monitor views - ([b806cc1](https://github.com/pliablepixels/zmNg/commit/b806cc124a554bdbb5e956389e680fc0045ea671))
+
+### 🐛 Bug Fixes
+
+- Increase button sizes to meet iOS touch target guidelines - ([0438bd1](https://github.com/pliablepixels/zmNg/commit/0438bd1162c935da167617f7f131004bc403e2ab))
+- Stabilize events e2e - ([38dee20](https://github.com/pliablepixels/zmNg/commit/38dee207049891433db30e6f9b9f15f22359500d))
+- Align api test mocks - ([300a5f4](https://github.com/pliablepixels/zmNg/commit/300a5f4da989651d7f66fd9794b0760dd0b9750c))
+- Relax monitor card test typing - ([64dafc6](https://github.com/pliablepixels/zmNg/commit/64dafc63bee295dfc30b9c6a0d6d20a11e30df3c))
+- Guard e2e workflow secrets - ([8208dad](https://github.com/pliablepixels/zmNg/commit/8208dada57656fd04b992a363e2dfbf949261f06))
+- Block incomplete credentials - ([03c7225](https://github.com/pliablepixels/zmNg/commit/03c7225dcdc3aca6fcc1d6ad5b9540279f9ba491))
+
+### 📚 Documentation
+
+- Clarify profile-scoped settings and add feed fit controls - ([3c5f989](https://github.com/pliablepixels/zmNg/commit/3c5f9892b239d80afccd782988872596f29f46de))
+- Clarified claude and codex usage - ([f0b792a](https://github.com/pliablepixels/zmNg/commit/f0b792a2829f4d93a4565d05c295002ab27993aa))
+- Added more clarity to instructions - ([2c45de2](https://github.com/pliablepixels/zmNg/commit/2c45de23a97794a4b1356048c81fffe6194707be))
+- Clarify issue references - ([8ed8fb7](https://github.com/pliablepixels/zmNg/commit/8ed8fb74fa3425620952383f5a0e782d89dd3858))
+- Added more clarity to instructions - ([78240c9](https://github.com/pliablepixels/zmNg/commit/78240c97433f1680db195b9299914a4f6e20f1df))
+
+### 🔧 Miscellaneous
+
+- Update startup flow and assets - ([cc5ab30](https://github.com/pliablepixels/zmNg/commit/cc5ab30386a79a0af019277e8de96b22d50b703f))
+- Run tests only on releases - ([efae3d4](https://github.com/pliablepixels/zmNg/commit/efae3d44b24a1c2ab876063231117bb188debaee))
+- Sync platform and auth messaging ([#4](https://github.com/pliablepixels/zmNg/issues/4)) - ([8d890c5](https://github.com/pliablepixels/zmNg/commit/8d890c5b806f5cab2a2ab1068cbe6c1779e6088e))
+- Normalized agent instruction files - ([0401ccf](https://github.com/pliablepixels/zmNg/commit/0401ccfbfede5cd79d6a83137bb5aa0721e84dec))
+- Sync tests and logging - ([eab1d1f](https://github.com/pliablepixels/zmNg/commit/eab1d1f968a2d36d0f731d3d4be9230d50f79d94))
+
+### 📝 Other
+
+- Ver bump - ([94c28af](https://github.com/pliablepixels/zmNg/commit/94c28af0611bbc2cf4a718b913bff147152d0a43))
+- Merge pull request #5 from SteveGilvarry/Update-Node
+
+Update Node version in docs. - ([0f6e6db](https://github.com/pliablepixels/zmNg/commit/0f6e6dbde088f745c83ec98f4b50168218b6d5d3))
+- Noted when installing that @vitejs/plugin-react@5.1.2 and vite@7.2.7 both required: { node: '^20.19.0 || >=22.12.0' }, so updated 18+ to reflect that - ([620e074](https://github.com/pliablepixels/zmNg/commit/620e074732610eeb5a56afe68c34363dc5c92c3e))
+- Merge branch 'test-coverage-analysis' - ([922ac62](https://github.com/pliablepixels/zmNg/commit/922ac62b9679f1c66cdbdaf9997cedeb5ed0f775))
 ## [zmNg-0.0.5](https://github.com/pliablepixels/zmNg/compare/zmNg-0.0.4..zmNg-0.0.5) - 2025-12-20
 
 ### 🐛 Bug Fixes
 
 - Build debug-signed android artifacts - ([fd52e6a](https://github.com/pliablepixels/zmNg/commit/fd52e6a1dfa166d5ee93cc175726328e64b69013))
+
+### 📚 Documentation
+
+- Update CHANGELOG.md for zmNg-0.0.5 - ([696665d](https://github.com/pliablepixels/zmNg/commit/696665da367600702880969fa396d14189519226))
 
 ### 🔧 Miscellaneous
 
