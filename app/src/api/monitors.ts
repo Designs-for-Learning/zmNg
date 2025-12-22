@@ -78,7 +78,16 @@ export async function updateMonitor(
   updates: Record<string, unknown>
 ): Promise<MonitorData> {
   const client = getApiClient();
-  const response = await client.put(`/monitors/${monitorId}.json`, updates);
+  const body = new URLSearchParams();
+  Object.entries(updates).forEach(([key, value]) => {
+    if (value === undefined || value === null) return;
+    body.set(key, String(value));
+  });
+  const response = await client.post(`/monitors/${monitorId}.json`, body, {
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+  });
   return response.data.monitor;
 }
 

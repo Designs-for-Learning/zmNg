@@ -18,7 +18,7 @@ import { getMonitorStreamUrl } from '../../lib/url-builder';
 import type { AxiosInstance } from 'axios';
 
 const mockGet = vi.fn();
-const mockPut = vi.fn();
+const mockPost = vi.fn();
 
 vi.mock('../client', () => ({
   getApiClient: vi.fn(),
@@ -44,7 +44,7 @@ describe('Monitors API', () => {
     vi.clearAllMocks();
     vi.mocked(getApiClient).mockReturnValue({
       get: mockGet,
-      put: mockPut,
+      post: mockPost,
     } as unknown as AxiosInstance);
   });
 
@@ -77,28 +77,34 @@ describe('Monitors API', () => {
   });
 
   it('updates monitor data', async () => {
-    mockPut.mockResolvedValue({ data: { monitor: { Monitor: { Id: '2', Name: 'Updated' } } } });
+    mockPost.mockResolvedValue({ data: { monitor: { Monitor: { Id: '2', Name: 'Updated' } } } });
 
     const updated = await updateMonitor('2', { 'Monitor[Name]': 'Updated' });
 
-    expect(mockPut).toHaveBeenCalledWith('/monitors/2.json', { 'Monitor[Name]': 'Updated' });
+    expect(mockPost).toHaveBeenCalledWith('/monitors/2.json', expect.any(URLSearchParams), expect.any(Object));
+    const body = mockPost.mock.calls[0][1] as URLSearchParams;
+    expect(body.get('Monitor[Name]')).toBe('Updated');
     expect(updated.Monitor.Id).toBe('2');
   });
 
   it('changes monitor function', async () => {
-    mockPut.mockResolvedValue({ data: { monitor: { Id: '3' } } });
+    mockPost.mockResolvedValue({ data: { monitor: { Id: '3' } } });
 
     await changeMonitorFunction('3', 'Monitor');
 
-    expect(mockPut).toHaveBeenCalledWith('/monitors/3.json', { 'Monitor[Function]': 'Monitor' });
+    expect(mockPost).toHaveBeenCalledWith('/monitors/3.json', expect.any(URLSearchParams), expect.any(Object));
+    const body = mockPost.mock.calls[0][1] as URLSearchParams;
+    expect(body.get('Monitor[Function]')).toBe('Monitor');
   });
 
   it('enables or disables a monitor', async () => {
-    mockPut.mockResolvedValue({ data: { monitor: { Id: '4' } } });
+    mockPost.mockResolvedValue({ data: { monitor: { Id: '4' } } });
 
     await setMonitorEnabled('4', false);
 
-    expect(mockPut).toHaveBeenCalledWith('/monitors/4.json', { 'Monitor[Enabled]': '0' });
+    expect(mockPost).toHaveBeenCalledWith('/monitors/4.json', expect.any(URLSearchParams), expect.any(Object));
+    const body = mockPost.mock.calls[0][1] as URLSearchParams;
+    expect(body.get('Monitor[Enabled]')).toBe('0');
   });
 
   it('triggers and cancels alarms', async () => {
