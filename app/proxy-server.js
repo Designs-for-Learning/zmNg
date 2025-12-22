@@ -1,8 +1,10 @@
 import express from 'express';
 import { createProxyMiddleware } from 'http-proxy-middleware';
+import https from 'https';
 
 const app = express();
 const PORT = 3001;
+const allowInsecure = process.env.ZM_PROXY_INSECURE === '1';
 
 // Enable CORS for all requests
 app.use((req, res, next) => {
@@ -32,7 +34,12 @@ app.get('/image-proxy', async (req, res) => {
   try {
     // Use built-in fetch (Node 18+) or fall back to node-fetch
     const fetchFn = globalThis.fetch || (await import('node-fetch')).default;
-    const response = await fetchFn(targetUrl);
+    const isHttps = targetUrl.startsWith('https://');
+    const response = await fetchFn(targetUrl, {
+      ...(allowInsecure && isHttps && fetchFn !== globalThis.fetch
+        ? { agent: new https.Agent({ rejectUnauthorized: false }) }
+        : {}),
+    });
 
     if (!response.ok) {
       console.error(`[Image Proxy Error] ${response.status} ${response.statusText}`);
