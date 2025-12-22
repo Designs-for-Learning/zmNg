@@ -93,6 +93,7 @@ describe('ProfileService', () => {
         portalUrl: 'https://home.example.com',
         apiUrl: 'https://home.example.com/zm/api',
         cgiUrl: 'https://home.example.com/zm/cgi-bin/nph-zms',
+        isDefault: false,
         createdAt: Date.now(),
       },
       {
@@ -101,6 +102,7 @@ describe('ProfileService', () => {
         portalUrl: 'https://office.example.com',
         apiUrl: 'https://office.example.com/zm/api',
         cgiUrl: 'https://office.example.com/zm/cgi-bin/nph-zms',
+        isDefault: false,
         createdAt: Date.now(),
       },
       {
@@ -109,6 +111,7 @@ describe('ProfileService', () => {
         portalUrl: 'https://demo.example.com',
         apiUrl: 'https://demo.example.com/zm/api',
         cgiUrl: 'https://demo.example.com/zm/cgi-bin/nph-zms',
+        isDefault: false,
         createdAt: Date.now(),
       },
     ];

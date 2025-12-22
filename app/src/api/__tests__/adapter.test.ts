@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createNativeAdapter } from '../adapter';
-import type { InternalAxiosRequestConfig } from 'axios';
+import { AxiosHeaders, type InternalAxiosRequestConfig } from 'axios';
 
 // Mock dependencies
 vi.mock('@capacitor/core', () => ({
@@ -44,6 +44,7 @@ describe('Native Adapter', () => {
 
     it('should make GET request with query params', async () => {
       const mockResponse = {
+        url: 'https://example.com/api/test?foo=bar&test=123',
         status: 200,
         data: { success: true },
         headers: { 'content-type': 'application/json' },
@@ -57,7 +58,7 @@ describe('Native Adapter', () => {
         baseURL: 'https://example.com',
         method: 'GET',
         params: { foo: 'bar', test: '123' },
-        headers: {},
+        headers: new AxiosHeaders(),
       } as InternalAxiosRequestConfig;
 
       const response = await adapter(config);
@@ -65,7 +66,7 @@ describe('Native Adapter', () => {
       expect(CapacitorHttp.request).toHaveBeenCalledWith({
         method: 'GET',
         url: 'https://example.com/api/test?foo=bar&test=123',
-        headers: {},
+        headers: expect.any(AxiosHeaders),
         data: undefined,
         responseType: undefined,
       });
@@ -76,6 +77,7 @@ describe('Native Adapter', () => {
 
     it('should make POST request with JSON body', async () => {
       const mockResponse = {
+        url: 'https://example.com/api/users',
         status: 201,
         data: { id: 1 },
         headers: { 'content-type': 'application/json' },
@@ -89,7 +91,7 @@ describe('Native Adapter', () => {
         baseURL: 'https://example.com',
         method: 'POST',
         data: { name: 'John' },
-        headers: { 'content-type': 'application/json' },
+        headers: new AxiosHeaders({ 'content-type': 'application/json' }),
       } as InternalAxiosRequestConfig;
 
       const response = await adapter(config);
@@ -97,7 +99,7 @@ describe('Native Adapter', () => {
       expect(CapacitorHttp.request).toHaveBeenCalledWith({
         method: 'POST',
         url: 'https://example.com/api/users',
-        headers: { 'content-type': 'application/json' },
+        headers: expect.any(AxiosHeaders),
         data: { name: 'John' },
         responseType: undefined,
       });
@@ -109,6 +111,7 @@ describe('Native Adapter', () => {
     it('should handle blob response type', async () => {
       const base64Data = btoa('fake image data');
       const mockResponse = {
+        url: 'https://example.com/api/image',
         status: 200,
         data: base64Data,
         headers: { 'content-type': 'image/jpeg' },
@@ -122,7 +125,7 @@ describe('Native Adapter', () => {
         baseURL: 'https://example.com',
         method: 'GET',
         responseType: 'blob',
-        headers: {},
+        headers: new AxiosHeaders(),
       } as InternalAxiosRequestConfig;
 
       const response = await adapter(config);
@@ -130,7 +133,7 @@ describe('Native Adapter', () => {
       expect(CapacitorHttp.request).toHaveBeenCalledWith({
         method: 'GET',
         url: 'https://example.com/api/image',
-        headers: {},
+        headers: expect.any(AxiosHeaders),
         data: undefined,
         responseType: 'blob',
       });
@@ -149,7 +152,7 @@ describe('Native Adapter', () => {
         url: '/api/test',
         baseURL: 'https://example.com',
         method: 'GET',
-        headers: {},
+        headers: new AxiosHeaders(),
       } as InternalAxiosRequestConfig;
 
       await expect(adapter(config)).rejects.toThrow();
@@ -308,6 +311,7 @@ describe('Native Adapter', () => {
     vi.mocked(Platform).isTauri = false;
 
     const mockResponse = {
+      url: 'https://different.com/api/test',
       status: 200,
       data: { success: true },
       headers: {},
@@ -320,7 +324,7 @@ describe('Native Adapter', () => {
       url: 'https://different.com/api/test',
       baseURL: 'https://example.com',
       method: 'GET',
-      headers: {},
+      headers: new AxiosHeaders(),
     } as InternalAxiosRequestConfig;
 
     await adapter(config);
