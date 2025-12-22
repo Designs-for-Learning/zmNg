@@ -181,6 +181,9 @@ Then('I should see the monitor player', async ({ page }) => {
 });
 
 Then('I should see the monitor rotation status', async ({ page }) => {
+  const settingsButton = page.getByTestId('monitor-detail-settings');
+  await expect(settingsButton).toBeVisible();
+  await settingsButton.click();
   const rotationStatus = page.getByTestId('monitor-rotation');
   await expect(rotationStatus).toBeVisible();
   await expect(rotationStatus).not.toBeEmpty();
