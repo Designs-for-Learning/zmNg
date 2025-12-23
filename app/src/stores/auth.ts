@@ -15,7 +15,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { login as apiLogin, refreshToken as apiRefreshToken } from '../api/auth';
 import type { LoginResponse } from '../api/types';
-import { log } from '../lib/logger';
+import { log, LogLevel } from '../lib/logger';
 
 interface AuthState {
   accessToken: string | null;
@@ -56,14 +56,14 @@ export const useAuthStore = create<AuthState>()(
           const response = await apiLogin({ user: username, pass: password });
           get().setTokens(response);
           const state = get();
-          log.auth('Login successful', {
+          log.auth('Login successful', LogLevel.INFO, {
             accessTokenExpires: state.accessTokenExpires ? new Date(state.accessTokenExpires).toLocaleString() : 'N/A',
             refreshTokenExpires: state.refreshTokenExpires ? new Date(state.refreshTokenExpires).toLocaleString() : 'N/A',
             zmVersion: response.version,
             apiVersion: response.apiversion,
           });
         } catch (error) {
-          log.error('Login failed', { component: 'Auth' }, error);
+          log.auth('Login failed', LogLevel.ERROR, error);
           throw error;
         }
       },
@@ -100,7 +100,7 @@ export const useAuthStore = create<AuthState>()(
           const response = await apiRefreshToken(refreshToken);
           get().setTokens(response);
         } catch (error) {
-          log.error('Token refresh failed', { component: 'Auth' }, error);
+          log.auth('Token refresh failed', LogLevel.ERROR, error);
           get().logout();
           throw error;
         }
@@ -145,7 +145,7 @@ export const useAuthStore = create<AuthState>()(
       }),
       onRehydrateStorage: () => (state) => {
         if (state) {
-          log.auth('Auth store rehydrated from localStorage', {
+          log.auth('Auth store rehydrated from localStorage', LogLevel.INFO, {
             hasRefreshToken: !!state.refreshToken,
             refreshTokenExpires: state.refreshTokenExpires
               ? new Date(state.refreshTokenExpires).toLocaleString()
@@ -153,15 +153,10 @@ export const useAuthStore = create<AuthState>()(
             version: state.version,
             apiVersion: state.apiVersion,
           });
-          log.info('NOTE: These tokens may be from previous profile and will be cleared by profile initialization', {
-            component: 'Auth',
-          });
+          log.auth('NOTE: These tokens may be from previous profile and will be cleared by profile initialization', LogLevel.INFO);
         } else {
           log.auth('No persisted auth state found');
-        }
-      },
-    }
-  )
+        } }, })
 );
 
 // NOTE: Token auto-refresh is now handled by the useTokenRefresh hook

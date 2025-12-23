@@ -8,7 +8,7 @@
 import { getApiClient } from './client';
 import type { EventsResponse, EventData } from './types';
 import { EventsResponseSchema } from './types';
-import { log } from '../lib/logger';
+import { log, LogLevel } from '../lib/logger';
 import { Platform } from '../lib/platform';
 import { validateApiResponse } from '../lib/api-validator';
 import {
@@ -87,6 +87,7 @@ export async function getEvents(filters: EventFilters = {}): Promise<EventsRespo
 
     log.api(
       `Fetching events page ${currentPage}`,
+      LogLevel.INFO,
       { currentCount: allEvents.length, desired: desiredLimit }
     );
 
@@ -118,14 +119,16 @@ export async function getEvents(filters: EventFilters = {}): Promise<EventsRespo
 
   // Warn if we hit the max pages limit
   if (currentPage > maxPages && allEvents.length < desiredLimit) {
-    log.warn(
+    log.api(
       `Hit max pages limit (${maxPages}) while fetching events. Consider refining filters.`,
+      LogLevel.WARN,
       { fetched: allEvents.length, requested: desiredLimit }
     );
   }
 
   log.api(
     `Fetched events complete`,
+    LogLevel.INFO,
     { total: allEvents.length, returning: finalEvents.length, requested: desiredLimit }
   );
 

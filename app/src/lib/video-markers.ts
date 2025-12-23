@@ -5,7 +5,7 @@
  * Converts frame numbers to video timestamps for alarm frame visualization.
  */
 
-import { log } from './logger';
+import { log, LogLevel } from './logger';
 import type { Event } from '../api/types';
 
 /**
@@ -41,26 +41,23 @@ export function frameToTimestamp(
 ): number | null {
   // Validate inputs
   if (!Number.isFinite(frameNumber) || frameNumber < 1) {
-    log.warn('Invalid frame number', { component: 'VideoMarkers', frameNumber });
+    log.videoMarkers('Invalid frame number', LogLevel.WARN, { frameNumber });
     return null;
   }
 
   if (!Number.isFinite(totalFrames) || totalFrames < 1) {
-    log.warn('Invalid total frames', { component: 'VideoMarkers', totalFrames });
+    log.videoMarkers('Invalid total frames', LogLevel.WARN, { totalFrames });
     return null;
   }
 
   if (!Number.isFinite(eventLength) || eventLength <= 0) {
-    log.warn('Invalid event length', { component: 'VideoMarkers', eventLength });
+    log.videoMarkers('Invalid event length', LogLevel.WARN, { eventLength });
     return null;
   }
 
   if (frameNumber > totalFrames) {
-    log.warn('Frame number exceeds total frames', {
-      component: 'VideoMarkers',
-      frameNumber,
-      totalFrames,
-    });
+    log.videoMarkers('Frame number exceeds total frames', LogLevel.WARN, { frameNumber,
+      totalFrames, });
     return null;
   }
 
@@ -89,7 +86,7 @@ export function frameToTimestamp(
  */
 export function generateEventMarkers(event: Event | null | undefined): VideoMarker[] {
   if (!event) {
-    log.debug('No event data provided for markers', { component: 'VideoMarkers' });
+    log.videoMarkers('No event data provided for markers', LogLevel.DEBUG);
     return [];
   }
 
@@ -103,20 +100,14 @@ export function generateEventMarkers(event: Event | null | undefined): VideoMark
 
   // Validate required data
   if (!Number.isFinite(totalFrames) || totalFrames < 1) {
-    log.warn('Invalid or missing total frames in event', {
-      component: 'VideoMarkers',
-      eventId: event.Id,
-      frames: event.Frames,
-    });
+    log.videoMarkers('Invalid or missing total frames in event', LogLevel.WARN, { eventId: event.Id,
+      frames: event.Frames, });
     return [];
   }
 
   if (!Number.isFinite(eventLength) || eventLength <= 0) {
-    log.warn('Invalid or missing event length', {
-      component: 'VideoMarkers',
-      eventId: event.Id,
-      length: event.Length,
-    });
+    log.videoMarkers('Invalid or missing event length', LogLevel.WARN, { eventId: event.Id,
+      length: event.Length, });
     return [];
   }
 
@@ -131,11 +122,8 @@ export function generateEventMarkers(event: Event | null | undefined): VideoMark
         frameId: alarmFrameId,
       });
 
-      log.debug('Added alarm frame marker', {
-        component: 'VideoMarkers',
-        frameId: alarmFrameId,
-        time: alarmTime,
-      });
+      log.videoMarkers('Added alarm frame marker', LogLevel.DEBUG, { frameId: alarmFrameId,
+        time: alarmTime, });
     }
   }
 
@@ -154,20 +142,14 @@ export function generateEventMarkers(event: Event | null | undefined): VideoMark
         frameId: maxScoreFrameId,
       });
 
-      log.debug('Added max score frame marker', {
-        component: 'VideoMarkers',
-        frameId: maxScoreFrameId,
-        time: maxScoreTime,
-      });
+      log.videoMarkers('Added max score frame marker', LogLevel.DEBUG, { frameId: maxScoreFrameId,
+        time: maxScoreTime, });
     }
   }
 
   if (markers.length > 0) {
-    log.info('Generated video markers', {
-      component: 'VideoMarkers',
-      eventId: event.Id,
-      count: markers.length,
-    });
+    log.videoMarkers('Generated video markers', LogLevel.INFO, { eventId: event.Id,
+      count: markers.length, });
   }
 
   return markers;

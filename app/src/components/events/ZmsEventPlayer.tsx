@@ -22,7 +22,7 @@ import {
 import { getEventImageUrl } from '../../api/events';
 import { useTranslation } from 'react-i18next';
 import { httpGet } from '../../lib/http';
-import { log } from '../../lib/logger';
+import { log, LogLevel } from '../../lib/logger';
 import { getEventZmsUrl, getZmsControlUrl } from '../../lib/url-builder';
 
 // ZoneMinder stream command constants
@@ -121,7 +121,11 @@ export function ZmsEventPlayer({
     try {
       await httpGet(url);
     } catch (err) {
-      log.error('Stream command failed', { component: 'ZmsEventPlayer', command: cmd, connkey: connKey }, err);
+      log.zmsEventPlayer('Stream command failed', LogLevel.ERROR, {
+        command: cmd,
+        connkey: connKey,
+        error: err,
+      });
     }
   }, [portalUrl, apiUrl, connKey, token]);
 

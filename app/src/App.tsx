@@ -19,7 +19,7 @@ import { RouteErrorBoundary } from './components/RouteErrorBoundary';
 import { useTokenRefresh } from './hooks/useTokenRefresh';
 import AppLayout from './components/layout/AppLayout';
 import { NotificationHandler } from './components/NotificationHandler';
-import { log } from './lib/logger';
+import { log, LogLevel } from './lib/logger';
 
 // Lazy load route components for code splitting
 const ProfileForm = lazy(() => import('./pages/ProfileForm'));
@@ -87,14 +87,11 @@ function AppRoutes() {
 
   // Log app mount and profile state
   useEffect(() => {
-    log.info('React app initialized', {
-      component: 'App',
-      totalProfiles: profiles.length,
+    log.app('React app initialized', LogLevel.INFO, { totalProfiles: profiles.length,
       currentProfile: currentProfile?.name || 'None',
       profileId: currentProfile?.id || 'None',
       hasCredentials: !!(currentProfile?.username && currentProfile?.password),
-      isInitialized,
-    });
+      isInitialized, });
   }, [profiles.length, currentProfile, isInitialized]);
 
   // Hide splash screen when app initialization completes
@@ -106,15 +103,9 @@ function AppRoutes() {
           await SplashScreen.hide({
             fadeOutDuration: 200,
           });
-          log.info('Splash screen hidden', {
-            component: 'App',
-            timestamp: new Date().toISOString(),
-          });
+          log.app('Splash screen hidden', LogLevel.INFO, { timestamp: new Date().toISOString(), });
         } catch (error) {
-          log.warn('Failed to hide splash screen (may be running on web)', {
-            component: 'App',
-            error,
-          });
+          log.app('Failed to hide splash screen (may be running on web)', LogLevel.WARN, { error, });
         }
       };
       hideSplash();
@@ -126,9 +117,7 @@ function AppRoutes() {
   useEffect(() => {
     const timeout = setTimeout(() => {
       if (!isInitialized) {
-        log.warn('Profile store initialization timeout - forcing initialization', {
-          component: 'App',
-        });
+        log.app('Profile store initialization timeout - forcing initialization', LogLevel.WARN, { });
         useProfileStore.setState({ isInitialized: true });
       }
     }, 5000);

@@ -7,7 +7,7 @@
  * Protocol based on: https://github.com/ZoneMinder/zmeventnotification
  */
 
-import { log } from '../lib/logger';
+import { log, LogLevel } from '../lib/logger';
 
 import type {
   ZMEventServerConfig,
@@ -41,7 +41,7 @@ export class ZMNotificationService {
   private stateCallbacks: Set<ConnectionStateCallback> = new Set();
 
   constructor() {
-    log.info('ZMNotificationService initialized', { component: 'Notifications' });
+    log.notifications('ZMNotificationService initialized', LogLevel.INFO);
   }
 
   /**
@@ -49,10 +49,7 @@ export class ZMNotificationService {
    */
   public async connect(config: ZMEventServerConfig): Promise<void> {
     if (this.state === 'connected' || this.state === 'authenticating' || this.state === 'connecting') {
-      log.info('Already connected or connecting to notification server', {
-        component: 'Notifications',
-        state: this.state
-      });
+      log.notifications('Already connected or connecting to notification server', LogLevel.INFO, { state: this.state });
       return;
     }
 
@@ -66,7 +63,7 @@ export class ZMNotificationService {
    * Disconnect from notification server
    */
   public disconnect(): void {
-    log.info('Disconnecting from notification server', { component: 'Notifications' });
+    log.notifications('Disconnecting from notification server', LogLevel.INFO);
 
     // Clear any pending reconnect
     if (this.reconnectTimer) {
@@ -121,8 +118,7 @@ export class ZMNotificationService {
       },
     };
 
-    log.info('Registering push token', {
-      component: 'Notifications',
+    log.notifications('Registering push token', LogLevel.INFO, {
       platform,
       monitorCount: monitorIds?.length,
     });
@@ -138,7 +134,7 @@ export class ZMNotificationService {
     platform: 'ios' | 'android'
   ): Promise<void> {
     if (!this._isConnected()) {
-      log.warn('Cannot deregister push token - not connected', { component: 'Notifications' });
+      log.notifications('Cannot deregister push token - not connected', LogLevel.WARN);
       return;
     }
 
@@ -152,10 +148,7 @@ export class ZMNotificationService {
       },
     };
 
-    log.info('Deregistering push token', {
-      component: 'Notifications',
-      platform,
-    });
+    log.notifications('Deregistering push token', LogLevel.INFO, { platform, });
 
     this._send(message);
   }
@@ -177,8 +170,7 @@ export class ZMNotificationService {
       },
     };
 
-    log.info('Setting monitor filter', {
-      component: 'Notifications',
+    log.notifications('Setting monitor filter', LogLevel.INFO, {
       monitors: monitorIds,
       intervals,
     });
@@ -191,7 +183,7 @@ export class ZMNotificationService {
    */
   public async updateBadgeCount(count: number): Promise<void> {
     if (!this._isConnected()) {
-      log.warn('Cannot update badge - not connected', { component: 'Notifications' });
+      log.notifications('Cannot update badge - not connected', LogLevel.WARN);
       return;
     }
 
@@ -203,7 +195,7 @@ export class ZMNotificationService {
       },
     };
 
-    log.info('Updating badge count', { component: 'Notifications', count });
+    log.notifications('Updating badge count', LogLevel.INFO, { count });
     this._send(message);
   }
 
@@ -296,8 +288,7 @@ export class ZMNotificationService {
 
     const url = `${protocol}://${host}:${this.config.port}${path}`;
 
-    log.info('Connecting to notification server', {
-      component: 'Notifications',
+    log.notifications('Connecting to notification server', LogLevel.INFO, {
       url: url.replace(/\/\/.*@/, '//***@'), // Hide credentials in logs
       ssl: this.config.ssl,
     });
@@ -318,9 +309,9 @@ export class ZMNotificationService {
 
       ws.onerror = (error) => {
         if (this.ws !== ws) return;
-        log.error('WebSocket error', { component: 'Notifications' }, error);
+        log.notifications('WebSocket error', LogLevel.ERROR, error);
         if (this.config?.ssl) {
-          log.warn('If using self-signed certificates, ensure they are trusted by the device/browser.', { component: 'Notifications' });
+          log.notifications('If using self-signed certificates, ensure they are trusted by the device/browser.', LogLevel.WARN);
         }
         this._handleError(error);
       };
@@ -333,7 +324,7 @@ export class ZMNotificationService {
       // Wait for authentication to complete
       await this._waitForAuth();
     } catch (error) {
-      log.error('Failed to connect to notification server', { component: 'Notifications' }, error);
+      log.notifications('Failed to connect to notification server', LogLevel.ERROR, error);
       this._setState('error');
       this._scheduleReconnect();
       throw error;
@@ -341,7 +332,7 @@ export class ZMNotificationService {
   }
 
   private _handleOpen(): void {
-    log.info('WebSocket connected, authenticating...', { component: 'Notifications' });
+    log.notifications('WebSocket connected, authenticating...', LogLevel.INFO);
     this._setState('authenticating');
     this.reconnectAttempts = 0;
 
@@ -365,20 +356,16 @@ export class ZMNotificationService {
     try {
       const message = JSON.parse(event.data) as ZMNotificationMessage;
 
-      log.info('Received message', {
-        component: 'Notifications',
+      log.notifications('Received message', LogLevel.INFO, {
         event: message.event,
         status: message.status,
-        fullMessage: message // Log full message for debugging
+        fullMessage: message, // Log full message for debugging
       });
 
       // Handle authentication response
       if (message.event === 'auth') {
         if (message.status === 'Success') {
-          log.info('Authentication successful', {
-            component: 'Notifications',
-            version: message.version,
-          });
+          log.notifications('Authentication successful', LogLevel.INFO, { version: message.version, });
           this._setState('connected');
           this._startPingInterval();
 
@@ -389,7 +376,7 @@ export class ZMNotificationService {
           }
         } else {
           const error = new Error(`Authentication failed: ${message.reason || 'Unknown'}`);
-          log.error('Authentication failed', { component: 'Notifications' }, error);
+          log.notifications('Authentication failed', LogLevel.ERROR, error);
           this._setState('error');
 
           if (this.pendingAuth) {
@@ -405,8 +392,7 @@ export class ZMNotificationService {
       // Handle alarm events
       if (message.event === 'alarm' && message.status === 'Success' && message.events) {
         for (const event of message.events) {
-          log.info('Alarm event received', {
-            component: 'Notifications',
+          log.notifications('Alarm event received', LogLevel.INFO, {
             monitor: event.MonitorName,
             eventId: event.EventId,
             cause: event.Cause,
@@ -419,8 +405,7 @@ export class ZMNotificationService {
               imageUrl += `&token=${this.config.token}`;
             }
             event.ImageUrl = imageUrl;
-            log.info('Constructed image URL for event', {
-              component: 'Notifications',
+            log.notifications('Constructed image URL for event', LogLevel.INFO, {
               eventId: event.EventId,
               imageUrl,
             });
@@ -431,24 +416,23 @@ export class ZMNotificationService {
             try {
               callback(event);
             } catch (error) {
-              log.error('Error in event callback', { component: 'Notifications' }, error);
+              log.notifications('Error in event callback', LogLevel.ERROR, error);
             }
           });
         }
       }
     } catch (error) {
-      log.error('Failed to parse notification message', { component: 'Notifications' }, error);
+      log.notifications('Failed to parse notification message', LogLevel.ERROR, error);
     }
   }
 
   private _handleError(error: Event): void {
-    log.error('WebSocket error', { component: 'Notifications' }, error);
+    log.notifications('WebSocket error', LogLevel.ERROR, error);
     this._setState('error');
   }
 
   private _handleClose(event: CloseEvent): void {
-    log.info('WebSocket closed', {
-      component: 'Notifications',
+    log.notifications('WebSocket closed', LogLevel.INFO, {
       code: event.code,
       reason: event.reason,
       wasClean: event.wasClean,
@@ -471,7 +455,7 @@ export class ZMNotificationService {
 
   private _scheduleReconnect(): void {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      log.error('Max reconnect attempts reached', { component: 'Notifications' });
+      log.notifications('Max reconnect attempts reached', LogLevel.ERROR);
       this._setState('error');
       return;
     }
@@ -479,15 +463,14 @@ export class ZMNotificationService {
     this.reconnectAttempts++;
     const delay = this.reconnectDelay * this.reconnectAttempts;
 
-    log.info('Scheduling reconnect', {
-      component: 'Notifications',
+    log.notifications('Scheduling reconnect', LogLevel.INFO, {
       attempt: this.reconnectAttempts,
       delayMs: delay,
     });
 
     this.reconnectTimer = setTimeout(() => {
       this._connect().catch((error) => {
-        log.error('Reconnect failed', { component: 'Notifications' }, error);
+        log.notifications('Reconnect failed', LogLevel.ERROR, error);
       });
     }, delay);
   }
@@ -496,7 +479,7 @@ export class ZMNotificationService {
     // Send periodic pings to keep connection alive (every 60 seconds)
     this.pingInterval = setInterval(() => {
       if (this._isConnected()) {
-        log.info('Sending keepalive ping', { component: 'Notifications' });
+        log.notifications('Sending keepalive ping', LogLevel.INFO);
         this._send({ event: 'control', data: { type: 'version' } });
       }
     }, 60000);
@@ -504,24 +487,21 @@ export class ZMNotificationService {
 
   private _send(message: unknown): void {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
-      log.warn('Cannot send message - WebSocket not open', { component: 'Notifications' });
+      log.notifications('Cannot send message - WebSocket not open', LogLevel.WARN);
       return;
     }
 
     const messageStr = JSON.stringify(message);
-    log.info('Sending message', {
-      component: 'Notifications',
+    log.notifications('Sending message', LogLevel.INFO, {
       message: message, // Log full object instead of truncated string
     });
-
     this.ws.send(messageStr);
-  }
+    }
 
   private _setState(state: ConnectionState): void {
-    if (this.state === state) return;
+      if (this.state === state) return;
 
-    log.info('Connection state changed', {
-      component: 'Notifications',
+    log.notifications('Connection state changed', LogLevel.INFO, {
       from: this.state,
       to: state,
     });
@@ -533,7 +513,7 @@ export class ZMNotificationService {
       try {
         callback(state);
       } catch (error) {
-        log.error('Error in state callback', { component: 'Notifications' }, error);
+        log.notifications('Error in state callback', LogLevel.ERROR, error);
       }
     });
   }

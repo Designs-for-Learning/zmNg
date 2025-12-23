@@ -30,7 +30,7 @@ import { useSwipeNavigation } from '../hooks/useSwipeNavigation';
 import { PTZControls } from '../components/monitors/PTZControls';
 import { controlMonitor } from '../api/monitors';
 import { filterEnabledMonitors } from '../lib/filters';
-import { log } from '../lib/logger';
+import { log, LogLevel } from '../lib/logger';
 import { Platform } from '../lib/platform';
 import { parseMonitorRotation } from '../lib/monitor-rotation';
 
@@ -65,14 +65,14 @@ export default function MonitorDetail() {
             );
           } catch (e) {
             // Ignore errors on auto-stop
-            log.warn('Auto-stop command failed', { component: 'MonitorDetail', error: e });
+            log.monitorDetail('Auto-stop command failed', LogLevel.WARN, { error: e });
           }
         }, 500);
       }
 
       // Optional: Show success feedback, but usually PTZ is visual
     } catch (error) {
-      log.error('PTZ command failed', { component: 'MonitorDetail', command, error });
+      log.monitorDetail('PTZ command failed', LogLevel.ERROR, { command, error });
       toast.error(t('monitor_detail.ptz_failed'));
     }
   };
@@ -240,8 +240,7 @@ export default function MonitorDetail() {
       await refetch();
       toast.success(t('monitor_detail.mode_updated'));
     } catch (modeError) {
-      log.error('Monitor mode update failed', {
-        component: 'MonitorDetail',
+      log.monitorDetail('Monitor mode update failed', LogLevel.ERROR, {
         monitorId: monitor.Monitor.Id,
         nextMode,
         error: modeError,
@@ -275,8 +274,7 @@ export default function MonitorDetail() {
           : t('monitor_detail.alarm_disarmed_toast')
       );
     } catch (toggleError) {
-      log.error('Alarm toggle failed', {
-        component: 'MonitorDetail',
+      log.monitorDetail('Alarm toggle failed', LogLevel.ERROR, {
         monitorId: monitor.Monitor.Id,
         nextValue,
         error: toggleError,
@@ -351,7 +349,7 @@ export default function MonitorDetail() {
   // Force regenerate connKey when component mounts or monitor changes
   useEffect(() => {
     if (monitor) {
-      log.info('Regenerating connkey', { component: 'MonitorDetail', monitorId: monitor.Monitor.Id });
+      log.monitorDetail('Regenerating connkey', LogLevel.INFO, { monitorId: monitor.Monitor.Id });
       const newKey = regenerateConnKey(monitor.Monitor.Id);
       setConnKey(newKey);
       setCacheBuster(Date.now());
@@ -379,7 +377,7 @@ export default function MonitorDetail() {
   // Log monitor controllable status for debugging
   useEffect(() => {
     if (monitor?.Monitor) {
-      log.info('Monitor loaded in Single View', {
+      log.monitorDetail('Monitor loaded in Single View', LogLevel.INFO, {
         id: monitor.Monitor.Id,
         name: monitor.Monitor.Name,
         controllable: monitor.Monitor.Controllable,
@@ -394,7 +392,7 @@ export default function MonitorDetail() {
     const monitorId = monitor?.Monitor.Id;
     return () => {
       if (currentImg && monitorId) {
-        log.info('Cleaning up stream', { component: 'MonitorDetail', monitorId });
+        log.monitorDetail('Cleaning up stream', LogLevel.DEBUG, { monitorId });
         // Set to empty data URI to abort the connection
         currentImg.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
       }
@@ -538,7 +536,7 @@ export default function MonitorDetail() {
 
               // Check for CORS failure first
               if (corsAllowed) {
-                log.warn('Image load failed with CORS enabled, disabling CORS and retrying', { component: 'MonitorDetail' });
+                log.monitorDetail('Image load failed with CORS enabled, disabling CORS and retrying', LogLevel.WARN);
                 setCorsAllowed(false);
                 setCacheBuster(Date.now()); // Force reload
                 return;
@@ -547,7 +545,7 @@ export default function MonitorDetail() {
               // Only retry if we haven't retried too recently
               if (!img.dataset.retrying) {
                 img.dataset.retrying = "true";
-                log.info('Stream failed, regenerating connkey', { component: 'MonitorDetail' });
+                log.monitorDetail('Stream failed, regenerating connkey', LogLevel.INFO);
                 regenerateConnKey(monitor.Monitor.Id);
                 toast.error(t('monitor_detail.stream_lost'));
 
@@ -609,16 +607,16 @@ export default function MonitorDetail() {
         {/* PTZ Controls */}
         {monitor.Monitor.Controllable === '1' && (
           <div className="mt-8 w-full max-w-md flex flex-col items-center">
-            <Button 
-              variant="ghost" 
-              size="sm" 
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => setShowPTZ(!showPTZ)}
               className="mb-4 text-muted-foreground hover:text-foreground"
             >
               {showPTZ ? t('ptz.hide_controls') : t('ptz.show_controls')}
               {showPTZ ? <ChevronUp className="ml-2 h-4 w-4" /> : <ChevronDown className="ml-2 h-4 w-4" />}
             </Button>
-            
+
             {showPTZ && (
               <div className="w-full flex flex-col items-center gap-4">
                 {controlData?.control.Control.CanMoveCon === '1' && (
@@ -631,9 +629,9 @@ export default function MonitorDetail() {
                     <Label htmlFor="continuous-mode">{t('ptz.continuous_movement')}</Label>
                   </div>
                 )}
-                <PTZControls 
-                  onCommand={handlePTZCommand} 
-                  className="w-full" 
+                <PTZControls
+                  onCommand={handlePTZCommand}
+                  className="w-full"
                   control={controlData?.control.Control}
                 />
               </div>

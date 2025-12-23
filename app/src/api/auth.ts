@@ -8,7 +8,7 @@
 import { getApiClient } from './client';
 import type { LoginResponse, ZmsPathResponse } from './types';
 import { LoginResponseSchema, ZmsPathResponseSchema } from './types';
-import { log } from '../lib/logger';
+import { log, LogLevel } from '../lib/logger';
 
 export interface LoginCredentials {
   user: string;
@@ -30,7 +30,7 @@ export interface LoginWithRefreshToken {
  * @throws Error if login fails or response validation fails
  */
 export async function login(credentials: LoginCredentials): Promise<LoginResponse> {
-  log.auth('Login attempt', { username: credentials.user });
+  log.auth('Login attempt', LogLevel.INFO, { username: credentials.user });
 
   const client = getApiClient();
 
@@ -40,7 +40,7 @@ export async function login(credentials: LoginCredentials): Promise<LoginRespons
   formData.append('pass', credentials.pass);
 
   const formDataString = formData.toString();
-  log.debug('Login form data prepared', { component: 'Auth API' });
+  log.auth('Login form data prepared', LogLevel.DEBUG);
 
   try {
     const response = await client.post<LoginResponse>('/host/login.json', formDataString, {
@@ -49,7 +49,7 @@ export async function login(credentials: LoginCredentials): Promise<LoginRespons
       },
     });
 
-    log.auth('Login response received', {
+    log.auth('Login response received', LogLevel.DEBUG, {
       status: response.status,
       statusText: response.statusText,
       hasData: !!response.data,
@@ -62,7 +62,8 @@ export async function login(credentials: LoginCredentials): Promise<LoginRespons
       log.auth('Response validation successful');
       return validated;
     } catch (zodError: unknown) {
-      log.error('Zod validation failed for login response', { component: 'Auth API' }, zodError, {
+      log.auth('Zod validation failed for login response', LogLevel.ERROR, {
+        error: zodError,
         expectedFields: 'access_token, access_token_expires, refresh_token, refresh_token_expires',
         receivedData: response.data,
         zodError: (zodError as Error).message,
@@ -71,7 +72,8 @@ export async function login(credentials: LoginCredentials): Promise<LoginRespons
     }
   } catch (error: unknown) {
     const err = error as { constructor: { name: string }; message: string; response?: { status: number; data: unknown } };
-    log.error('Login failed', { component: 'Auth API' }, error, {
+    log.auth('Login failed', LogLevel.ERROR, {
+      error,
       errorType: err.constructor.name,
       message: err.message,
       status: err.response?.status,
@@ -136,7 +138,7 @@ export async function testConnection(apiUrl: string): Promise<boolean> {
     await client.get('/host/getVersion.json', { baseURL: apiUrl });
     return true;
   } catch (error) {
-    log.warn('Connection test failed', { component: 'Auth API', apiUrl }, error);
+    log.auth('Connection test failed', LogLevel.WARN, { apiUrl, error });
     return false;
   }
 }
@@ -152,7 +154,7 @@ export async function testConnection(apiUrl: string): Promise<boolean> {
 export async function fetchZmsPath(): Promise<string | null> {
   try {
     const client = getApiClient();
-    log.debug('Fetching ZMS path from server config', { component: 'Auth API' });
+    log.auth('Fetching ZMS path from server config', LogLevel.DEBUG);
 
     const response = await client.get<ZmsPathResponse>('/configs/viewByName/ZM_PATH_ZMS.json');
 
@@ -160,11 +162,12 @@ export async function fetchZmsPath(): Promise<string | null> {
     const validated = ZmsPathResponseSchema.parse(response.data);
     const zmsPath = validated.config.Value;
 
-    log.info('ZMS path fetched successfully', { component: 'Auth API', zmsPath });
+    log.auth('ZMS path fetched successfully', LogLevel.INFO, { zmsPath });
     return zmsPath;
   } catch (error: unknown) {
     const err = error as { constructor: { name: string }; message: string; response?: { status: number; data: unknown } };
-    log.warn('Failed to fetch ZMS path from server', { component: 'Auth API' }, error, {
+    log.auth('Failed to fetch ZMS path from server', LogLevel.WARN, {
+      error,
       errorType: err.constructor.name,
       message: err.message,
       status: err.response?.status,

@@ -291,7 +291,13 @@
     "share_dialog_title": "Partager les journaux de l'application",
     "share_failed": "Échec du partage",
     "show_more": "Afficher plus",
-    "show_less": "Afficher moins"
+    "show_less": "Afficher moins",
+    "level_updated": "Niveau de journal mis à jour",
+    "level_placeholder": "Niveau",
+    "component_filter_label": "Composants",
+    "component_filter_all": "Tous les composants",
+    "component_filter_selected": "{{count}} composants",
+    "component_unassigned": "Non attribué"
   },
   "monitor_detail": {
     "events": "Événements",

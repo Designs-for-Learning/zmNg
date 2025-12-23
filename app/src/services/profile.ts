@@ -1,6 +1,6 @@
 import type { Profile } from '../api/types';
 import { setSecureValue, getSecureValue, removeSecureValue } from '../lib/secureStorage';
-import { log } from '../lib/logger';
+import { log, LogLevel } from '../lib/logger';
 import { isProfileNameAvailable } from '../lib/profile-validation';
 
 export const ProfileService = {
@@ -10,9 +10,9 @@ export const ProfileService = {
     async savePassword(profileId: string, password: string): Promise<void> {
         try {
             await setSecureValue(`password_${profileId}`, password);
-            log.profile('Password stored securely', { profileId });
+            log.profile('Password stored securely', LogLevel.INFO, { profileId });
         } catch (error) {
-            log.error('Failed to store password securely', { component: 'ProfileService' }, error);
+            log.profileService('Failed to store password securely', LogLevel.ERROR, error);
             throw new Error('Failed to securely store password');
         }
     },
@@ -25,7 +25,7 @@ export const ProfileService = {
             const password = await getSecureValue(`password_${profileId}`);
             return password || undefined;
         } catch (error) {
-            log.error('Failed to retrieve password from secure storage', { component: 'ProfileService' }, error);
+            log.profileService('Failed to retrieve password from secure storage', LogLevel.ERROR, error);
             return undefined;
         }
     },
@@ -36,9 +36,9 @@ export const ProfileService = {
     async deletePassword(profileId: string): Promise<void> {
         try {
             await removeSecureValue(`password_${profileId}`);
-            log.profile('Password removed from secure storage', { profileId });
+            log.profile('Password removed from secure storage', LogLevel.INFO, { profileId });
         } catch (error) {
-            log.warn('Failed to remove password from secure storage', { component: 'ProfileService' }, error);
+            log.profileService('Failed to remove password from secure storage', LogLevel.WARN, error);
         }
     },
 

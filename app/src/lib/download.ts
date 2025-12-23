@@ -13,7 +13,7 @@
 
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Media } from '@capacitor-community/media';
-import { log } from './logger';
+import { log, LogLevel } from './logger';
 import { Platform } from './platform';
 import { httpGet } from './http';
 import { getApiClient } from '../api/client';
@@ -32,7 +32,7 @@ export async function downloadFile(url: string, filename: string): Promise<void>
   try {
     if (Platform.isNative) {
       // Mobile: Use unified HTTP client to bypass CORS
-      log.info('[Download] Downloading via native HTTP', { component: 'Download', url });
+      log.download('[Download] Downloading via native HTTP', LogLevel.INFO, { url });
 
       const response = await httpGet<Blob>(url, { responseType: 'blob' });
 
@@ -50,8 +50,7 @@ export async function downloadFile(url: string, filename: string): Promise<void>
         directory: Directory.Documents,
       });
 
-      log.info('[Download] File saved to mobile storage', {
-        component: 'Download',
+      log.download('[Download] File saved to mobile storage', LogLevel.INFO, {
         path: result.uri,
         filename
       });
@@ -62,15 +61,15 @@ export async function downloadFile(url: string, filename: string): Promise<void>
           await Media.savePhoto({
             path: result.uri
           });
-          log.info('[Download] Saved to Photo Library', { component: 'Download', filename });
+          log.download('[Download] Saved to Photo Library', LogLevel.INFO, { filename });
         } else if (filename.match(/\.(mp4|mov|avi)$/i)) {
           await Media.saveVideo({
             path: result.uri
           });
-          log.info('[Download] Saved to Video Library', { component: 'Download', filename });
+          log.download('[Download] Saved to Video Library', LogLevel.INFO, { filename });
         }
       } catch (mediaError) {
-        log.error('[Download] Failed to save to media library', { component: 'Download', filename }, mediaError);
+        log.download('[Download] Failed to save to media library', LogLevel.ERROR, { filename, error: mediaError });
         // Don't throw here, as the file is at least saved to Documents
       }
     } else {
@@ -81,11 +80,11 @@ export async function downloadFile(url: string, filename: string): Promise<void>
         if (Platform.shouldUseProxy && (url.startsWith('http://') || url.startsWith('https://'))) {
           // Use the image proxy for cross-origin URLs in dev mode
           url = `http://localhost:3001/image-proxy?url=${encodeURIComponent(url)}`;
-          log.info('Using proxy for CORS', { component: 'Download', url });
+          log.download('Using proxy for CORS', LogLevel.INFO, { url });
         }
 
         // Use axios to fetch with proper auth headers
-        log.info('Downloading file via API client', { component: 'Download', url, filename });
+        log.download('Downloading file via API client', LogLevel.INFO, { url, filename });
         const response = await apiClient.get(url, {
           responseType: 'blob',
         });
@@ -103,14 +102,11 @@ export async function downloadFile(url: string, filename: string): Promise<void>
         // Clean up blob URL
         window.URL.revokeObjectURL(blobUrl);
 
-        log.info('File downloaded via browser', { component: 'Download', filename });
+        log.download('File downloaded via browser', LogLevel.INFO, { filename });
       } catch (fetchError) {
         // If axios fails, fall back to direct download link
         // This will open in a new tab and rely on browser's download handling
-        log.warn('API client download failed, falling back to direct link', {
-          component: 'Download',
-          url
-        }, fetchError);
+        log.download('API client download failed, falling back to direct link', LogLevel.WARN, { url, error: fetchError });
 
         const link = document.createElement('a');
         link.href = url;
@@ -121,11 +117,11 @@ export async function downloadFile(url: string, filename: string): Promise<void>
         link.click();
         document.body.removeChild(link);
 
-        log.info('Initiated direct download', { component: 'Download', filename });
+        log.download('Initiated direct download', LogLevel.INFO, { filename });
       }
     }
   } catch (error) {
-    log.error('[Download] Failed to download file', { component: 'Download', url }, error);
+    log.download('[Download] Failed to download file', LogLevel.ERROR, { url, error });
     throw error;
   }
 }
@@ -167,8 +163,7 @@ export async function downloadSnapshot(imageUrl: string, monitorName: string): P
         data: base64,
         directory: Directory.Documents,
       });
-      log.info('[Download] Snapshot saved from data URL', {
-        component: 'Download',
+      log.download('[Download] Snapshot saved from data URL', LogLevel.INFO, {
         path: result.uri,
         filename
       });
@@ -178,9 +173,9 @@ export async function downloadSnapshot(imageUrl: string, monitorName: string): P
         await Media.savePhoto({
           path: result.uri
         });
-        log.info('[Download] Snapshot saved to Photo Library', { component: 'Download', filename });
+        log.download('[Download] Snapshot saved to Photo Library', LogLevel.INFO, { filename });
       } catch (mediaError) {
-        log.error('[Download] Failed to save snapshot to Photo Library', { component: 'Download' }, mediaError);
+        log.download('[Download] Failed to save snapshot to Photo Library', LogLevel.ERROR, mediaError);
       }
     } else {
       // Web: Traditional download
@@ -224,8 +219,7 @@ export async function downloadSnapshotFromElement(
           directory: Directory.Documents,
         });
 
-        log.info('[Download] Snapshot saved from data URL', {
-          component: 'Download',
+        log.download('[Download] Snapshot saved from data URL', LogLevel.INFO, {
           path: result.uri,
           filename
         });
@@ -235,9 +229,9 @@ export async function downloadSnapshotFromElement(
           await Media.savePhoto({
             path: result.uri
           });
-          log.info('[Download] Snapshot saved to Photo Library', { component: 'Download', filename });
+          log.download('[Download] Snapshot saved to Photo Library', LogLevel.INFO, { filename });
         } catch (mediaError) {
-          log.error('[Download] Failed to save snapshot to Photo Library', { component: 'Download' }, mediaError);
+          log.download('[Download] Failed to save snapshot to Photo Library', LogLevel.ERROR, mediaError);
         }
       } else {
         // Web: Traditional download
@@ -254,7 +248,7 @@ export async function downloadSnapshotFromElement(
     // For cross-origin images, use downloadFile which handles both platforms
     await downloadFile(imageUrl, filename);
   } catch (error) {
-    log.error('[Download] Failed to capture snapshot', { component: 'Download' }, error);
+    log.download('[Download] Failed to capture snapshot', LogLevel.ERROR, error);
     throw error;
   }
 }
@@ -298,7 +292,7 @@ export async function downloadEventVideo(
   try {
     await downloadFile(videoUrl, filename);
   } catch (error) {
-    log.error('Failed to download video', { component: 'Download', eventId }, error);
+    log.download('Failed to download video', LogLevel.ERROR, { eventId, error });
     throw error;
   }
 }

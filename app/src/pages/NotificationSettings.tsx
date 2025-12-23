@@ -35,7 +35,7 @@ import {
 import { toast } from 'sonner';
 import { Capacitor } from '@capacitor/core';
 import { useTranslation } from 'react-i18next';
-import { log } from '../lib/logger';
+import { log, LogLevel } from '../lib/logger';
 
 export default function NotificationSettings() {
   const navigate = useNavigate();
@@ -87,12 +87,9 @@ export default function NotificationSettings() {
           // Use wss:// scheme for the notification server
           const wsHost = url.hostname;
           updateProfileSettings(currentProfile.id, { host: wsHost });
-          log.info('Auto-populated notification host from profile', {
-            component: 'NotificationSettings',
-            host: wsHost,
-          });
+          log.notificationSettings('Auto-populated notification host from profile', LogLevel.INFO, { host: wsHost, });
         } catch (error) {
-          log.error('Failed to parse portal URL', { component: 'NotificationSettings' }, error);
+          log.notificationSettings('Failed to parse portal URL', LogLevel.ERROR, error);
         }
       }
 
@@ -104,9 +101,9 @@ export default function NotificationSettings() {
           const { getPushService } = await import('../services/pushNotifications');
           const pushService = getPushService();
           await pushService.deregister();
-          log.info('Deregistered from push notifications', { component: 'NotificationSettings' });
+          log.notificationSettings('Deregistered from push notifications', LogLevel.INFO);
         } catch (error) {
-          log.error('Failed to deregister from push notifications', { component: 'NotificationSettings' }, error);
+          log.notificationSettings('Failed to deregister from push notifications', LogLevel.ERROR, error);
         }
       }
 
@@ -145,7 +142,7 @@ export default function NotificationSettings() {
 
       // Push token will be registered automatically by the connect method
     } catch (error) {
-      log.error('Connection failed', { component: 'NotificationSettings' }, error);
+      log.notificationSettings('Connection failed', LogLevel.ERROR, error);
       toast.error(t('notification_settings.connect_failed', { error: error instanceof Error ? error.message : 'Unknown error' }));
     } finally {
       setIsConnecting(false);

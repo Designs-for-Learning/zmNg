@@ -18,7 +18,7 @@ import { createApiClient, setApiClient } from '../api/client';
 import { getServerTimeZone } from '../api/time';
 import { fetchZmsPath } from '../api/auth';
 import { ProfileService } from '../services/profile';
-import { log } from '../lib/logger';
+import { log, LogLevel } from '../lib/logger';
 import { useAuthStore } from './auth';
 
 interface ProfileState {
@@ -130,7 +130,7 @@ export const useProfileStore = create<ProfileState>()(
               const timezone = await getServerTimeZone(accessToken || undefined);
               get().updateProfile(newProfile.id, { timezone });
             } catch (e) {
-              log.warn('Failed to fetch timezone for new profile', { error: e });
+              log.profileService('Failed to fetch timezone for new profile', LogLevel.WARN, { error: e });
             }
           }
 
@@ -144,7 +144,7 @@ export const useProfileStore = create<ProfileState>()(
          * Re-initializes API client if the current profile's URL changes.
          */
         updateProfile: async (id, updates) => {
-          log.profile(`updateProfile called for profile ID: ${id}`, updates);
+          log.profileService(`updateProfile called for profile ID: ${id}`, LogLevel.INFO, updates);
 
           // Check for duplicate names if name is being updated
           if (updates.name && !ProfileService.validateNameAvailability(updates.name, get().profiles, id)) {
@@ -169,7 +169,7 @@ export const useProfileStore = create<ProfileState>()(
             setApiClient(createApiClient(updates.apiUrl, get().reLogin));
           }
 
-          log.profile('updateProfile complete');
+          log.profileService('updateProfile complete', LogLevel.INFO);
         },
 
         /**
@@ -222,7 +222,7 @@ export const useProfileStore = create<ProfileState>()(
           const { resetApiClient } = await import('../api/client');
           resetApiClient();
 
-          log.profile('All profiles deleted');
+          log.profileService('All profiles deleted', LogLevel.INFO);
         },
 
         /**
@@ -250,7 +250,7 @@ export const useProfileStore = create<ProfileState>()(
             ? get().profiles.find((p) => p.id === previousProfileId)
             : null;
 
-          log.profile('Starting profile switch', {
+          log.profileService('Starting profile switch', LogLevel.INFO, {
             from: previousProfile?.name || 'None',
             to: profile.name,
             targetPortal: profile.portalUrl,
@@ -259,35 +259,35 @@ export const useProfileStore = create<ProfileState>()(
 
           try {
             // STEP 1: Clear ALL existing state FIRST (critical for avoiding data mixing)
-            log.profile('Step 1: Clearing all existing state');
+            log.profileService('Step 1: Clearing all existing state', LogLevel.INFO);
 
             const { useAuthStore } = await import('./auth');
-            log.profile('Clearing auth state (logout)');
+            log.profileService('Clearing auth state (logout)', LogLevel.INFO);
             useAuthStore.getState().logout();
 
             const { clearQueryCache } = await import('./query-cache');
-            log.profile('Clearing query cache');
+            log.profileService('Clearing query cache', LogLevel.INFO);
             clearQueryCache();
 
             const { resetApiClient } = await import('../api/client');
-            log.profile('Resetting API client');
+            log.profileService('Resetting API client', LogLevel.INFO);
             resetApiClient();
 
             // STEP 2: Update current profile ID
-            log.profile('Step 2: Setting new profile as current');
+            log.profileService('Step 2: Setting new profile as current', LogLevel.INFO);
             set({ currentProfileId: id });
 
             // Update last used timestamp (don't await this)
             get().updateProfile(id, { lastUsed: Date.now() });
 
             // STEP 3: Initialize API client with new profile
-            log.profile('Step 3: Initializing API client', { apiUrl: profile.apiUrl });
+            log.profileService('Step 3: Initializing API client', LogLevel.INFO, { apiUrl: profile.apiUrl });
             setApiClient(createApiClient(profile.apiUrl, get().reLogin));
-            log.profile('API client initialized');
+            log.profileService('API client initialized', LogLevel.INFO);
 
             // STEP 4: Authenticate immediately if credentials exist
             if (profile.username && profile.password) {
-              log.profile('Step 4: Authenticating with stored credentials', {
+              log.profileService('Step 4: Authenticating with stored credentials', LogLevel.INFO, {
                 username: profile.username,
               });
 
@@ -301,36 +301,33 @@ export const useProfileStore = create<ProfileState>()(
                 // Use the auth store action so state is updated!
                 const { useAuthStore } = await import('./auth');
                 await useAuthStore.getState().login(profile.username, decryptedPassword);
-                log.profile('Authentication successful');
+                log.profileService('Authentication successful', LogLevel.INFO);
               } catch (authError: unknown) {
-                log.warn('Authentication failed - this might be OK if server does not require auth', {
-                  component: 'Profile',
-                  error: authError,
-                });
+                log.profileService('Authentication failed - this might be OK if server does not require auth', LogLevel.WARN, { error: authError, });
                 // Don't throw - allow switch to complete even if auth fails
                 // Some servers (like demo.zoneminder.com) work without auth
               }
-              log.profile('No credentials stored, skipping authentication');
-              log.info('This is normal for public servers', { component: 'Profile' });
+              log.profileService('No credentials stored, skipping authentication', LogLevel.INFO);
+              log.profileService('This is normal for public servers', LogLevel.INFO);
             }
 
             // STEP 5: Fetch Server Timezone
             try {
-              log.profile('Step 5: Fetching server timezone');
+              log.profileService('Step 5: Fetching server timezone', LogLevel.INFO);
               // Explicitly pass token if we have one to ensure it's used
               const { useAuthStore } = await import('./auth');
               const { accessToken } = useAuthStore.getState();
               const timezone = await getServerTimeZone(accessToken || undefined);
-              log.profile('Server timezone fetched', { timezone });
+              log.profileService('Server timezone fetched', LogLevel.INFO, { timezone });
               get().updateProfile(id, { timezone });
             } catch (tzError) {
-              log.warn('Failed to fetch server timezone', { error: tzError });
+              log.profileService('Failed to fetch server timezone', LogLevel.WARN, { error: tzError });
               // Don't fail the switch for this
             }
 
             // STEP 5.5: Fetch ZMS path and update CGI URL if different from inferred
             try {
-              log.profile('Step 5.5: Fetching ZMS path from server config');
+              log.profileService('Step 5.5: Fetching ZMS path from server config', LogLevel.INFO);
               const zmsPath = await fetchZmsPath();
               if (zmsPath && profile.portalUrl) {
                 // Construct the full CGI URL from portal + ZMS path
@@ -340,38 +337,38 @@ export const useProfileStore = create<ProfileState>()(
 
                   // Only update if different from current
                   if (newCgiUrl !== profile.cgiUrl) {
-                    log.profile('ZMS path fetched, updating CGI URL', {
+                    log.profileService('ZMS path fetched, updating CGI URL', LogLevel.INFO, {
                       oldCgiUrl: profile.cgiUrl,
                       zmsPath,
                       newCgiUrl
                     });
                     get().updateProfile(id, { cgiUrl: newCgiUrl });
                   } else {
-                    log.profile('ZMS path matches current CGI URL, no update needed', { cgiUrl: profile.cgiUrl });
+                    log.profileService('ZMS path matches current CGI URL, no update needed', LogLevel.INFO, { cgiUrl: profile.cgiUrl });
                   }
                 } catch (urlError) {
-                  log.warn('Failed to construct CGI URL from ZMS path', {
+                  log.profileService('Failed to construct CGI URL from ZMS path', LogLevel.WARN, {
                     portalUrl: profile.portalUrl,
                     zmsPath,
                     error: urlError
                   });
                 }
               } else {
-                log.profile('ZMS path not available, keeping current CGI URL', { cgiUrl: profile.cgiUrl });
+                log.profileService('ZMS path not available, keeping current CGI URL', LogLevel.INFO, { cgiUrl: profile.cgiUrl });
               }
             } catch (zmsError) {
-              log.warn('Failed to fetch ZMS path during profile switch', { error: zmsError });
+              log.profileService('Failed to fetch ZMS path during profile switch', LogLevel.WARN, { error: zmsError });
               // Don't fail the switch for this
             }
 
-            log.profile('Profile switch completed successfully', { currentProfile: profile.name });
+            log.profileService('Profile switch completed successfully', LogLevel.INFO, { currentProfile: profile.name });
 
           } catch (error) {
-            log.error('Profile switch FAILED', { component: 'Profile' }, error);
+            log.profileService('Profile switch FAILED', LogLevel.ERROR, error);
 
             // ROLLBACK: Restore previous profile if it exists
             if (previousProfile) {
-              log.profile('Starting rollback to previous profile', {
+              log.profileService('Starting rollback to previous profile', LogLevel.INFO, {
                 previousProfile: previousProfile.name,
               });
 
@@ -387,40 +384,36 @@ export const useProfileStore = create<ProfileState>()(
                 resetApiClient();
 
                 // Restore previous profile
-                log.profile('Restoring previous profile ID');
+                log.profileService('Restoring previous profile ID', LogLevel.INFO);
                 set({ currentProfileId: previousProfileId });
 
                 // Re-initialize with previous profile
-                log.profile('Re-initializing API client', { apiUrl: previousProfile.apiUrl });
+                log.profileService('Re-initializing API client', LogLevel.INFO, { apiUrl: previousProfile.apiUrl });
                 setApiClient(createApiClient(previousProfile.apiUrl, get().reLogin));
 
                 // Try to re-authenticate with previous profile
                 if (previousProfile.username && previousProfile.password) {
-                  log.profile('Re-authenticating with previous profile');
+                  log.profileService('Re-authenticating with previous profile', LogLevel.INFO);
                   const decryptedPassword = await get().getDecryptedPassword(previousProfileId!);
                   if (decryptedPassword) {
                     const { useAuthStore } = await import('./auth');
                     await useAuthStore
                       .getState()
                       .login(previousProfile.username, decryptedPassword);
-                    log.profile('Rollback successful', { restoredTo: previousProfile.name });
+                    log.profileService('Rollback successful', LogLevel.INFO, { restoredTo: previousProfile.name });
                   }
                 } else {
-                  log.profile('Rollback successful (no auth)');
+                  log.profileService('Rollback successful (no auth)', LogLevel.INFO);
                 }
               } catch (rollbackError) {
-                log.error('Rollback FAILED - user may need to manually re-authenticate', {
-                  component: 'Profile',
-                }, rollbackError);
+                log.profileService('Rollback FAILED - user may need to manually re-authenticate', LogLevel.ERROR, { rollbackError });
               }
             }
 
             // Re-throw the original error
             throw error;
           }
-        },
-
-        setDefaultProfile: (id) => {
+        }, setDefaultProfile: (id) => {
           set((state) => ({
             profiles: state.profiles.map((p) => ({
               ...p,
@@ -444,7 +437,7 @@ export const useProfileStore = create<ProfileState>()(
             await useAuthStore.getState().login(profile.username, password);
             return true;
           } catch (e) {
-            log.error('Re-login helper failed', { error: e });
+            log.profileService('Re-login helper failed', LogLevel.ERROR, { error: e });
             return false;
           }
         },
@@ -503,7 +496,7 @@ export const useProfileStore = create<ProfileState>()(
           }
         };
         const logDuration = (message: string, startTime: number, context: Record<string, unknown> = {}) => {
-          log.profile(message, {
+          log.profileService(message, LogLevel.INFO, {
             ...context,
             durationMs: Date.now() - startTime,
           });
@@ -518,20 +511,20 @@ export const useProfileStore = create<ProfileState>()(
         };
 
         try {
-          log.profile('onRehydrateStorage called', { hasState: !!state, currentProfileId: state?.currentProfileId });
+          log.profileService('onRehydrateStorage called', LogLevel.INFO, { hasState: !!state, currentProfileId: state?.currentProfileId });
         } catch {
           // Logger might not be initialized in test environment
         }
 
         if (!state?.currentProfileId) {
           try {
-            log.profile('No current profile found on app load', { state });
+            log.profileService('No current profile found on app load', LogLevel.INFO, { state });
           } catch {
             // Logger might not be initialized in test environment
           }
           setInitializationState(false);
           try {
-            log.profile('isInitialized set to true (no profile)');
+            log.profileService('isInitialized set to true (no profile)', LogLevel.INFO);
           } catch {
             // Logger might not be initialized in test environment
           }
@@ -541,10 +534,7 @@ export const useProfileStore = create<ProfileState>()(
         const profile = state.profiles.find((p) => p.id === state.currentProfileId);
         if (!profile) {
           try {
-            log.error('Current profile ID exists but profile not found', {
-              component: 'Profile',
-              profileId: state.currentProfileId,
-            });
+            log.profileService('Current profile ID exists but profile not found', LogLevel.ERROR, { profileId: state.currentProfileId, });
           } catch {
             // Logger might not be initialized in test environment
           }
@@ -554,7 +544,7 @@ export const useProfileStore = create<ProfileState>()(
         }
 
         try {
-          log.profile('App loading with profile', {
+          log.profileService('App loading with profile', LogLevel.INFO, {
             name: profile.name,
             id: profile.id,
             portalUrl: profile.portalUrl,
@@ -574,7 +564,7 @@ export const useProfileStore = create<ProfileState>()(
         try {
           const clearStart = Date.now();
           try {
-            log.profile('Clearing stale auth and cache');
+            log.profileService('Clearing stale auth and cache', LogLevel.INFO);
           } catch {
             // Logger might not be initialized in test environment
           }
@@ -587,14 +577,14 @@ export const useProfileStore = create<ProfileState>()(
 
           const apiClientStart = Date.now();
           try {
-            log.profile('Initializing API client', { apiUrl: profile.apiUrl });
+            log.profileService('Initializing API client', LogLevel.INFO, { apiUrl: profile.apiUrl });
           } catch {
             // Logger might not be initialized in test environment
           }
           setApiClient(createApiClient(profile.apiUrl, getState().reLogin));
           logDuration('Bootstrap step: API client ready', apiClientStart, { apiUrl: profile.apiUrl });
         } catch (error) {
-          log.error('Profile bootstrap failed during early initialization', { component: 'Profile' }, error);
+          log.profileService('Profile bootstrap failed during early initialization', LogLevel.ERROR, error);
           setInitializationState(false);
           return;
         }
@@ -604,10 +594,7 @@ export const useProfileStore = create<ProfileState>()(
         let overallTimeoutId: ReturnType<typeof setTimeout> | undefined;
         overallTimeoutId = setTimeout(() => {
           if (getState().isBootstrapping) {
-            log.warn('Profile bootstrap exceeded timeout; allowing UI to continue', {
-              component: 'Profile',
-              timeoutMs: BOOTSTRAP_TOTAL_TIMEOUT_MS,
-            });
+            log.profileService('Profile bootstrap exceeded timeout; allowing UI to continue', LogLevel.WARN, { timeoutMs: BOOTSTRAP_TOTAL_TIMEOUT_MS, });
             setState({ isBootstrapping: false, bootstrapStep: null });
           }
         }, BOOTSTRAP_TOTAL_TIMEOUT_MS);
@@ -618,7 +605,7 @@ export const useProfileStore = create<ProfileState>()(
               setState({ bootstrapStep: 'auth' });
               const authStart = Date.now();
               try {
-                log.profile('Authenticating with stored credentials', { username: profile.username });
+                log.profileService('Authenticating with stored credentials', LogLevel.INFO, { username: profile.username });
               } catch {
                 // Logger might not be initialized in test environment
               }
@@ -638,21 +625,18 @@ export const useProfileStore = create<ProfileState>()(
                 );
                 logDuration('Bootstrap step: authentication complete', authStart, { username: profile.username });
               } catch (error) {
-                log.warn('Authentication failed on app load - this might be OK if server does not require auth', {
-                  component: 'Profile',
-                  error,
-                });
+                log.profileService('Authentication failed on app load - this might be OK if server does not require auth', LogLevel.WARN, { error, });
                 logDuration('Bootstrap step: authentication failed', authStart);
               }
             } else {
-              log.profile('No credentials stored, skipping authentication');
-              log.info('This is normal for public servers', { component: 'Profile' });
+              log.profileService('No credentials stored, skipping authentication', LogLevel.INFO);
+              log.profileService('This is normal for public servers', LogLevel.INFO);
             }
 
             setState({ bootstrapStep: 'timezone' });
             const timezoneStart = Date.now();
             try {
-              log.profile('Fetching server timezone on load');
+              log.profileService('Fetching server timezone on load', LogLevel.INFO);
               const { useAuthStore } = await import('./auth');
               const { accessToken } = useAuthStore.getState();
               const timezone = await withTimeout(
@@ -664,14 +648,14 @@ export const useProfileStore = create<ProfileState>()(
               }
               logDuration('Bootstrap step: timezone fetched', timezoneStart, { timezone });
             } catch (tzError) {
-              log.warn('Failed to fetch timezone on load', { error: tzError });
+              log.profileService('Failed to fetch timezone on load', LogLevel.WARN, { error: tzError });
               logDuration('Bootstrap step: timezone fetch failed', timezoneStart);
             }
 
             setState({ bootstrapStep: 'zms' });
             const zmsStart = Date.now();
             try {
-              log.profile('Fetching ZMS path from server config');
+              log.profileService('Fetching ZMS path from server config', LogLevel.INFO);
               const zmsPath = await withTimeout('ZMS path fetch', fetchZmsPath());
               if (zmsPath && profile.portalUrl) {
                 try {
@@ -679,28 +663,28 @@ export const useProfileStore = create<ProfileState>()(
                   const newCgiUrl = `${url.origin}${zmsPath}`;
 
                   if (newCgiUrl !== profile.cgiUrl) {
-                    log.profile('ZMS path fetched, updating CGI URL', {
+                    log.profileService('ZMS path fetched, updating CGI URL', LogLevel.INFO, {
                       oldCgiUrl: profile.cgiUrl,
                       zmsPath,
                       newCgiUrl
                     });
                     getState().updateProfile(profile.id, { cgiUrl: newCgiUrl });
                   } else {
-                    log.profile('ZMS path matches current CGI URL, no update needed', { cgiUrl: profile.cgiUrl });
+                    log.profileService('ZMS path matches current CGI URL, no update needed', LogLevel.INFO, { cgiUrl: profile.cgiUrl });
                   }
                 } catch (urlError) {
-                  log.warn('Failed to construct CGI URL from ZMS path', {
+                  log.profileService('Failed to construct CGI URL from ZMS path', LogLevel.WARN, {
                     portalUrl: profile.portalUrl,
                     zmsPath,
                     error: urlError
                   });
                 }
               } else {
-                log.profile('ZMS path not available, keeping current CGI URL', { cgiUrl: profile.cgiUrl });
+                log.profileService('ZMS path not available, keeping current CGI URL', LogLevel.INFO, { cgiUrl: profile.cgiUrl });
               }
               logDuration('Bootstrap step: ZMS path fetched', zmsStart);
             } catch (zmsError) {
-              log.warn('Failed to fetch ZMS path on load', { error: zmsError });
+              log.profileService('Failed to fetch ZMS path on load', LogLevel.WARN, { error: zmsError });
               logDuration('Bootstrap step: ZMS path fetch failed', zmsStart);
             }
             setState({ bootstrapStep: 'finalize' });
@@ -729,7 +713,7 @@ useAuthStore.subscribe((state) => {
   if (currentProfileId && refreshToken) {
     const profile = currentProfile();
     if (profile && profile.refreshToken !== refreshToken) {
-      log.profile('Updating profile with new refresh token', { profileId: currentProfileId });
+      log.profileService('Updating profile with new refresh token', LogLevel.INFO, { profileId: currentProfileId });
       updateProfile(currentProfileId, { refreshToken });
     }
   }

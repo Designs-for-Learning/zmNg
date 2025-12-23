@@ -1,7 +1,7 @@
 import type { AxiosAdapter, InternalAxiosRequestConfig } from 'axios';
 import { CapacitorHttp } from '@capacitor/core';
 import { fetch as tauriFetch } from '@tauri-apps/plugin-http';
-import { log } from '../lib/logger';
+import { log, LogLevel } from '../lib/logger';
 import { Platform } from '../lib/platform';
 
 interface NativeHttpError {
@@ -33,7 +33,10 @@ export const createNativeAdapter = (): AxiosAdapter => {
                 ? (fullUrl.includes('?') ? `${fullUrl}&${params}` : `${fullUrl}?${params}`)
                 : fullUrl;
 
-            log.api(`[${Platform.isNative ? 'Native' : 'Tauri'} HTTP] Request: ${config.method?.toUpperCase() || 'GET'} ${urlWithParams}`, {});
+            log.api(
+                `[${Platform.isNative ? 'Native' : 'Tauri'} HTTP] Request: ${config.method?.toUpperCase() || 'GET'} ${urlWithParams}`,
+                LogLevel.DEBUG
+            );
 
             let responseData;
             let responseStatus;
@@ -66,7 +69,7 @@ export const createNativeAdapter = (): AxiosAdapter => {
                         const contentType = response.headers['Content-Type'] || response.headers['content-type'] || 'application/octet-stream';
                         responseData = new Blob([byteArray], { type: contentType });
                     } catch (e) {
-                        log.error('Failed to convert base64 to blob', { component: 'API' }, e);
+                        log.api('Failed to convert base64 to blob', LogLevel.ERROR, e);
                         responseData = response.data;
                     }
                 } else {
@@ -130,7 +133,10 @@ export const createNativeAdapter = (): AxiosAdapter => {
                 }
             }
 
-            log.api(`[${Platform.isNative ? 'Native' : 'Tauri'} HTTP] Response: ${responseStatus} ${fullUrl}`, {});
+            log.api(
+                `[${Platform.isNative ? 'Native' : 'Tauri'} HTTP] Response: ${responseStatus} ${fullUrl}`,
+                LogLevel.DEBUG
+            );
 
             return {
                 data: responseData,
@@ -142,7 +148,7 @@ export const createNativeAdapter = (): AxiosAdapter => {
             };
         } catch (error) {
             const nativeError = error as NativeHttpError;
-            log.error(`[${Platform.isNative ? 'Native' : 'Tauri'} HTTP] Error`, { component: 'API' }, error);
+            log.api(`[${Platform.isNative ? 'Native' : 'Tauri'} HTTP] Error`, LogLevel.ERROR, error);
 
             const axiosError = new Error(nativeError.message) as Error & {
                 config: InternalAxiosRequestConfig;

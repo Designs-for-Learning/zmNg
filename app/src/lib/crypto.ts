@@ -10,7 +10,7 @@
  * plugin which uses the device's Keychain/Keystore. This utility is a fallback for web.
  */
 
-import { log } from './logger';
+import { log, LogLevel } from './logger';
 
 const ENCRYPTION_ALGORITHM = 'AES-GCM';
 const KEY_LENGTH = 256;
@@ -127,7 +127,7 @@ export async function encrypt(plaintext: string): Promise<string> {
 
     return btoa(String.fromCharCode(...combined));
   } catch (error) {
-    log.error('Encryption failed', { component: 'Crypto' }, error);
+    log.crypto('Encryption failed', LogLevel.ERROR, error);
     throw new Error('Failed to encrypt data');
   }
 }
@@ -143,7 +143,7 @@ export async function decrypt(encryptedData: string): Promise<string> {
     const key = await getEncryptionKey();
     return await decryptWithKey(encryptedData, key);
   } catch (error) {
-    log.error('Decryption failed', { component: 'Crypto' }, error);
+    log.crypto('Decryption failed', LogLevel.ERROR, error);
     throw new Error('Failed to decrypt data');
   }
 }
@@ -156,7 +156,7 @@ export async function decryptLegacy(encryptedData: string): Promise<string> {
     const key = await getLegacyEncryptionKey();
     return await decryptWithKey(encryptedData, key);
   } catch (error) {
-    log.error('Legacy decryption failed', { component: 'Crypto' }, error);
+    log.crypto('Legacy decryption failed', LogLevel.ERROR, error);
     throw new Error('Failed to decrypt data');
   }
 }

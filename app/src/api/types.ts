@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { log } from '../lib/logger';
+import { log, LogLevel } from '../lib/logger';
 
 // Authentication types
 export const LoginResponseSchema = z.object({
@@ -44,7 +44,7 @@ export const HostTimeZoneResponseSchema = z.object({
 
   if (!tz) {
     // Log the actual data to help debugging if this fails
-    log.warn('HostTimeZoneResponseSchema validation failed', { component: 'API', receivedData: JSON.stringify(data) });
+    log.api('HostTimeZoneResponseSchema validation failed', LogLevel.WARN, { receivedData: JSON.stringify(data) });
     throw new Error('Response missing TimeZone field (checked root and DateTime object)');
   }
 

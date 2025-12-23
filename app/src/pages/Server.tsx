@@ -30,7 +30,7 @@ import { getServers, getLoad, getDiskPercent, getDaemonCheck } from '../api/serv
 import { getServerTimeZone } from '../api/time';
 import { getStates, changeState } from '../api/states';
 import { useToast } from '../hooks/use-toast';
-import { log } from '../lib/logger';
+import { log, LogLevel } from '../lib/logger';
 import {
   Select,
   SelectContent,
@@ -99,7 +99,7 @@ export default function Server() {
         description: t('server.state_applied'),
       });
       queryClient.invalidateQueries({ queryKey: ['states'] });
-      log.info('State/action applied', { component: 'Server', action: selectedAction });
+      log.server('State/action applied', LogLevel.INFO, { action: selectedAction });
     },
     onError: (error) => {
       toast({
@@ -107,7 +107,7 @@ export default function Server() {
         description: t('server.state_apply_failed'),
         variant: 'destructive',
       });
-      log.error('Failed to apply state/action', { component: 'Server' }, error);
+      log.server('Failed to apply state/action', LogLevel.ERROR, error);
     },
   });
 

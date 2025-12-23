@@ -14,7 +14,7 @@
 import { useEffect } from 'react';
 import { useAuthStore } from '../stores/auth';
 import { ZM_CONSTANTS } from '../lib/constants';
-import { log } from '../lib/logger';
+import { log, LogLevel } from '../lib/logger';
 
 /**
  * Custom hook to handle automatic token refresh.
@@ -41,7 +41,7 @@ export function useTokenRefresh(): void {
             await refreshAccessToken();
             log.auth('Access token refreshed successfully');
           } catch (error) {
-            log.error('Failed to refresh access token', { component: 'Auth' }, error);
+            log.auth('Failed to refresh access token', LogLevel.ERROR, error);
           }
         }
       }

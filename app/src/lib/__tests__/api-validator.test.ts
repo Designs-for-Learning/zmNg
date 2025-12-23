@@ -10,13 +10,21 @@ import {
   validateArrayItems,
   ApiValidationError,
 } from '../api-validator';
-import { log } from '../logger';
+import { log, LogLevel } from '../logger';
 
 // Mock the logger
 vi.mock('../logger', () => ({
   log: {
     error: vi.fn(),
     warn: vi.fn(),
+    api: vi.fn(),
+  },
+  LogLevel: {
+    DEBUG: 0,
+    INFO: 1,
+    WARN: 2,
+    ERROR: 3,
+    NONE: 4,
   },
 }));
 
@@ -261,10 +269,10 @@ describe('validateApiResponse', () => {
         // Expected to throw
       }
 
-      expect(log.error).toHaveBeenCalledWith(
+      expect(log.api).toHaveBeenCalledWith(
         'API response validation failed',
+        LogLevel.ERROR,
         expect.objectContaining({
-          component: 'API',
           endpoint: '/api/users',
         })
       );
@@ -279,10 +287,10 @@ describe('validateApiResponse', () => {
         // Expected to throw
       }
 
-      expect(log.error).toHaveBeenCalledWith(
+      expect(log.api).toHaveBeenCalledWith(
         'API response validation failed',
+        LogLevel.ERROR,
         expect.objectContaining({
-          component: 'API',
           method: 'GET',
         })
       );
@@ -388,8 +396,9 @@ describe('safeValidateApiResponse', () => {
 
       safeValidateApiResponse(UserSchema, invalidData, { endpoint: '/api/users' });
 
-      expect(log.error).toHaveBeenCalledWith(
+      expect(log.api).toHaveBeenCalledWith(
         'API response validation failed',
+        LogLevel.ERROR,
         expect.objectContaining({
           endpoint: '/api/users',
         })
@@ -471,10 +480,10 @@ describe('validateArrayItems', () => {
 
       validateArrayItems(UserSchema, mixedData);
 
-      expect(log.warn).toHaveBeenCalledWith(
+      expect(log.api).toHaveBeenCalledWith(
         'Some array items failed validation',
+        LogLevel.WARN,
         expect.objectContaining({
-          component: 'API',
           failedCount: 1,
           totalCount: 2,
         })
@@ -489,8 +498,9 @@ describe('validateArrayItems', () => {
 
       validateArrayItems(UserSchema, mixedData);
 
-      expect(log.warn).toHaveBeenCalledWith(
+      expect(log.api).toHaveBeenCalledWith(
         'Some array items failed validation',
+        LogLevel.WARN,
         expect.objectContaining({
           errors: expect.arrayContaining([
             expect.objectContaining({
@@ -517,10 +527,10 @@ describe('validateArrayItems', () => {
 
       validateArrayItems(UserSchema, notAnArray as any);
 
-      expect(log.error).toHaveBeenCalledWith(
+      expect(log.api).toHaveBeenCalledWith(
         'Expected array for validation',
+        LogLevel.ERROR,
         expect.objectContaining({
-          component: 'API',
           dataType: 'object',
         })
       );
@@ -561,8 +571,9 @@ describe('validateArrayItems', () => {
     it('includes context in error log for non-array', () => {
       validateArrayItems(UserSchema, {} as any, { endpoint: '/api/users' });
 
-      expect(log.error).toHaveBeenCalledWith(
+      expect(log.api).toHaveBeenCalledWith(
         'Expected array for validation',
+        LogLevel.ERROR,
         expect.objectContaining({
           endpoint: '/api/users',
         })
@@ -580,8 +591,9 @@ describe('validateArrayItems', () => {
         method: 'GET',
       });
 
-      expect(log.warn).toHaveBeenCalledWith(
+      expect(log.api).toHaveBeenCalledWith(
         'Some array items failed validation',
+        LogLevel.WARN,
         expect.objectContaining({
           endpoint: '/api/users',
           method: 'GET',

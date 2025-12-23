@@ -41,9 +41,17 @@ vi.mock('../../lib/secureStorage', () => ({
 vi.mock('../../lib/logger', () => ({
   log: {
     profile: vi.fn(),
+    profileService: vi.fn(),
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
+  },
+  LogLevel: {
+    DEBUG: 0,
+    INFO: 1,
+    WARN: 2,
+    ERROR: 3,
+    NONE: 4,
   },
 }));
 

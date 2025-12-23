@@ -5,7 +5,7 @@
  * events that can be handled by React components with access to the router.
  */
 
-import { log } from './logger';
+import { log, LogLevel } from './logger';
 
 export interface NavigationEvent {
   path: string;
@@ -21,14 +21,14 @@ class NavigationService {
    * Navigate to a path
    */
   public navigate(path: string, replace = false): void {
-    log.info('Navigation requested', { component: 'Navigation', path, replace });
+    log.navigation('Navigation requested', LogLevel.INFO, { path, replace });
 
     const event: NavigationEvent = { path, replace };
     this.listeners.forEach((listener) => {
       try {
         listener(event);
       } catch (error) {
-        log.error('Navigation listener error', { component: 'Navigation', path }, error);
+        log.navigation('Navigation listener error', LogLevel.ERROR, { path, error });
       }
     });
   }

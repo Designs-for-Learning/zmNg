@@ -11,7 +11,7 @@ import type { ErrorInfo, ReactNode } from 'react';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
-import { log } from '../lib/logger';
+import { log, LogLevel } from '../lib/logger';
 import { withTranslation } from 'react-i18next';
 import type { WithTranslation } from 'react-i18next';
 
@@ -46,8 +46,8 @@ class ErrorBoundaryClass extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-    log.error('React Error Boundary caught an error', { component: 'ErrorBoundary' }, error);
-    log.error('Component stack', { component: 'ErrorBoundary' }, errorInfo.componentStack);
+    log.errorBoundary('React Error Boundary caught an error', LogLevel.ERROR, error);
+    log.errorBoundary('Component stack', LogLevel.ERROR, errorInfo.componentStack);
 
     this.setState({
       error,

@@ -9,9 +9,13 @@ import { cn } from '../lib/utils';
 import { Capacitor } from '@capacitor/core';
 import { Share } from '@capacitor/share';
 import { useToast } from '../hooks/use-toast';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getAppVersion } from '../lib/version';
+import { Popover, PopoverContent, PopoverTrigger } from '../components/ui/popover';
+import { Checkbox } from '../components/ui/checkbox';
+import { Label } from '../components/ui/label';
+import type { LogEntry } from '../stores/logs';
 
 function LogCodeBlock({ content }: { content: string }) {
     const [isExpanded, setIsExpanded] = useState(false);
@@ -56,6 +60,8 @@ export default function Logs() {
     const { t } = useTranslation();
     const isNative = Capacitor.isNativePlatform();
     const [logLevel, setLogLevel] = useState<string>(logger.getLevel().toString());
+    const [selectedComponents, setSelectedComponents] = useState<string[]>([]);
+    const unassignedComponentValue = 'unassigned';
 
     const handleLevelChange = (value: string) => {
         const level = parseInt(value, 10) as LogLevel;
@@ -63,7 +69,7 @@ export default function Logs() {
         setLogLevel(value);
         toast({
             title: t('common.success'),
-            description: "Log level updated",
+            description: t('logs.level_updated'),
         });
     };
 
@@ -78,12 +84,78 @@ export default function Logs() {
         }
     };
 
-    // Filter logs based on selected level
-    const currentLevel = parseInt(logLevel, 10);
-    const filteredLogs = logs.filter(log => logLevelValue(log.level) >= currentLevel);
+    const getLogComponentValue = (log: LogEntry) => {
+        const component = log.context?.component;
+        if (typeof component === 'string' && component.trim().length > 0) {
+            return component;
+        }
+        return unassignedComponentValue;
+    };
 
-    const exportLogsAsText = () => {
-        const logText = logs.map(log => {
+    const componentOptions = useMemo(() => {
+        const components = new Set<string>();
+        let hasUnassigned = false;
+
+        logs.forEach((log) => {
+            const component = log.context?.component;
+            if (typeof component === 'string' && component.trim().length > 0) {
+                components.add(component);
+            } else {
+                hasUnassigned = true;
+            }
+        });
+
+        const sortedComponents = Array.from(components).sort((a, b) => a.localeCompare(b));
+        const options = sortedComponents.map((component) => ({
+            value: component,
+            label: component,
+        }));
+
+        if (hasUnassigned) {
+            options.push({
+                value: unassignedComponentValue,
+                label: t('logs.component_unassigned'),
+            });
+        }
+
+        return options;
+    }, [logs, t]);
+
+    const toggleComponent = (value: string) => {
+        setSelectedComponents((prev) => (
+            prev.includes(value)
+                ? prev.filter((item) => item !== value)
+                : [...prev, value]
+        ));
+    };
+
+    const selectedLabel = (() => {
+        if (selectedComponents.length === 0) {
+            return t('logs.component_filter_all');
+        }
+        if (selectedComponents.length === 1) {
+            const selected = selectedComponents[0];
+            const option = componentOptions.find((item) => item.value === selected);
+            return option?.label ?? selected;
+        }
+        return t('logs.component_filter_selected', { count: selectedComponents.length });
+    })();
+
+    const toTestId = (value: string) =>
+        value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+
+    // Filter logs based on selected level and components
+    const currentLevel = parseInt(logLevel, 10);
+    const filteredLogs = logs.filter((log) => {
+        const passesLevel = logLevelValue(log.level) >= currentLevel;
+        if (!passesLevel) return false;
+        if (selectedComponents.length === 0) return true;
+        const componentValue = getLogComponentValue(log);
+        return selectedComponents.includes(componentValue);
+    });
+
+    const exportLogsAsText = (entries: LogEntry[]) => {
+        const logText = entries.map(log => {
             let text = `[${log.timestamp}] [${log.level}]`;
             if (log.context?.component) {
                 text += ` [${log.context.component}]`;
@@ -112,7 +184,7 @@ export default function Logs() {
     };
 
     const handleSaveLogs = () => {
-        const logText = exportLogsAsText();
+        const logText = exportLogsAsText(filteredLogs);
         const blob = new Blob([logText], { type: 'text/plain' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -130,7 +202,7 @@ export default function Logs() {
     };
 
     const handleShareLogs = async () => {
-        const logText = exportLogsAsText();
+        const logText = exportLogsAsText(filteredLogs);
 
         try {
             await Share.share({
@@ -171,10 +243,10 @@ export default function Logs() {
                         {t('logs.subtitle')}
                     </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                     <Select value={logLevel} onValueChange={handleLevelChange}>
                         <SelectTrigger className="w-[100px] h-8" data-testid="log-level-select">
-                            <SelectValue placeholder="Level" />
+                            <SelectValue placeholder={t('logs.level_placeholder')} />
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value={LogLevel.DEBUG.toString()} data-testid="log-level-option-DEBUG">DEBUG</SelectItem>
@@ -183,6 +255,66 @@ export default function Logs() {
                             <SelectItem value={LogLevel.ERROR.toString()} data-testid="log-level-option-ERROR">ERROR</SelectItem>
                         </SelectContent>
                     </Select>
+                    <div data-testid="log-component-filter">
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-8 gap-1"
+                                    data-testid="log-component-filter-trigger"
+                                >
+                                    <span className="text-xs text-muted-foreground">{t('logs.component_filter_label')}</span>
+                                    <span className="text-xs font-medium">{selectedLabel}</span>
+                                    <ChevronDown className="h-3 w-3 text-muted-foreground" />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-56 p-2" align="end" data-testid="log-component-filter-options">
+                                <div className="space-y-2">
+                                    <div className="flex items-center gap-2" data-testid="log-component-filter-option-all">
+                                        <Checkbox
+                                            id="log-component-filter-all"
+                                            checked={selectedComponents.length === 0}
+                                            onCheckedChange={() => setSelectedComponents([])}
+                                            data-testid="log-component-filter-checkbox-all"
+                                        />
+                                        <Label htmlFor="log-component-filter-all" className="text-xs">
+                                            {t('logs.component_filter_all')}
+                                        </Label>
+                                    </div>
+                                    {componentOptions.length === 0 ? (
+                                        <div className="text-xs text-muted-foreground">
+                                            {t('logs.no_logs_available')}
+                                        </div>
+                                    ) : (
+                                        componentOptions.map((option) => {
+                                            const optionTestId = option.value === unassignedComponentValue
+                                                ? 'unassigned'
+                                                : toTestId(option.value) || 'unknown';
+                                            const optionId = `log-component-filter-${optionTestId}`;
+                                            return (
+                                                <div
+                                                    key={option.value}
+                                                    className="flex items-center gap-2"
+                                                    data-testid={`log-component-filter-option-${optionTestId}`}
+                                                >
+                                                    <Checkbox
+                                                        id={optionId}
+                                                        checked={selectedComponents.includes(option.value)}
+                                                        onCheckedChange={() => toggleComponent(option.value)}
+                                                        data-testid={`log-component-filter-checkbox-${optionTestId}`}
+                                                    />
+                                                    <Label htmlFor={optionId} className="text-xs">
+                                                        {option.label}
+                                                    </Label>
+                                                </div>
+                                            );
+                                        })
+                                    )}
+                                </div>
+                            </PopoverContent>
+                        </Popover>
+                    </div>
                     {isNative ? (
                         <Button
                             variant="outline"

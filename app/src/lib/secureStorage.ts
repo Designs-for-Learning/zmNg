@@ -25,7 +25,7 @@ import {
   isCryptoAvailable,
   isProbablyEncryptedPayload,
 } from './crypto';
-import { log } from './logger';
+import { log, LogLevel } from './logger';
 
 const STORAGE_PREFIX = 'zmng_secure_';
 
@@ -47,8 +47,7 @@ export async function setSecureValue(key: string, value: string): Promise<void> 
 
   if (isNativePlatform()) {
     // Use SecureStorage plugin (iOS Keychain / Android Keystore)
-    log.debug('Storing in native secure storage (Keychain/Keystore)', {
-      component: 'SecureStorage',
+    log.secureStorage('Storing in native secure storage (Keychain/Keystore)', LogLevel.DEBUG, {
       key,
       platform: Capacitor.getPlatform(),
     });
@@ -56,9 +55,7 @@ export async function setSecureValue(key: string, value: string): Promise<void> 
   } else {
     // Use AES-GCM encryption for web/desktop
     if (!isCryptoAvailable()) {
-      log.error(
-        'Web Crypto API not available - cannot store credentials securely',
-        { component: 'SecureStorage', key }
+      log.secureStorage('Web Crypto API not available - cannot store credentials securely', LogLevel.ERROR, { key }
       );
       throw new Error(
         'Secure storage not available. Please use a modern browser that supports Web Crypto API (Chrome, Firefox, Safari, Edge).'
@@ -68,12 +65,9 @@ export async function setSecureValue(key: string, value: string): Promise<void> 
     try {
       const encrypted = await encrypt(value);
       localStorage.setItem(fullKey, encrypted);
-      log.debug('Value encrypted and stored in localStorage', {
-        component: 'SecureStorage',
-        key,
-      });
+      log.secureStorage('Value encrypted and stored in localStorage', LogLevel.DEBUG, { key });
     } catch (error) {
-      log.error('Failed to encrypt value', { component: 'SecureStorage', key }, error);
+      log.secureStorage('Failed to encrypt value', LogLevel.ERROR, { key, error });
       throw new Error('Failed to securely store value');
     }
   }
@@ -90,8 +84,7 @@ export async function getSecureValue(key: string): Promise<string | null> {
 
   if (isNativePlatform()) {
     // Retrieve from SecureStorage (Keychain/Keystore)
-    log.debug('Retrieving from native secure storage', {
-      component: 'SecureStorage',
+    log.secureStorage('Retrieving from native secure storage', LogLevel.DEBUG, {
       key,
       platform: Capacitor.getPlatform(),
     });
@@ -101,10 +94,7 @@ export async function getSecureValue(key: string): Promise<string | null> {
       return value as string | null;
     } catch (error) {
       // Key doesn't exist or error occurred
-      log.debug('Key not found in native secure storage', {
-        component: 'SecureStorage',
-        key,
-      });
+      log.secureStorage('Key not found in native secure storage', LogLevel.DEBUG, { key, });
       return null;
     }
   } else {
@@ -115,14 +105,9 @@ export async function getSecureValue(key: string): Promise<string | null> {
     }
 
     if (!isCryptoAvailable()) {
-      log.error(
-        'Web Crypto API not available - cannot decrypt stored credentials',
-        { component: 'SecureStorage', key }
+      log.secureStorage('Web Crypto API not available - cannot decrypt stored credentials', LogLevel.ERROR, { key }
       );
-      log.warn(
-        'Returning potentially unencrypted value from legacy storage. Please use a modern browser.',
-        { component: 'SecureStorage', key }
-      );
+      log.secureStorage('Returning potentially unencrypted value from legacy storage. Please use a modern browser.', LogLevel.WARN, { key });
       // Return the value as-is (may be unencrypted from old storage)
       // This allows legacy data to still work but logs the security issue
       return encrypted;
@@ -130,34 +115,23 @@ export async function getSecureValue(key: string): Promise<string | null> {
 
     try {
       const decrypted = await decrypt(encrypted);
-      log.debug('Value retrieved and decrypted from localStorage', {
-        component: 'SecureStorage',
-        key,
-      });
+      log.secureStorage('Value retrieved and decrypted from localStorage', LogLevel.DEBUG, { key });
       return decrypted;
     } catch {
       try {
         const legacyDecrypted = await decryptLegacy(encrypted);
         const reencrypted = await encrypt(legacyDecrypted);
         localStorage.setItem(fullKey, reencrypted);
-        log.info('Migrated legacy encrypted value to new key', {
-          component: 'SecureStorage',
-          key,
-        });
+        log.secureStorage('Migrated legacy encrypted value to new key', LogLevel.INFO, { key, });
         return legacyDecrypted;
       } catch (error) {
-        log.error('Failed to decrypt value', { component: 'SecureStorage', key }, error);
+        log.secureStorage('Failed to decrypt value', LogLevel.ERROR, { key, error });
         if (isProbablyEncryptedPayload(encrypted)) {
-          log.warn(
-            'Encrypted value could not be decrypted; returning null to force re-auth',
-            { component: 'SecureStorage', key }
+          log.secureStorage('Encrypted value could not be decrypted; returning null to force re-auth', LogLevel.WARN, { key }
           );
           return null;
         }
-        log.warn(
-          'Returning raw value - may be unencrypted legacy data',
-          { component: 'SecureStorage', key }
-        );
+        log.secureStorage('Returning raw value - may be unencrypted legacy data', LogLevel.WARN, { key });
         // Return raw value as fallback for legacy plaintext
         return encrypted;
       }
@@ -174,8 +148,7 @@ export async function removeSecureValue(key: string): Promise<void> {
   const fullKey = `${STORAGE_PREFIX}${key}`;
 
   if (isNativePlatform()) {
-    log.debug('Removing from native secure storage', {
-      component: 'SecureStorage',
+    log.secureStorage('Removing from native secure storage', LogLevel.DEBUG, {
       key,
       platform: Capacitor.getPlatform(),
     });
@@ -183,13 +156,10 @@ export async function removeSecureValue(key: string): Promise<void> {
       await SecureStorage.remove(fullKey);
     } catch (error) {
       // Key might not exist, which is fine
-      log.debug('Key not found during removal (already deleted?)', {
-        component: 'SecureStorage',
-        key,
-      });
+      log.secureStorage('Key not found during removal (already deleted?)', LogLevel.DEBUG, { key, });
     }
   } else {
-    log.debug('Removing from localStorage', { component: 'SecureStorage', key });
+    log.secureStorage('Removing from localStorage', LogLevel.DEBUG, { key });
     localStorage.removeItem(fullKey);
   }
 }
@@ -220,10 +190,7 @@ export async function hasSecureValue(key: string): Promise<boolean> {
  */
 export async function clearSecureStorage(): Promise<void> {
   if (isNativePlatform()) {
-    log.debug('Clearing all secure storage (native)', {
-      component: 'SecureStorage',
-      platform: Capacitor.getPlatform(),
-    });
+    log.secureStorage('Clearing all secure storage (native)', LogLevel.DEBUG, { platform: Capacitor.getPlatform(), });
     try {
       // SecureStorage.clear() removes ALL keys, not just ours with prefix
       // So we use keys() to get all keys and filter for our prefix
@@ -234,24 +201,16 @@ export async function clearSecureStorage(): Promise<void> {
         try {
           await SecureStorage.remove(key);
         } catch (error) {
-          log.warn('Failed to remove key during clear', {
-            component: 'SecureStorage',
-            key,
-          });
+          log.secureStorage('Failed to remove key during clear', LogLevel.WARN, { key, });
         }
       }
 
-      log.debug('Native secure storage cleared', {
-        component: 'SecureStorage',
-        keysRemoved: ourKeys.length,
-      });
+      log.secureStorage('Native secure storage cleared', LogLevel.DEBUG, { keysRemoved: ourKeys.length, });
     } catch (error) {
-      log.error('Failed to clear native secure storage', {
-        component: 'SecureStorage',
-      }, error);
+      log.secureStorage('Failed to clear native secure storage', LogLevel.ERROR, { error });
     }
   } else {
-    log.debug('Clearing all secure storage (web)', { component: 'SecureStorage' });
+    log.secureStorage('Clearing all secure storage (web)', LogLevel.DEBUG);
     // Remove all keys starting with our prefix
     const keysToRemove: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {

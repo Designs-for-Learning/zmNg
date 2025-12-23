@@ -6,7 +6,7 @@
  */
 
 import { z, type ZodSchema } from 'zod';
-import { log } from './logger';
+import { log, LogLevel } from './logger';
 
 export class ApiValidationError extends Error {
   public readonly zodError: z.ZodError;
@@ -48,12 +48,9 @@ export function validateApiResponse<T extends ZodSchema>(
     return schema.parse(data);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      log.error('API response validation failed', {
-        component: 'API',
-        ...context,
+      log.api('API response validation failed', LogLevel.ERROR, { ...context,
         errors: error.issues,
-        rawData: data,
-      });
+        rawData: data, });
 
       throw new ApiValidationError(
         `API response validation failed for ${context.endpoint || 'unknown endpoint'}`,
@@ -121,11 +118,8 @@ export function validateArrayItems<T extends ZodSchema>(
   context: { endpoint?: string; method?: string } = {}
 ): z.infer<T>[] {
   if (!Array.isArray(data)) {
-    log.error('Expected array for validation', {
-      component: 'API',
-      ...context,
-      dataType: typeof data,
-    });
+    log.api('Expected array for validation', LogLevel.ERROR, { ...context,
+      dataType: typeof data, });
     return [];
   }
 
@@ -143,9 +137,7 @@ export function validateArrayItems<T extends ZodSchema>(
   });
 
   if (errors.length > 0) {
-    log.warn('Some array items failed validation', {
-      component: 'API',
-      ...context,
+    log.api('Some array items failed validation', LogLevel.WARN, { ...context,
       failedCount: errors.length,
       totalCount: data.length,
       errors: errors.map(({ index, error }) => ({

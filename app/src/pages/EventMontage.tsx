@@ -59,7 +59,7 @@ import { useTranslation } from 'react-i18next';
 import { formatLocalDateTime } from '../lib/time';
 import { QuickDateRangeButtons } from '../components/ui/quick-date-range-buttons';
 import { EmptyState } from '../components/ui/empty-state';
-import { log } from '../lib/logger';
+import { log, LogLevel } from '../lib/logger';
 import { parseMonitorRotation } from '../lib/monitor-rotation';
 
 const GRID_GAP = 16;
@@ -197,7 +197,7 @@ export default function EventMontage() {
     params.sort = 'StartDateTime';
     params.direction = 'desc';
 
-    log.debug('Event montage filter params', { component: 'EventMontage', params });
+    log.eventMontage('Event montage filter params', LogLevel.DEBUG, { params });
 
     return params;
   }, [selectedMonitorIds, selectedCause, startDate, endDate, eventLimit]);
@@ -239,11 +239,8 @@ export default function EventMontage() {
 
   const events = eventsData?.events || [];
 
-  log.debug('Event montage API results', {
-    component: 'EventMontage',
-    eventCount: events.length,
-    settingsLimit: settings.defaultEventLimit
-  });
+  log.eventMontage('Event montage API results', LogLevel.DEBUG, { eventCount: events.length,
+    settingsLimit: settings.defaultEventLimit });
 
   // Get unique causes for filter
   const uniqueCauses = useMemo(() => {

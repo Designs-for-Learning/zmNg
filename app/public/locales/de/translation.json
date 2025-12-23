@@ -291,7 +291,13 @@
     "share_dialog_title": "Anwendungsprotokolle teilen",
     "share_failed": "Teilen fehlgeschlagen",
     "show_more": "Mehr anzeigen",
-    "show_less": "Weniger anzeigen"
+    "show_less": "Weniger anzeigen",
+    "level_updated": "Protokollstufe aktualisiert",
+    "level_placeholder": "Stufe",
+    "component_filter_label": "Komponenten",
+    "component_filter_all": "Alle Komponenten",
+    "component_filter_selected": "{{count}} Komponenten",
+    "component_unassigned": "Nicht zugewiesen"
   },
   "monitor_detail": {
     "events": "Ereignisse",

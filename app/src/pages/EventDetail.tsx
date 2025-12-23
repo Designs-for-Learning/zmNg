@@ -23,7 +23,7 @@ import { parseMonitorRotation } from '../lib/monitor-rotation';
 import { toast } from 'sonner';
 import { useState, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { log } from '../lib/logger';
+import { log, LogLevel } from '../lib/logger';
 import { generateEventMarkers, type VideoMarker } from '../lib/video-markers';
 
 export default function EventDetail() {
@@ -68,8 +68,7 @@ export default function EventDetail() {
   // Handle marker clicks
   // NOTE: This hook must be called before any conditional returns
   const handleMarkerClick = useCallback((marker: VideoMarker) => {
-    log.info('Video marker clicked', {
-      component: 'EventDetail',
+    log.eventDetail('Video marker clicked', LogLevel.INFO, {
       frameId: marker.frameId,
       type: marker.type
     });
@@ -129,8 +128,7 @@ export default function EventDetail() {
   const hasVideo = !!(event.Event.DefaultVideo || event.Event.Videoed === '1');
   const hasJPEGs = event.Event.SaveJPEGs !== null && event.Event.SaveJPEGs !== '0';
 
-  log.debug('Event details', {
-    component: 'EventDetail',
+  log.eventDetail('Event details', LogLevel.DEBUG, {
     eventId: event.Event.Id,
     defaultVideo: event.Event.DefaultVideo,
     videoed: event.Event.Videoed,
@@ -249,7 +247,7 @@ export default function EventDetail() {
                     markers={videoMarkers}
                     onMarkerClick={handleMarkerClick}
                     onError={() => {
-                      log.info('Video playback failed, falling back to ZMS stream', { component: 'EventDetail' });
+                      log.eventDetail('Video playback failed, falling back to ZMS stream', LogLevel.INFO);
                       toast.error(t('event_detail.video_playback_failed'));
                       setUseZmsFallback(true);
                     }}

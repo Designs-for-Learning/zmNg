@@ -4,18 +4,33 @@ import userEvent from '@testing-library/user-event';
 import Logs from '../Logs';
 
 const clearLogs = vi.fn();
+const logs = [
+  {
+    id: 'log-1',
+    timestamp: '2024-01-01T00:00:00Z',
+    level: 'INFO',
+    message: 'Auth log',
+    context: { component: 'Auth' },
+  },
+  {
+    id: 'log-2',
+    timestamp: '2024-01-01T00:00:01Z',
+    level: 'WARN',
+    message: 'API log',
+    context: { component: 'API' },
+  },
+  {
+    id: 'log-3',
+    timestamp: '2024-01-01T00:00:02Z',
+    level: 'ERROR',
+    message: 'Unassigned log',
+  },
+];
 
 vi.mock('../../stores/logs', () => ({
   useLogStore: (selector: (state: { logs: any[]; clearLogs: typeof clearLogs }) => unknown) =>
     selector({
-      logs: [
-        {
-          id: 'log-1',
-          timestamp: '2024-01-01T00:00:00Z',
-          level: 'INFO',
-          message: 'Test log',
-        },
-      ],
+      logs,
       clearLogs,
     }),
 }));
@@ -66,9 +81,19 @@ describe('Logs Page', () => {
     const user = userEvent.setup();
     render(<Logs />);
 
-    expect(screen.getByTestId('log-entry')).toBeInTheDocument();
+    expect(screen.getAllByTestId('log-entry')).toHaveLength(3);
 
     await user.click(screen.getByTestId('logs-clear-button'));
     expect(clearLogs).toHaveBeenCalled();
+  });
+
+  it('filters logs by component', async () => {
+    const user = userEvent.setup();
+    render(<Logs />);
+
+    await user.click(screen.getByTestId('log-component-filter-trigger'));
+    await user.click(screen.getByTestId('log-component-filter-checkbox-auth'));
+
+    expect(screen.getAllByTestId('log-entry')).toHaveLength(1);
   });
 });

@@ -15,7 +15,7 @@
 import { CapacitorHttp, type HttpResponse as CapacitorHttpResponse } from '@capacitor/core';
 import { fetch as tauriFetch } from '@tauri-apps/plugin-http';
 import { Platform } from './platform';
-import { log } from './logger';
+import { log, LogLevel } from './logger';
 
 export interface HttpOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
@@ -126,7 +126,9 @@ export async function httpRequest<T = unknown>(
     requestHeaders['X-Target-Host'] = baseUrl;
   }
 
-  log.api(`[HTTP] ${method} ${fullUrl}`, { platform: Platform.isNative ? 'Native' : Platform.isTauri ? 'Tauri' : 'Web' });
+  log.api(`[HTTP] ${method} ${fullUrl}`, LogLevel.DEBUG, {
+    platform: Platform.isNative ? 'Native' : Platform.isTauri ? 'Tauri' : 'Web',
+  });
 
   try {
     if (Platform.isNative) {
@@ -137,7 +139,7 @@ export async function httpRequest<T = unknown>(
       return await webHttpRequest<T>(requestUrl, method, requestHeaders, body, responseType);
     }
   } catch (error) {
-    log.error(`[HTTP] Request failed: ${method} ${fullUrl}`, { component: 'HTTP' }, error);
+    log.http(`[HTTP] Request failed: ${method} ${fullUrl}`, LogLevel.ERROR, error);
     throw error;
   }
 }
@@ -174,7 +176,7 @@ async function nativeHttpRequest<T>(
       const contentType = response.headers['Content-Type'] || response.headers['content-type'] || 'application/octet-stream';
       data = new Blob([byteArray], { type: contentType }) as T;
     } catch (e) {
-      log.error('Failed to convert base64 to blob', { component: 'HTTP' }, e);
+      log.http('Failed to convert base64 to blob', LogLevel.ERROR, e);
       data = response.data as T;
     }
   } else {

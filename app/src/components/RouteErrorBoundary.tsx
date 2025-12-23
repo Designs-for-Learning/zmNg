@@ -9,7 +9,7 @@
 import { Component, type ReactNode } from 'react';
 import { AlertCircle } from 'lucide-react';
 import { Button } from './ui/button';
-import { log } from '../lib/logger';
+import { log, LogLevel } from '../lib/logger';
 import { withTranslation } from 'react-i18next';
 import type { WithTranslation } from 'react-i18next';
 
@@ -38,12 +38,11 @@ class RouteErrorBoundaryClass extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    log.error(
-      `Route Error: ${this.props.routePath}`,
-      { component: 'RouteErrorBoundary', route: this.props.routePath },
+    log.errorBoundary(`Route Error: ${this.props.routePath}`, LogLevel.ERROR, {
+      route: this.props.routePath,
       error,
-      { componentStack: errorInfo.componentStack }
-    );
+      componentStack: errorInfo.componentStack,
+    });
   }
 
   handleReset = () => {

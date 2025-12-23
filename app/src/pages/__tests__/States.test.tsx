@@ -46,6 +46,13 @@ vi.mock('../../lib/logger', () => ({
     auth: vi.fn(),
     profile: vi.fn(),
   },
+  LogLevel: {
+    DEBUG: 0,
+    INFO: 1,
+    WARN: 2,
+    ERROR: 3,
+    NONE: 4,
+  },
 }));
 
 describe('States Page', () => {

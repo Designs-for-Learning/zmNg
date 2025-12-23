@@ -13,7 +13,7 @@ import { useNotificationStore } from '../stores/notifications';
 import { useProfileStore } from '../stores/profile';
 import { toast } from 'sonner';
 import { Bell } from 'lucide-react';
-import { log } from '../lib/logger';
+import { log, LogLevel } from '../lib/logger';
 import { navigationService } from '../lib/navigation';
 import { useTranslation } from 'react-i18next';
 import { Capacitor } from '@capacitor/core';
@@ -63,7 +63,7 @@ export function NotificationHandler() {
 
       // Initialize push service - this will call register() to get the current FCM token
       pushService.initialize().catch((error) => {
-        log.error('Failed to initialize push notifications', { component: 'NotificationHandler' }, error);
+        log.notificationHandler('Failed to initialize push notifications', LogLevel.ERROR, error);
       });
     }
   }, [settings?.enabled]);
@@ -76,11 +76,8 @@ export function NotificationHandler() {
 
       // Disconnect from previous profile if connected to a different one
       if (isConnected && currentProfileId !== currentProfile?.id) {
-        log.info('Profile changed - disconnecting from previous profile', {
-          component: 'Notifications',
-          previousProfile: currentProfileId,
-          newProfile: currentProfile?.id,
-        });
+        log.notifications('Profile changed - disconnecting from previous profile', LogLevel.INFO, { previousProfile: currentProfileId,
+          newProfile: currentProfile?.id, });
         disconnect();
       }
     }
@@ -89,11 +86,8 @@ export function NotificationHandler() {
   // Listen to navigation events from services (e.g., push notifications)
   useEffect(() => {
     const unsubscribe = navigationService.addListener((event) => {
-      log.info('Navigating from service event', {
-        component: 'NotificationHandler',
-        path: event.path,
-        replace: event.replace,
-      });
+      log.notificationHandler('Navigating from service event', LogLevel.INFO, { path: event.path,
+        replace: event.replace, });
 
       if (event.replace) {
         navigate(event.path, { replace: true });
@@ -121,10 +115,7 @@ export function NotificationHandler() {
     ) {
       hasAttemptedAutoConnect.current = true;
 
-      log.info('Auto-connecting to notification server', {
-        component: 'Notifications',
-        profileId: currentProfile.id,
-      });
+      log.notifications('Auto-connecting to notification server', LogLevel.INFO, { profileId: currentProfile.id, });
 
       const attemptConnect = async (retries = 3) => {
         try {
@@ -134,28 +125,22 @@ export function NotificationHandler() {
           // This is crucial because getDecryptedPassword is async and state might have changed
           const currentState = useNotificationStore.getState().connectionState;
           if (currentState !== 'disconnected') {
-             log.info('Skipping auto-connect - already connected or connecting', {
-               component: 'Notifications',
-               state: currentState,
-               profileId: currentProfile.id,
-             });
+             log.notifications('Skipping auto-connect - already connected or connecting', LogLevel.INFO, { state: currentState,
+               profileId: currentProfile.id, });
              return;
           }
 
           if (password) {
             await connect(currentProfile.id, currentProfile.username!, password, currentProfile.portalUrl);
-            log.info('Auto-connected to notification server', {
-              component: 'Notifications',
-              profileId: currentProfile.id,
-            });
+            log.notifications('Auto-connected to notification server', LogLevel.INFO, { profileId: currentProfile.id, });
           } else {
             throw new Error('Failed to get password');
           }
         } catch (error) {
-          log.error(`Auto-connect failed (retries left: ${retries})`, {
-            component: 'Notifications',
+          log.notifications(`Auto-connect failed (retries left: ${retries})`, LogLevel.ERROR, {
             profileId: currentProfile.id,
-          }, error);
+            error,
+          });
 
           if (retries > 0) {
             setTimeout(() => attemptConnect(retries - 1), 2000);
@@ -232,12 +217,9 @@ export function NotificationHandler() {
         playNotificationSound();
       }
 
-      log.info('Showed notification toast', {
-        component: 'Notifications',
-        profileId: currentProfile?.id,
+      log.notifications('Showed notification toast', LogLevel.INFO, { profileId: currentProfile?.id,
         monitor: latestEvent.MonitorName,
-        eventId: latestEvent.EventId,
-      });
+        eventId: latestEvent.EventId, });
     }
   }, [events, settings?.showToasts, settings?.playSound, currentProfile?.id, t, navigate]);
 
@@ -268,6 +250,6 @@ function playNotificationSound() {
     oscillator.start(audioContext.currentTime);
     oscillator.stop(audioContext.currentTime + 0.3);
   } catch (error) {
-    log.error('Failed to play notification sound', { component: 'Notifications' }, error);
+    log.notifications('Failed to play notification sound', LogLevel.ERROR, error);
   }
 }

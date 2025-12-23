@@ -27,6 +27,13 @@ vi.mock('../../lib/logger', () => ({
     api: vi.fn(),
     warn: vi.fn(),
   },
+  LogLevel: {
+    DEBUG: 0,
+    INFO: 1,
+    WARN: 2,
+    ERROR: 3,
+    NONE: 4,
+  },
 }));
 
 const buildEventData = (id: number) => ({

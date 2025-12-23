@@ -43,6 +43,14 @@ vi.mock('../logger', () => ({
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
+    secureStorage: vi.fn(),
+  },
+  LogLevel: {
+    DEBUG: 0,
+    INFO: 1,
+    WARN: 2,
+    ERROR: 3,
+    NONE: 4,
   },
 }));
 

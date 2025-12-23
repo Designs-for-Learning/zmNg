@@ -17,7 +17,7 @@ import { createApiClient, setApiClient } from '../api/client';
 import { discoverZoneminder, DiscoveryError } from '../lib/discovery';
 import { Video, Server, ShieldCheck, ArrowRight, Loader2, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { log } from '../lib/logger';
+import { log, LogLevel } from '../lib/logger';
 import { fetchZmsPath } from '../api/auth';
 
 export default function ProfileForm() {
@@ -55,7 +55,7 @@ export default function ProfileForm() {
       const client = createApiClient(result.apiUrl);
       setApiClient(client);
 
-      log.info('Successfully connected', { component: 'ProfileForm', apiUrl: result.apiUrl });
+      log.profileForm('Successfully connected', LogLevel.INFO, { apiUrl: result.apiUrl });
 
       return result;
     } catch (e) {
@@ -80,14 +80,14 @@ export default function ProfileForm() {
         throw new Error(t('setup.credentials_incomplete'));
       }
 
-      log.info('Testing connection', { component: 'ProfileForm', portalUrl });
+      log.profileForm('Testing connection', LogLevel.INFO, { portalUrl });
 
       let apiUrl: string;
       let cgiUrl: string;
 
       if (showManualUrls) {
         // Manual URL entry mode
-        log.info('Using manual URLs', { component: 'ProfileForm' });
+        log.profileForm('Using manual URLs', LogLevel.INFO);
         if (!manualApiUrl || !manualCgiUrl) {
           throw new Error(t('setup.enter_both_urls'));
         }
@@ -107,33 +107,33 @@ export default function ProfileForm() {
 
         apiUrl = manualApiUrl;
         cgiUrl = manualCgiUrl;
-        log.info('Manual URLs set', { component: 'ProfileForm', apiUrl, cgiUrl });
+        log.profileForm('Manual URLs set', LogLevel.INFO, { apiUrl, cgiUrl });
 
         // Initialize API client with manual URL
         const client = createApiClient(apiUrl);
         setApiClient(client);
       } else {
         // Discover URLs from portal URL
-        log.info('Discovering URLs', { component: 'ProfileForm' });
+        log.profileForm('Discovering URLs', LogLevel.INFO);
         const discovered = await discoverUrls(portalUrl);
         apiUrl = discovered.apiUrl;
         cgiUrl = discovered.cgiUrl;
-        log.info('URLs discovered', { component: 'ProfileForm', apiUrl, cgiUrl });
+        log.profileForm('URLs discovered', LogLevel.INFO, { apiUrl, cgiUrl });
       }
 
       // If credentials are provided, try to login
       if (normalizedUsername && hasPassword) {
-        log.info('Attempting login with provided credentials', { component: 'ProfileForm', username: normalizedUsername });
+        log.profileForm('Attempting login with provided credentials', LogLevel.INFO, { username: normalizedUsername });
         try {
           const { useAuthStore } = await import('../stores/auth');
 
           // Clear any existing auth state to ensure clean login
           // This prevents old tokens from interfering with new profile login
           useAuthStore.getState().logout();
-          log.debug('Cleared existing auth state for fresh login', { component: 'ProfileForm' });
+          log.profileForm('Cleared existing auth state for fresh login', LogLevel.DEBUG);
 
           await useAuthStore.getState().login(normalizedUsername, password);
-          log.info('Login successful', { component: 'ProfileForm' });
+          log.profileForm('Login successful', LogLevel.INFO);
 
           // After successful login, try to fetch the ZMS path from server config
           const zmsPath = await fetchZmsPath();
@@ -147,28 +147,26 @@ export default function ProfileForm() {
             try {
               const url = new URL(baseUrl);
               const newCgiUrl = `${url.origin}${zmsPath}`;
-              log.info('ZMS path fetched, updating CGI URL', {
-                component: 'ProfileForm',
+              log.profileForm('ZMS path fetched, updating CGI URL', LogLevel.INFO, {
                 oldCgiUrl: cgiUrl,
                 zmsPath,
                 newCgiUrl
               });
               cgiUrl = newCgiUrl;
             } catch (urlError) {
-              log.warn('Failed to construct CGI URL from ZMS path, using inferred URL', {
-                component: 'ProfileForm',
+              log.profileForm('Failed to construct CGI URL from ZMS path, using inferred URL', LogLevel.WARN, {
                 portalUrl,
-                zmsPath
-              }, urlError);
+                zmsPath,
+                error: urlError
+              });
             }
           } else {
-            log.info('ZMS path not available, using inferred CGI URL', {
-              component: 'ProfileForm',
+            log.profileForm('ZMS path not available, using inferred CGI URL', LogLevel.INFO, {
               cgiUrl
             });
           }
         } catch (loginError: unknown) {
-          log.error('Login failed', { component: 'ProfileForm' }, loginError);
+          log.profileForm('Login failed', LogLevel.ERROR, loginError);
           throw new Error(t('setup.login_failed', { error: (loginError as Error).message || 'Unknown error' }));
         }
       }
@@ -191,7 +189,7 @@ export default function ProfileForm() {
             : 'My ZoneMinder'
       );
 
-      log.info('Adding new profile', { component: 'ProfileForm', profileName: finalProfileName });
+      log.profileForm('Adding new profile', LogLevel.INFO, { profileName: finalProfileName });
       const newProfileId = await addProfile({
         name: finalProfileName,
         portalUrl: finalPortalUrl,
@@ -201,12 +199,12 @@ export default function ProfileForm() {
         password: password || undefined,
         isDefault: isFirstProfile,
       });
-      log.info('Profile created', { component: 'ProfileForm', profileName: finalProfileName, profileId: newProfileId });
+      log.profileForm('Profile created', LogLevel.INFO, { profileName: finalProfileName, profileId: newProfileId });
 
       // Switch to the newly created profile (unless it's the first profile, which is auto-set as current)
       if (!isFirstProfile) {
         const switchProfile = useProfileStore.getState().switchProfile;
-        log.info('Switching to newly created profile', { component: 'ProfileForm', profileId: newProfileId });
+        log.profileForm('Switching to newly created profile', LogLevel.INFO, { profileId: newProfileId });
         await switchProfile(newProfileId);
       }
 

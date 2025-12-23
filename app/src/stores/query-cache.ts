@@ -9,7 +9,7 @@
  */
 
 import { QueryClient } from '@tanstack/react-query';
-import { log } from '../lib/logger';
+import { log, LogLevel } from '../lib/logger';
 
 // Global query client instance
 let queryClient: QueryClient | null = null;
@@ -39,8 +39,8 @@ export function clearQueryCache() {
   if (queryClient) {
     const queriesCount = queryClient.getQueryCache().getAll().length;
     queryClient.clear();
-    log.info('Query cache cleared', { component: 'QueryCache', queriesCount });
+    log.queryCache('Query cache cleared', LogLevel.INFO, { queriesCount });
   } else {
-    log.warn('No query client to clear', { component: 'QueryCache' });
+    log.queryCache('No query client to clear', LogLevel.WARN);
   }
 }

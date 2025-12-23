@@ -146,37 +146,179 @@ class Logger {
     }
   }
 
-  // Specialized loggers for common contexts
-  api(message: string, details?: unknown): void {
-    if (details !== undefined && details !== null && !(typeof details === 'object' && Object.keys(details as object).length === 0)) {
-      this.debug(message, { component: 'API' }, details);
-    } else {
-      this.debug(message, { component: 'API' });
+  // Helper method to create component loggers
+  private createComponentLogger(componentName: string, message: string, level: LogLevel, details?: unknown): void {
+    if (level < LogLevel.DEBUG || level > LogLevel.ERROR) return;
+
+    const context = { component: componentName };
+
+    switch (level) {
+      case LogLevel.DEBUG:
+        if (details !== undefined && details !== null && !(typeof details === 'object' && Object.keys(details as object).length === 0)) {
+          this.debug(message, context, details);
+        } else {
+          this.debug(message, context);
+        }
+        break;
+      case LogLevel.INFO:
+        if (details !== undefined && details !== null && !(typeof details === 'object' && Object.keys(details as object).length === 0)) {
+          this.info(message, context, details);
+        } else {
+          this.info(message, context);
+        }
+        break;
+      case LogLevel.WARN:
+        if (details !== undefined && details !== null && !(typeof details === 'object' && Object.keys(details as object).length === 0)) {
+          this.warn(message, context, details);
+        } else {
+          this.warn(message, context);
+        }
+        break;
+      case LogLevel.ERROR:
+        if (details !== undefined && details !== null && !(typeof details === 'object' && Object.keys(details as object).length === 0)) {
+          this.error(message, context, details);
+        } else {
+          this.error(message, context);
+        }
+        break;
     }
   }
 
-  auth(message: string, details?: unknown): void {
-    if (details !== undefined && details !== null && !(typeof details === 'object' && Object.keys(details as object).length === 0)) {
-      this.info(message, { component: 'Auth' }, details);
-    } else {
-      this.info(message, { component: 'Auth' });
-    }
+  // Component-specific loggers (alphabetically ordered)
+  api(message: string, level: LogLevel = LogLevel.DEBUG, details?: unknown): void {
+    this.createComponentLogger('API', message, level, details);
   }
 
-  profile(message: string, details?: unknown): void {
-    if (details !== undefined && details !== null && !(typeof details === 'object' && Object.keys(details as object).length === 0)) {
-      this.info(message, { component: 'Profile' }, details);
-    } else {
-      this.info(message, { component: 'Profile' });
-    }
+  app(message: string, level: LogLevel, details?: unknown): void {
+    this.createComponentLogger('App', message, level, details);
   }
 
-  monitor(message: string, details?: unknown): void {
-    if (details !== undefined && details !== null && !(typeof details === 'object' && Object.keys(details as object).length === 0)) {
-      this.debug(message, { component: 'Monitor' }, details);
-    } else {
-      this.debug(message, { component: 'Monitor' });
-    }
+  auth(message: string, level: LogLevel = LogLevel.INFO, details?: unknown): void {
+    this.createComponentLogger('Auth', message, level, details);
+  }
+
+  crypto(message: string, level: LogLevel, details?: unknown): void {
+    this.createComponentLogger('Crypto', message, level, details);
+  }
+
+  dashboard(message: string, level: LogLevel, details?: unknown): void {
+    this.createComponentLogger('Dashboard', message, level, details);
+  }
+
+  discovery(message: string, level: LogLevel, details?: unknown): void {
+    this.createComponentLogger('Discovery', message, level, details);
+  }
+
+  download(message: string, level: LogLevel, details?: unknown): void {
+    this.createComponentLogger('Download', message, level, details);
+  }
+
+  errorBoundary(message: string, level: LogLevel, details?: unknown): void {
+    this.createComponentLogger('ErrorBoundary', message, level, details);
+  }
+
+  eventCard(message: string, level: LogLevel, details?: unknown): void {
+    this.createComponentLogger('EventCard', message, level, details);
+  }
+
+  eventDetail(message: string, level: LogLevel, details?: unknown): void {
+    this.createComponentLogger('EventDetail', message, level, details);
+  }
+
+  eventMontage(message: string, level: LogLevel, details?: unknown): void {
+    this.createComponentLogger('EventMontage', message, level, details);
+  }
+
+  http(message: string, level: LogLevel, details?: unknown): void {
+    this.createComponentLogger('HTTP', message, level, details);
+  }
+
+  imageError(message: string, level: LogLevel, details?: unknown): void {
+    this.createComponentLogger('ImageError', message, level, details);
+  }
+
+  monitor(message: string, level: LogLevel = LogLevel.DEBUG, details?: unknown): void {
+    this.createComponentLogger('Monitor', message, level, details);
+  }
+
+  monitorCard(message: string, level: LogLevel, details?: unknown): void {
+    this.createComponentLogger('MonitorCard', message, level, details);
+  }
+
+  monitorDetail(message: string, level: LogLevel, details?: unknown): void {
+    this.createComponentLogger('MonitorDetail', message, level, details);
+  }
+
+  montageMonitor(message: string, level: LogLevel, details?: unknown): void {
+    this.createComponentLogger('MontageMonitor', message, level, details);
+  }
+
+  navigation(message: string, level: LogLevel, details?: unknown): void {
+    this.createComponentLogger('Navigation', message, level, details);
+  }
+
+  notificationHandler(message: string, level: LogLevel, details?: unknown): void {
+    this.createComponentLogger('NotificationHandler', message, level, details);
+  }
+
+  notifications(message: string, level: LogLevel, details?: unknown): void {
+    this.createComponentLogger('Notifications', message, level, details);
+  }
+
+  notificationSettings(message: string, level: LogLevel, details?: unknown): void {
+    this.createComponentLogger('NotificationSettings', message, level, details);
+  }
+
+  profile(message: string, level: LogLevel = LogLevel.INFO, details?: unknown): void {
+    this.createComponentLogger('Profile', message, level, details);
+  }
+
+  profileForm(message: string, level: LogLevel, details?: unknown): void {
+    this.createComponentLogger('ProfileForm', message, level, details);
+  }
+
+  profileService(message: string, level: LogLevel, details?: unknown): void {
+    this.createComponentLogger('ProfileService', message, level, details);
+  }
+
+  profileSwitcher(message: string, level: LogLevel, details?: unknown): void {
+    this.createComponentLogger('ProfileSwitcher', message, level, details);
+  }
+
+  push(message: string, level: LogLevel, details?: unknown): void {
+    this.createComponentLogger('Push', message, level, details);
+  }
+
+  queryCache(message: string, level: LogLevel, details?: unknown): void {
+    this.createComponentLogger('QueryCache', message, level, details);
+  }
+
+  secureImage(message: string, level: LogLevel, details?: unknown): void {
+    this.createComponentLogger('SecureImage', message, level, details);
+  }
+
+  secureStorage(message: string, level: LogLevel, details?: unknown): void {
+    this.createComponentLogger('SecureStorage', message, level, details);
+  }
+
+  server(message: string, level: LogLevel, details?: unknown): void {
+    this.createComponentLogger('Server', message, level, details);
+  }
+
+  time(message: string, level: LogLevel, details?: unknown): void {
+    this.createComponentLogger('Time', message, level, details);
+  }
+
+  videoMarkers(message: string, level: LogLevel, details?: unknown): void {
+    this.createComponentLogger('VideoMarkers', message, level, details);
+  }
+
+  videoPlayer(message: string, level: LogLevel, details?: unknown): void {
+    this.createComponentLogger('VideoPlayer', message, level, details);
+  }
+
+  zmsEventPlayer(message: string, level: LogLevel, details?: unknown): void {
+    this.createComponentLogger('ZmsEventPlayer', message, level, details);
   }
 }
 
@@ -193,8 +335,40 @@ export const log = {
     logger.warn(message, context, ...args),
   error: (message: string, context?: LogContext, error?: Error | unknown, ...args: unknown[]) =>
     logger.error(message, context, error, ...args),
-  api: (message: string, details?: unknown) => logger.api(message, details),
-  auth: (message: string, details?: unknown) => logger.auth(message, details),
-  profile: (message: string, details?: unknown) => logger.profile(message, details),
-  monitor: (message: string, details?: unknown) => logger.monitor(message, details),
+
+  // Component-specific loggers
+  api: (message: string, level: LogLevel = LogLevel.DEBUG, details?: unknown) => logger.api(message, level, details),
+  app: (message: string, level: LogLevel, details?: unknown) => logger.app(message, level, details),
+  auth: (message: string, level: LogLevel = LogLevel.INFO, details?: unknown) => logger.auth(message, level, details),
+  crypto: (message: string, level: LogLevel, details?: unknown) => logger.crypto(message, level, details),
+  dashboard: (message: string, level: LogLevel, details?: unknown) => logger.dashboard(message, level, details),
+  discovery: (message: string, level: LogLevel, details?: unknown) => logger.discovery(message, level, details),
+  download: (message: string, level: LogLevel, details?: unknown) => logger.download(message, level, details),
+  errorBoundary: (message: string, level: LogLevel, details?: unknown) => logger.errorBoundary(message, level, details),
+  eventCard: (message: string, level: LogLevel, details?: unknown) => logger.eventCard(message, level, details),
+  eventDetail: (message: string, level: LogLevel, details?: unknown) => logger.eventDetail(message, level, details),
+  eventMontage: (message: string, level: LogLevel, details?: unknown) => logger.eventMontage(message, level, details),
+  http: (message: string, level: LogLevel, details?: unknown) => logger.http(message, level, details),
+  imageError: (message: string, level: LogLevel, details?: unknown) => logger.imageError(message, level, details),
+  monitor: (message: string, level: LogLevel = LogLevel.DEBUG, details?: unknown) => logger.monitor(message, level, details),
+  monitorCard: (message: string, level: LogLevel, details?: unknown) => logger.monitorCard(message, level, details),
+  monitorDetail: (message: string, level: LogLevel, details?: unknown) => logger.monitorDetail(message, level, details),
+  montageMonitor: (message: string, level: LogLevel, details?: unknown) => logger.montageMonitor(message, level, details),
+  navigation: (message: string, level: LogLevel, details?: unknown) => logger.navigation(message, level, details),
+  notificationHandler: (message: string, level: LogLevel, details?: unknown) => logger.notificationHandler(message, level, details),
+  notifications: (message: string, level: LogLevel, details?: unknown) => logger.notifications(message, level, details),
+  notificationSettings: (message: string, level: LogLevel, details?: unknown) => logger.notificationSettings(message, level, details),
+  profile: (message: string, level: LogLevel = LogLevel.INFO, details?: unknown) => logger.profile(message, level, details),
+  profileForm: (message: string, level: LogLevel, details?: unknown) => logger.profileForm(message, level, details),
+  profileService: (message: string, level: LogLevel, details?: unknown) => logger.profileService(message, level, details),
+  profileSwitcher: (message: string, level: LogLevel, details?: unknown) => logger.profileSwitcher(message, level, details),
+  push: (message: string, level: LogLevel, details?: unknown) => logger.push(message, level, details),
+  queryCache: (message: string, level: LogLevel, details?: unknown) => logger.queryCache(message, level, details),
+  secureImage: (message: string, level: LogLevel, details?: unknown) => logger.secureImage(message, level, details),
+  secureStorage: (message: string, level: LogLevel, details?: unknown) => logger.secureStorage(message, level, details),
+  server: (message: string, level: LogLevel, details?: unknown) => logger.server(message, level, details),
+  time: (message: string, level: LogLevel, details?: unknown) => logger.time(message, level, details),
+  videoMarkers: (message: string, level: LogLevel, details?: unknown) => logger.videoMarkers(message, level, details),
+  videoPlayer: (message: string, level: LogLevel, details?: unknown) => logger.videoPlayer(message, level, details),
+  zmsEventPlayer: (message: string, level: LogLevel, details?: unknown) => logger.zmsEventPlayer(message, level, details),
 };

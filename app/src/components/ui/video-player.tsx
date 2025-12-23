@@ -14,7 +14,7 @@ import 'videojs-markers';
 // This avoids deep imports which can be problematic with some bundlers
 type Player = ReturnType<typeof videojs>;
 import { cn } from '../../lib/utils';
-import { log } from '../../lib/logger';
+import { log, LogLevel } from '../../lib/logger';
 import type { VideoMarker } from '../../lib/video-markers';
 import type { MarkerConfig } from '../../types/videojs-markers';
 
@@ -122,12 +122,9 @@ export function VideoPlayer({
         markers: markerConfigs,
       });
 
-      log.debug('Video markers updated', {
-        component: 'VideoPlayer',
-        count: markers.length
-      });
+      log.videoPlayer('Video markers updated', LogLevel.DEBUG, { count: markers.length });
     } catch (err) {
-      log.error('Failed to update video markers', { component: 'VideoPlayer' }, err);
+      log.videoPlayer('Failed to update video markers', LogLevel.ERROR, err);
     }
   };
 
@@ -168,10 +165,7 @@ export function VideoPlayer({
         // Initialize markers if provided
         if (markers && markers.length > 0) {
           updateMarkers(player, markers);
-          log.info('Video markers initialized', {
-            component: 'VideoPlayer',
-            count: markers.length
-          });
+          log.videoPlayer('Video markers initialized', LogLevel.INFO, { count: markers.length });
         }
 
         onReady && onReady(player);
@@ -180,7 +174,7 @@ export function VideoPlayer({
       // Handle errors
       player.on('error', () => {
         const err = player.error();
-        log.error('VideoJS playback error', { component: 'VideoPlayer' }, err);
+        log.videoPlayer('VideoJS playback error', LogLevel.ERROR, err);
         setError(err?.message || 'An unknown error occurred');
         if (onError) onError(err);
       });

@@ -5,7 +5,7 @@
 2. **Cross-platform**: iOS, Android, Desktop, mobile portrait
 3. **Settings**: Must be profile-scoped; read/write via profile settings only
 4. **Testing**: Data tags required, tests updated
-5. **Logging**: Use log.* functions, never console.*
+5. **Logging**: Use component-specific helpers (e.g., `log.secureStorage(msg, LogLevel.INFO, details)`), never `console.*`
 
 ---
 
@@ -83,20 +83,59 @@
 
 ### Import
 ```typescript
-import { log } from '../lib/logger'; // adjust path depth as needed
+import { log, LogLevel } from '../lib/logger'; // adjust path depth as needed
 ```
 
-### Methods
-- **Standard**: `log.debug(msg, context, ...args)`, `log.info()`, `log.warn()`, `log.error()`
-- **Domain-specific**: `log.api(msg, details)`, `log.auth()`, `log.profile()`, `log.monitor()`
+### Component-Specific Logging (Preferred)
+Use component-specific helpers with explicit log levels:
 
-### Context Format
 ```typescript
-log.info('Profile loaded', { component: 'Profiles', action: 'loadProfile', profileId: id })
+// Component-specific helpers automatically add { component: 'X' } context
+log.secureStorage('Value encrypted', LogLevel.DEBUG, { key });
+log.profileForm('Testing connection', LogLevel.INFO, { portalUrl });
+log.monitorCard('Stream failed, regenerating connkey', LogLevel.WARN);
+log.download('Failed to download file', LogLevel.ERROR, { url }, error);
+```
+
+**Available component helpers:**
+- Services: `log.notifications()`, `log.profileService()`, `log.push()`
+- Pages: `log.eventDetail()`, `log.monitorDetail()`, `log.profileForm()`
+- Components: `log.monitorCard()`, `log.montageMonitor()`, `log.videoPlayer()`, `log.errorBoundary()`, `log.imageError()`
+- Libraries: `log.download()`, `log.crypto()`, `log.http()`, `log.navigation()`, `log.secureStorage()`, `log.time()`, `log.discovery()`
+- Stores: `log.dashboard()`, `log.queryCache()`
+- Domain: `log.api()`, `log.auth()`, `log.profile()`, `log.monitor()`
+
+**Signature:** `log.componentName(message: string, level: LogLevel, details?: unknown)`
+
+### Standard Logging (Legacy - avoid for new code)
+```typescript
+log.debug(msg, context, ...args)
+log.info(msg, context, ...args)
+log.warn(msg, context, ...args)
+log.error(msg, context, ...args)
+```
+
+### Best Practices
+- ✅ Use component-specific helpers for all new logging
+- ✅ Always specify explicit `LogLevel` (DEBUG, INFO, WARN, ERROR)
+- ✅ Include relevant context in the `details` object
+- ✅ Pass errors as part of `details`, not as separate arguments
+- ❌ Don't manually add `{ component: 'X' }` - use helpers instead
+- ❌ Don't use `console.log`, `console.error`, etc.
+
+### Examples
+```typescript
+// Good ✅
+log.secureStorage('Failed to encrypt value', LogLevel.ERROR, { key }, error);
+log.monitorDetail('Regenerating connkey', LogLevel.INFO, { monitorId });
+
+// Bad ❌
+log.info('Failed to encrypt', { component: 'SecureStorage', key });
+console.log('Regenerating connkey');
 ```
 
 ### Reference
-- Full implementation: `app/src/lib/logger.ts:177-190`
+- Full implementation: `app/src/lib/logger.ts`
 
 ---
 
@@ -179,6 +218,6 @@ log.info('Profile loaded', { component: 'Profiles', action: 'loadProfile', profi
 - [ ] Unit tests added/updated
 - [ ] E2E tests updated if user journeys changed
 - [ ] No crash on migration (prompt for reset if needed)
-- [ ] Used log.* functions (no console.*)
+- [ ] Used component-specific logging helpers with explicit LogLevel (no console.*)
 
 ---

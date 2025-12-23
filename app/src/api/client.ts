@@ -2,7 +2,7 @@ import axios, { AxiosError } from 'axios';
 import type { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 import { createNativeAdapter } from './adapter';
 import { useAuthStore } from '../stores/auth';
-import { log } from '../lib/logger';
+import { log, LogLevel } from '../lib/logger';
 import { sanitizeObject } from '../lib/log-sanitizer';
 import { Platform } from '../lib/platform';
 
@@ -100,13 +100,13 @@ export function createApiClient(baseURL: string, reLogin?: () => Promise<boolean
           }
         }
 
-        log.api(`[Request] ${config.method?.toUpperCase()} ${fullUrlWithParams}`, logData);
+        log.api(`[Request] ${config.method?.toUpperCase()} ${fullUrlWithParams}`, LogLevel.DEBUG, logData);
       }
 
       return config;
     },
     (error: AxiosError) => {
-      log.error('[API] Request error', { component: 'API' }, error);
+      log.api('[API] Request error', LogLevel.ERROR, error);
       return Promise.reject(error);
     }
   );
@@ -120,7 +120,7 @@ export function createApiClient(baseURL: string, reLogin?: () => Promise<boolean
         const path = response.config.url || '';
         const fullZmUrl = path.startsWith('http') ? path : zmApiUrl + path;
 
-        log.api(`[Response] ${response.status} ${response.statusText} - ${fullZmUrl}`, {
+        log.api(`[Response] ${response.status} ${response.statusText} - ${fullZmUrl}`, LogLevel.DEBUG, {
           status: response.status,
           statusText: response.statusText,
           data: sanitizeObject(response.data),
@@ -161,7 +161,7 @@ export function createApiClient(baseURL: string, reLogin?: () => Promise<boolean
                 return client(originalRequest);
               }
             } catch (reLoginError) {
-              log.error('Re-login failed', { component: 'API' }, reLoginError);
+              log.api('Re-login failed', LogLevel.ERROR, reLoginError);
             }
           }
 
@@ -208,12 +208,10 @@ export function createApiClient(baseURL: string, reLogin?: () => Promise<boolean
           }
         }
 
-        log.error(
-          `[API ERROR] ${error.config?.method?.toUpperCase()} ${fullUrlWithParams}`,
-          { component: 'API' },
+        log.api(`[API ERROR] ${error.config?.method?.toUpperCase()} ${fullUrlWithParams}`, LogLevel.ERROR, {
           error,
-          errorData
-        );
+          ...errorData,
+        });
       }
 
       return Promise.reject(error);

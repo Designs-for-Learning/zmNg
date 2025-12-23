@@ -291,7 +291,13 @@
     "share_dialog_title": "分享应用日志",
     "share_failed": "分享失败",
     "show_more": "显示更多",
-    "show_less": "显示更少"
+    "show_less": "显示更少",
+    "level_updated": "日志级别已更新",
+    "level_placeholder": "级别",
+    "component_filter_label": "组件",
+    "component_filter_all": "所有组件",
+    "component_filter_selected": "{{count}} 个组件",
+    "component_unassigned": "未分配"
   },
   "monitor_detail": {
     "events": "事件",

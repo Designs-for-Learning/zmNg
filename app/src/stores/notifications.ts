@@ -9,7 +9,7 @@ import {
   type ZMAlarmEvent,
   type ConnectionState,
 } from '../types/notifications';
-import { log } from '../lib/logger';
+import { log, LogLevel } from '../lib/logger';
 import { useAuthStore } from './auth';
 import { getAppVersion } from '../lib/version';
 
@@ -114,7 +114,7 @@ export const useNotificationStore = create<NotificationState>()(
       },
 
       updateProfileSettings: (profileId, updates) => {
-        log.info('Updating notification settings', { component: 'Notifications', profileId, updates });
+        log.notifications('Updating notification settings', LogLevel.INFO, { profileId, updates });
 
         set((state) => ({
           profileSettings: {
@@ -138,13 +138,10 @@ export const useNotificationStore = create<NotificationState>()(
       },
 
       setMonitorFilter: (profileId, monitorId, enabled, checkInterval = 60) => {
-        log.info('Setting monitor filter', {
-          component: 'Notifications',
-          profileId,
+        log.notifications('Setting monitor filter', LogLevel.INFO, { profileId,
           monitorId,
           enabled,
-          checkInterval,
-        });
+          checkInterval, });
 
         set((state) => {
           const profileSettings = state.profileSettings[profileId] || DEFAULT_SETTINGS;
@@ -176,7 +173,7 @@ export const useNotificationStore = create<NotificationState>()(
       },
 
       removeMonitorFilter: (profileId, monitorId) => {
-        log.info('Removing monitor filter', { component: 'Notifications', profileId, monitorId });
+        log.notifications('Removing monitor filter', LogLevel.INFO, { profileId, monitorId });
 
         set((state) => {
           const profileSettings = state.profileSettings[profileId] || DEFAULT_SETTINGS;
@@ -205,32 +202,26 @@ export const useNotificationStore = create<NotificationState>()(
         const settings = get().getProfileSettings(profileId);
 
         if (!settings.enabled) {
-          log.warn('Notifications not enabled for this profile', { component: 'Notifications', profileId });
+          log.notifications('Notifications not enabled for this profile', LogLevel.WARN, { profileId });
           return;
         }
 
         if (!settings.host) {
-          log.warn('No notification server host configured', { component: 'Notifications', profileId });
+          log.notifications('No notification server host configured', LogLevel.WARN, { profileId });
           return;
         }
 
         // Disconnect if already connected to a different profile
         if (get().isConnected && get().currentProfileId !== profileId) {
-          log.info('Disconnecting from previous profile', {
-            component: 'Notifications',
-            previousProfile: get().currentProfileId,
-            newProfile: profileId
-          });
+          log.notifications('Disconnecting from previous profile', LogLevel.INFO, { previousProfile: get().currentProfileId,
+            newProfile: profileId });
           get().disconnect();
         }
 
-        log.info('Connecting to notification server', {
-          component: 'Notifications',
-          profileId,
+        log.notifications('Connecting to notification server', LogLevel.INFO, { profileId,
           host: settings.host,
           port: settings.port,
-          ssl: settings.ssl,
-        });
+          ssl: settings.ssl, });
 
         const config: ZMEventServerConfig = {
           host: settings.host,
@@ -257,24 +248,18 @@ export const useNotificationStore = create<NotificationState>()(
           // Sync monitor filters after connection
           get()._syncMonitorFilters();
 
-          log.info('Successfully connected to notification server', {
-            component: 'Notifications',
-            profileId,
-          });
+          log.notifications('Successfully connected to notification server', LogLevel.INFO, { profileId, });
 
           // Register push token if on mobile and token is available
           get()._registerPushTokenIfAvailable();
         } catch (error) {
-          log.error('Failed to connect to notification server', { component: 'Notifications', profileId }, error);
+          log.notifications('Failed to connect to notification server', LogLevel.ERROR, { profileId, error });
           throw error;
         }
       },
 
       disconnect: () => {
-        log.info('Disconnecting from notification server', {
-          component: 'Notifications',
-          profileId: get().currentProfileId
-        });
+        log.notifications('Disconnecting from notification server', LogLevel.INFO, { profileId: get().currentProfileId });
 
         get()._cleanup();
         resetNotificationService();
@@ -287,7 +272,7 @@ export const useNotificationStore = create<NotificationState>()(
       },
 
       reconnect: async () => {
-        log.info('Reconnecting to notification server', { component: 'Notifications' });
+        log.notifications('Reconnecting to notification server', LogLevel.INFO);
         // Disconnect first, then user must call connect with credentials
         get().disconnect();
       },
@@ -309,12 +294,9 @@ export const useNotificationStore = create<NotificationState>()(
        * Duplicate prevention: if an event with the same ID already exists, it will be replaced
        */
       addEvent: (profileId: string, event: ZMAlarmEvent) => {
-        log.info('Adding notification event', {
-          component: 'Notifications',
-          profileId,
+        log.notifications('Adding notification event', LogLevel.INFO, { profileId,
           monitor: event.MonitorName,
-          eventId: event.EventId,
-        });
+          eventId: event.EventId, });
 
         set((state) => {
           const notificationEvent: NotificationEvent = {
@@ -409,7 +391,7 @@ export const useNotificationStore = create<NotificationState>()(
       },
 
       clearEvents: (profileId: string) => {
-        log.info('Clearing all notification events', { component: 'Notifications', profileId });
+        log.notifications('Clearing all notification events', LogLevel.INFO, { profileId });
 
         set((state) => {
           const profileSettings = state.profileSettings[profileId] || DEFAULT_SETTINGS;
@@ -441,11 +423,11 @@ export const useNotificationStore = create<NotificationState>()(
         const { isConnected, currentProfileId } = get();
 
         if (!isConnected || !currentProfileId) {
-          log.warn('Cannot register push token - not connected', { component: 'Notifications' });
+          log.notifications('Cannot register push token - not connected', LogLevel.WARN);
           return;
         }
 
-        log.info('Registering push token', { component: 'Notifications', platform, profileId: currentProfileId });
+        log.notifications('Registering push token', LogLevel.INFO, { platform, profileId: currentProfileId });
 
         const service = getNotificationService();
         const settings = get().getProfileSettings(currentProfileId);
@@ -462,11 +444,11 @@ export const useNotificationStore = create<NotificationState>()(
         const { isConnected, currentProfileId } = get();
 
         if (!isConnected || !currentProfileId) {
-          log.warn('Cannot deregister push token - not connected', { component: 'Notifications' });
+          log.notifications('Cannot deregister push token - not connected', LogLevel.WARN);
           return;
         }
 
-        log.info('Deregistering push token', { component: 'Notifications', platform, profileId: currentProfileId });
+        log.notifications('Deregistering push token', LogLevel.INFO, { platform, profileId: currentProfileId });
 
         const service = getNotificationService();
         await service.deregisterPushToken(token, platform);
@@ -479,7 +461,7 @@ export const useNotificationStore = create<NotificationState>()(
 
         // Listen for connection state changes
         const unsubscribeState = service.onStateChange((state) => {
-          log.info('Connection state changed', { component: 'Notifications', state });
+          log.notifications('Connection state changed', LogLevel.INFO, { state });
           set({
             connectionState: state,
             isConnected: state === 'connected',
@@ -501,7 +483,7 @@ export const useNotificationStore = create<NotificationState>()(
 
             // Play sound if enabled
             if (settings.playSound) {
-              log.info('Playing notification sound', { component: 'Notifications' });
+              log.notifications('Playing notification sound', LogLevel.INFO);
             }
           }
         });
@@ -523,7 +505,7 @@ export const useNotificationStore = create<NotificationState>()(
       _syncMonitorFilters: async () => {
         const { currentProfileId } = get();
         if (!currentProfileId) {
-          log.warn('Cannot sync monitor filters - no profile connected', { component: 'Notifications' });
+          log.notifications('Cannot sync monitor filters - no profile connected', LogLevel.WARN);
           return;
         }
 
@@ -533,31 +515,28 @@ export const useNotificationStore = create<NotificationState>()(
 
         const enabledFilters = monitorFilters.filter((f) => f.enabled);
         if (enabledFilters.length === 0) {
-          log.info('No enabled monitor filters to sync', { component: 'Notifications', profileId: currentProfileId });
+          log.notifications('No enabled monitor filters to sync', LogLevel.INFO, { profileId: currentProfileId });
           return;
         }
 
         const monitorIds = enabledFilters.map((f) => f.monitorId);
         const intervals = enabledFilters.map((f) => f.checkInterval);
 
-        log.info('Syncing monitor filters with server', {
-          component: 'Notifications',
-          profileId: currentProfileId,
+        log.notifications('Syncing monitor filters with server', LogLevel.INFO, { profileId: currentProfileId,
           monitors: monitorIds,
-          intervals,
-        });
+          intervals, });
 
         try {
           await service.setMonitorFilter(monitorIds, intervals);
         } catch (error) {
-          log.error('Failed to sync monitor filters', { component: 'Notifications', profileId: currentProfileId }, error);
+          log.notifications('Failed to sync monitor filters', LogLevel.ERROR, { profileId: currentProfileId, error });
         }
       },
 
       _updateBadge: async () => {
         const { currentProfileId } = get();
         if (!currentProfileId) {
-          log.warn('Cannot update badge - no profile connected', { component: 'Notifications' });
+          log.notifications('Cannot update badge - no profile connected', LogLevel.WARN);
           return;
         }
 
@@ -568,7 +547,7 @@ export const useNotificationStore = create<NotificationState>()(
         try {
           await service.updateBadgeCount(badgeCount);
         } catch (error) {
-          log.error('Failed to update badge count', { component: 'Notifications', profileId: currentProfileId }, error);
+          log.notifications('Failed to update badge count', LogLevel.ERROR, { profileId: currentProfileId, error });
         }
       },
 
@@ -588,13 +567,13 @@ export const useNotificationStore = create<NotificationState>()(
           const pushService = getPushService();
 
           if (pushService.isReady()) {
-            log.info('Registering FCM token after connection', { component: 'Notifications' });
+            log.notifications('Registering FCM token after connection', LogLevel.INFO);
             await pushService.registerTokenWithServer();
           } else {
-            log.info('FCM token not yet available - will register when received', { component: 'Notifications' });
+            log.notifications('FCM token not yet available - will register when received', LogLevel.INFO);
           }
         } catch (error) {
-          log.error('Failed to register push token', { component: 'Notifications' }, error);
+          log.notifications('Failed to register push token', LogLevel.ERROR, error);
         }
       },
     }),
@@ -611,11 +590,8 @@ export const useNotificationStore = create<NotificationState>()(
           const eventCounts = Object.entries(state.profileEvents || {}).map(
             ([id, events]) => `${id}: ${events.length}`
           );
-          log.info('Notification store rehydrated', {
-            component: 'Notifications',
-            profileCount,
-            eventCounts,
-          });
+          log.notifications('Notification store rehydrated', LogLevel.INFO, { profileCount,
+            eventCounts, });
         }
       },
     }

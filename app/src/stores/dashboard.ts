@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { log } from '../lib/logger';
+import { log, LogLevel } from '../lib/logger';
 import type { MonitorFeedFit } from './settings';
 
 export type WidgetType = 'monitor' | 'events' | 'timeline' | 'heatmap';
@@ -68,13 +68,10 @@ export const useDashboardStore = create<DashboardState>()(
                         minH: widget.layout.minH || 1
                     };
 
-                    log.info('Adding dashboard widget', {
-                        component: 'Dashboard',
-                        profileId,
+                    log.dashboard('Adding dashboard widget', LogLevel.INFO, { profileId,
                         widgetType: widget.type,
                         minW: initialLayout.minW,
-                        minH: initialLayout.minH
-                    });
+                        minH: initialLayout.minH });
 
                     return {
                         widgets: {
@@ -149,11 +146,8 @@ export const useDashboardStore = create<DashboardState>()(
                 set((state) => {
                     const fullWidth = 12;
                     const widgetCount = (state.widgets[profileId] || []).length;
-                    log.info('Resetting dashboard widget widths to full width', {
-                        component: 'Dashboard',
-                        profileId,
-                        widgetCount
-                    });
+                    log.dashboard('Resetting dashboard widget widths to full width', LogLevel.INFO, { profileId,
+                        widgetCount });
 
                     return {
                         widgets: {

@@ -17,7 +17,7 @@ import { downloadSnapshotFromElement } from '../../lib/download';
 import { toast } from 'sonner';
 import { useMonitorStream } from '../../hooks/useMonitorStream';
 import type { MonitorCardProps } from '../../api/types';
-import { log } from '../../lib/logger';
+import { log, LogLevel } from '../../lib/logger';
 import { useTranslation } from 'react-i18next';
 import { getMonitorAspectRatio } from '../../lib/monitor-rotation';
 import type { CSSProperties } from 'react';
@@ -71,9 +71,7 @@ function MonitorCardComponent({
     // Only retry if we haven't retried too recently
     if (!img.dataset.retrying) {
       img.dataset.retrying = 'true';
-      log.warn(`Stream failed for ${monitor.Name}, regenerating connkey...`, {
-        component: 'MonitorCard',
-      });
+      log.monitorCard(`Stream failed for ${monitor.Name}, regenerating connkey...`, LogLevel.WARN);
       regenerateConnection();
       toast.error(t('monitors.stream_connection_lost', { name: monitor.Name }));
 
@@ -98,7 +96,7 @@ function MonitorCardComponent({
         await downloadSnapshotFromElement(imgRef.current, monitor.Name);
         toast.success(t('monitors.snapshot_downloaded'));
       } catch (error) {
-        log.error('Failed to download snapshot', { component: 'MonitorCard' }, error);
+        log.monitorCard('Failed to download snapshot', LogLevel.ERROR, error);
         toast.error(t('monitors.snapshot_failed'));
       }
     }

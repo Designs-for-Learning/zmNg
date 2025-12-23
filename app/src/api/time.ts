@@ -6,7 +6,7 @@
 
 import { getApiClient } from './client';
 import { HostTimeZoneResponseSchema } from './types';
-import { log } from '../lib/logger';
+import { log, LogLevel } from '../lib/logger';
 
 /**
  * Get server time zone.
@@ -24,10 +24,13 @@ export async function getServerTimeZone(token?: string): Promise<string> {
     } catch (error) {
         if (error && typeof error === 'object' && 'response' in error) {
             // Log API error details if available
-            log.error('getServerTimeZone API Error', { component: 'API', responseData: (error as any).response?.data }, error);
+            log.api('getServerTimeZone API Error', LogLevel.ERROR, {
+                responseData: (error as any).response?.data,
+                error,
+            });
         } else {
             // Log validation or other errors
-            log.error('getServerTimeZone Validation Error', { component: 'API' }, error);
+            log.api('getServerTimeZone Validation Error', LogLevel.ERROR, error);
         }
         throw error;
     }

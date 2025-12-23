@@ -21,7 +21,7 @@ import {
 import { Button } from './ui/button';
 import { Check, ChevronDown, Server, Plus, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { log } from '../lib/logger';
+import { log, LogLevel } from '../lib/logger';
 import { useTranslation } from 'react-i18next';
 
 /**
@@ -52,7 +52,7 @@ export function ProfileSwitcher() {
     const profile = profiles.find((p) => p.id === profileId);
     if (!profile) return;
 
-    log.profile('Switching profile', {
+    log.profile('Switching profile', LogLevel.INFO, {
       from: currentProfile?.name,
       to: profile.name,
       fromId: currentProfile?.id,
@@ -65,7 +65,7 @@ export function ProfileSwitcher() {
       await switchProfile(profileId);
 
       // Success!
-      log.profile('Profile switch successful', { profileName: profile.name, profileId });
+      log.profile('Profile switch successful', LogLevel.INFO, { profileName: profile.name, profileId });
       toast.dismiss(loadingToast);
       toast.success(t('profiles.switched_to', { name: profile.name }));
 
@@ -74,11 +74,11 @@ export function ProfileSwitcher() {
       // Navigate to monitors to trigger data reload
       navigate('/monitors');
     } catch (error: any) {
-      log.error('Profile switch failed', {
-        component: 'ProfileSwitcher',
+      log.profileSwitcher('Profile switch failed', LogLevel.ERROR, {
         profileId,
-        profileName: profile.name
-      }, error);
+        profileName: profile.name,
+        error,
+      });
 
       toast.dismiss(loadingToast);
       toast.error(t('profiles.switch_failed'), {

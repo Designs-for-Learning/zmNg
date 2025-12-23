@@ -12,7 +12,7 @@ import {
   type PushNotificationSchema,
   type ActionPerformed,
 } from '@capacitor/push-notifications';
-import { log } from '../lib/logger';
+import { log, LogLevel } from '../lib/logger';
 import { navigationService } from '../lib/navigation';
 import { useNotificationStore } from '../stores/notifications';
 import { useProfileStore } from '../stores/profile';
@@ -35,18 +35,18 @@ export class MobilePushService {
    */
   public async initialize(): Promise<void> {
     if (!Capacitor.isNativePlatform()) {
-      log.info('Push notifications not available on web platform', { component: 'Push' });
+      log.push('Push notifications not available on web platform', LogLevel.INFO);
       return;
     }
 
-    log.info('Initializing push notifications', { component: 'Push' });
+    log.push('Initializing push notifications', LogLevel.INFO);
 
     try {
       // Request permission
       const permissionResult = await PushNotifications.requestPermissions();
 
       if (permissionResult.receive === 'granted') {
-        log.info('Push notification permission granted', { component: 'Push' });
+        log.push('Push notification permission granted', LogLevel.INFO);
 
         // Setup listeners BEFORE registering to ensure we catch the registration event
         if (!this.isInitialized) {
@@ -56,19 +56,18 @@ export class MobilePushService {
 
         // Always register with FCM on initialization to get the current token
         // This ensures we retrieve the token on every app start
-        log.info('Calling PushNotifications.register()', { component: 'Push' });
+        log.push('Calling PushNotifications.register()', LogLevel.INFO);
         await PushNotifications.register();
-        log.info('PushNotifications.register() called successfully', { component: 'Push' });
+        log.push('PushNotifications.register() called successfully', LogLevel.INFO);
 
-        log.info('Push notifications initialized successfully', { component: 'Push' });
+        log.push('Push notifications initialized successfully', LogLevel.INFO);
       } else {
-        log.warn('Push notification permission denied', {
-          component: 'Push',
+        log.push('Push notification permission denied', LogLevel.WARN, {
           receive: permissionResult.receive,
         });
       }
     } catch (error) {
-      log.error('Failed to initialize push notifications', { component: 'Push' }, error);
+      log.push('Failed to initialize push notifications', LogLevel.ERROR, error);
       throw error;
     }
   }
@@ -93,7 +92,7 @@ export class MobilePushService {
    */
   public async registerTokenWithServer(): Promise<void> {
     if (!this.currentToken) {
-      log.warn('No FCM token available to register', { component: 'Push' });
+      log.push('No FCM token available to register', LogLevel.WARN);
       return;
     }
 
@@ -109,25 +108,25 @@ export class MobilePushService {
     }
 
     if (!this.currentToken) {
-      log.info('No FCM token to deregister', { component: 'Push' });
+      log.push('No FCM token to deregister', LogLevel.INFO);
       return;
     }
 
-    log.info('Deregistering from push notifications', { component: 'Push' });
+    log.push('Deregistering from push notifications', LogLevel.INFO);
 
     try {
       // Send disabled state to server if connected
       const notificationStore = useNotificationStore.getState();
       if (notificationStore.isConnected) {
         const platform = Capacitor.getPlatform() as 'ios' | 'android';
-        log.info('Sending disabled state to notification server', { component: 'Push', platform });
+        log.push('Sending disabled state to notification server', LogLevel.INFO, { platform });
         await notificationStore.deregisterPushToken(this.currentToken, platform);
       }
 
       // Unregister locally
       await this._unregister();
     } catch (error) {
-      log.error('Failed to deregister from push notifications', { component: 'Push' }, error);
+      log.push('Failed to deregister from push notifications', LogLevel.ERROR, error);
       throw error;
     }
   }
@@ -140,7 +139,7 @@ export class MobilePushService {
       return;
     }
 
-    log.info('Unregistering from push notifications locally', { component: 'Push' });
+    log.push('Unregistering from push notifications locally', LogLevel.INFO);
 
     try {
       // Remove all listeners
@@ -150,9 +149,9 @@ export class MobilePushService {
       this.currentToken = null;
       this.isInitialized = false;
 
-      log.info('Unregistered from push notifications', { component: 'Push' });
+      log.push('Unregistered from push notifications', LogLevel.INFO);
     } catch (error) {
-      log.error('Failed to unregister from push notifications', { component: 'Push' }, error);
+      log.push('Failed to unregister from push notifications', LogLevel.ERROR, error);
     }
   }
 
@@ -164,8 +163,7 @@ export class MobilePushService {
   private _setupListeners(): void {
     // Called when FCM token is received
     PushNotifications.addListener('registration', (token: Token) => {
-      log.info('FCM token received', {
-        component: 'Push',
+      log.push('FCM token received', LogLevel.INFO, {
         token: token.value.substring(0, 20) + '...', // Truncate for security
       });
 
@@ -179,17 +177,17 @@ export class MobilePushService {
     // Called when registration fails
     // Single retry after 5s delay to handle transient network issues on mobile
     PushNotifications.addListener('registrationError', (error) => {
-      log.error('FCM registration failed', { component: 'Push' }, error);
+      log.push('FCM registration failed', LogLevel.ERROR, error);
 
       if (!this.hasRetried) {
         this.hasRetried = true;
-        log.info('Retrying FCM registration once after 5s...', { component: 'Push' });
+        log.push('Retrying FCM registration once after 5s...', LogLevel.INFO);
 
         setTimeout(async () => {
           try {
             await PushNotifications.register();
           } catch (e) {
-            log.error('FCM registration retry failed', { component: 'Push' }, e);
+            log.push('FCM registration retry failed', LogLevel.ERROR, e);
           }
         }, 5000);
       }
@@ -199,8 +197,7 @@ export class MobilePushService {
     PushNotifications.addListener(
       'pushNotificationReceived',
       (notification: PushNotificationSchema) => {
-        log.info('Push notification received (foreground)', {
-          component: 'Push',
+        log.push('Push notification received (foreground)', LogLevel.INFO, {
           title: notification.title,
           body: notification.body,
           data: notification.data,
@@ -215,8 +212,7 @@ export class MobilePushService {
     PushNotifications.addListener(
       'pushNotificationActionPerformed',
       (action: ActionPerformed) => {
-        log.info('Push notification action performed', {
-          component: 'Push',
+        log.push('Push notification action performed', LogLevel.INFO, {
           actionId: action.actionId,
           notification: action.notification,
         });
@@ -231,25 +227,22 @@ export class MobilePushService {
     const notificationStore = useNotificationStore.getState();
 
     if (!notificationStore.isConnected) {
-      log.info('Storing FCM token - will register when connected to notification server', {
-        component: 'Push',
-      });
+      log.push('Storing FCM token - will register when connected to notification server', LogLevel.INFO);
       return;
     }
 
     try {
       const platform = Capacitor.getPlatform() as 'ios' | 'android';
 
-      log.info('Registering FCM token with notification server', {
-        component: 'Push',
+      log.push('Registering FCM token with notification server', LogLevel.INFO, {
         platform,
       });
 
       await notificationStore.registerPushToken(token, platform);
 
-      log.info('Successfully registered FCM token with server', { component: 'Push' });
+      log.push('Successfully registered FCM token with server', LogLevel.INFO);
     } catch (error) {
-      log.error('Failed to register FCM token with server', { component: 'Push' }, error);
+      log.push('Failed to register FCM token with server', LogLevel.ERROR, error);
     }
   }
 
@@ -260,8 +253,8 @@ export class MobilePushService {
   private _handleNotification(notification: PushNotificationSchema): void {
     const data = notification.data as PushNotificationData;
 
-    log.info('Processing FCM notification (foreground)', {
-      component: 'Push',
+    log.push('Processing FCM notification (foreground)', LogLevel.INFO, {
+      
       title: notification.title,
       body: notification.body,
       data: notification.data,
@@ -275,8 +268,7 @@ export class MobilePushService {
       // Ignore the push notification to avoid duplicate processing/toasts.
       // The WebSocket handler already adds the event to the store.
       if (notificationStore.isConnected) {
-        log.info('Ignoring foreground push notification - already connected to event server', {
-          component: 'Push',
+        log.push('Ignoring foreground push notification - already connected to event server', LogLevel.INFO, {
           eventId: data.eventId,
         });
         return;
@@ -297,8 +289,7 @@ export class MobilePushService {
         if (currentProfile && authStore.accessToken) {
           imageUrl = `${currentProfile.portalUrl}/index.php?view=image&eid=${data.eventId}&fid=snapshot&width=600&token=${authStore.accessToken}`;
 
-          log.info('Constructed image URL for FCM notification', {
-            component: 'Push',
+          log.push('Constructed image URL for FCM notification', LogLevel.INFO, {
             eventId: data.eventId,
             imageUrl,
           });
@@ -324,8 +315,7 @@ export class MobilePushService {
   private _handleNotificationAction(action: ActionPerformed): void {
     const data = action.notification.data as PushNotificationData;
 
-    log.info('Processing notification tap', {
-      component: 'Push',
+    log.push('Processing notification tap', LogLevel.INFO, {
       actionId: action.actionId,
       monitorId: data.monitorId,
       eventId: data.eventId,
@@ -362,8 +352,7 @@ export class MobilePushService {
         // Mark as read since user is tapping to view the event
         notificationStore.markEventRead(profileId, parseInt(data.eventId, 10));
 
-        log.info('Added notification to history from tap action and marked as read', {
-          component: 'Push',
+        log.push('Added notification to history from tap action and marked as read', LogLevel.INFO, {
           eventId: data.eventId,
           profileId,
         });
@@ -372,7 +361,7 @@ export class MobilePushService {
       // Navigate to event detail page
       navigationService.navigateToEvent(data.eventId);
 
-      log.info('Navigating to event detail', { component: 'Push', eventId: data.eventId });
+      log.push('Navigating to event detail', LogLevel.INFO, { eventId: data.eventId });
     }
   }
 }
@@ -391,7 +380,7 @@ export function resetPushService(): void {
   if (pushService) {
     // Use private _unregister to avoid sending disabled state to server during cleanup
     pushService['_unregister']().catch((error) => {
-      log.error('Failed to unregister push service', { component: 'Push' }, error);
+      log.push('Failed to unregister push service', LogLevel.ERROR, error);
     });
     pushService = null;
   }

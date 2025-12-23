@@ -432,10 +432,11 @@ Then('I should see log entries or empty state', async ({ page }) => {
 
 Then('I should see log control elements', async ({ page }) => {
   const hasLevelFilter = await page.getByRole('combobox').isVisible().catch(() => false);
+  const hasComponentFilter = await page.getByTestId('log-component-filter-trigger').isVisible().catch(() => false);
   const hasClearButton = await page.getByRole('button', { name: /clear/i }).isVisible().catch(() => false);
   const hasSaveButton = await page.getByRole('button', { name: /save|download|share/i }).isVisible().catch(() => false);
 
-  expect(hasLevelFilter || hasClearButton || hasSaveButton).toBeTruthy();
+  expect(hasLevelFilter || hasComponentFilter || hasClearButton || hasSaveButton).toBeTruthy();
 });
 
 Then('I change the log level to {string}', async ({ page }, level: string) => {

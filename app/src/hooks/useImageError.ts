@@ -6,7 +6,7 @@
  */
 
 import { useState, useCallback } from 'react';
-import { log } from '../lib/logger';
+import { log, LogLevel } from '../lib/logger';
 
 export interface UseImageErrorOptions {
   /** Component name for logging */
@@ -65,14 +65,14 @@ export function useImageError(
     // Prevent infinite error loops if fallback also fails
     if (hasError) {
       if (!isErrorLogged) {
-        log.error('Fallback image also failed to load', { component, ...context });
+        log.imageError('Fallback image also failed to load', LogLevel.ERROR, { component, ...context });
         setIsErrorLogged(true);
       }
       return;
     }
 
     // Log the original image error
-    log.warn('Image failed to load, using fallback', {
+    log.imageError('Image failed to load, using fallback', LogLevel.WARN, {
       component,
       originalSrc,
       ...context,
@@ -124,7 +124,7 @@ export function useImageErrorState(
   const [hasError, setHasError] = useState(false);
 
   const handleError = useCallback(() => {
-    log.warn('Image failed to load', { component, ...context });
+    log.imageError('Image failed to load', LogLevel.WARN, { component, ...context });
     setHasError(true);
   }, [component, context]);
 

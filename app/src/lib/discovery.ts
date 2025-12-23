@@ -1,6 +1,6 @@
 
 import { createApiClient } from '../api/client';
-import { log } from './logger';
+import { log, LogLevel } from './logger';
 
 /**
  * Result of the discovery process
@@ -63,12 +63,12 @@ export async function discoverZoneminder(inputUrl: string): Promise<DiscoveryRes
     const portalCandidates = getPortalCandidates(inputUrl);
     let confirmedPortalUrl: string | null = null;
 
-    log.info(`[Discovery] Starting discovery for input: "${inputUrl}"`, { candidates: portalCandidates });
+    log.discovery(`Starting discovery for input: "${inputUrl}"`, LogLevel.INFO, { candidates: portalCandidates });
 
     // 1. Portal Check
     for (const candidate of portalCandidates) {
         try {
-            log.debug(`[Discovery] Checking Portal URL: ${candidate}`);
+            log.discovery(`Checking Portal URL: ${candidate}`, LogLevel.DEBUG);
             // We use createApiClient but strictly for this candidate base URL
             // We do NOT want the interceptors adding tokens yet, and we want a short timeout
             const probeClient = createApiClient(candidate);
@@ -88,11 +88,11 @@ export async function discoverZoneminder(inputUrl: string): Promise<DiscoveryRes
             });
 
             confirmedPortalUrl = candidate;
-            log.info(`[Discovery] Portal confirmed: ${confirmedPortalUrl}`);
+            log.discovery(`Portal confirmed: ${confirmedPortalUrl}`, LogLevel.INFO);
             break;
         } catch (error) {
             // Cast error to unknown or handle specifically, log expects optional context object as second arg, skipping error object for now or logging strict
-            log.warn(`[Discovery] Portal check failed for ${candidate}`, { error: error instanceof Error ? error.message : String(error) });
+            log.discovery(`Portal check failed for ${candidate}`, LogLevel.WARN, { error: error instanceof Error ? error.message : String(error) });
         }
     }
 
@@ -115,7 +115,7 @@ export async function discoverZoneminder(inputUrl: string): Promise<DiscoveryRes
 
     for (const apiPath of apiPaths) {
         const fullApiUrl = `${confirmedPortalUrl}${apiPath}`;
-        log.debug(`[Discovery] Probing API: ${fullApiUrl}`);
+        log.discovery(`Probing API: ${fullApiUrl}`, LogLevel.DEBUG);
 
         try {
             const apiClient = createApiClient(fullApiUrl);
@@ -138,10 +138,10 @@ export async function discoverZoneminder(inputUrl: string): Promise<DiscoveryRes
 
                 if (isValidApi(res.status)) {
                     if (res.status === 200 && (!res.data || (!res.data.version && !res.data.apiversion))) {
-                        log.debug(`[Discovery] Response from ${fullApiUrl}/host/getVersion.json was 200 but did not contain version info.`);
+                        log.discovery(`Response from ${fullApiUrl}/host/getVersion.json was 200 but did not contain version info.`, LogLevel.DEBUG);
                     } else {
                         confirmedApiUrl = fullApiUrl;
-                        log.info(`[Discovery] API confirmed via getVersion: ${confirmedApiUrl} (Status: ${res.status})`);
+                        log.discovery(`API confirmed via getVersion: ${confirmedApiUrl} (Status: ${res.status})`, LogLevel.INFO);
                         break;
                     }
                 }
@@ -150,12 +150,12 @@ export async function discoverZoneminder(inputUrl: string): Promise<DiscoveryRes
                 const status = error.status || error.response?.status;
                 if (isValidApi(status)) {
                     confirmedApiUrl = fullApiUrl;
-                    log.info(`[Discovery] API confirmed via getVersion (auth check): ${confirmedApiUrl} (Status: ${status})`);
+                    log.discovery(`API confirmed via getVersion (auth check): ${confirmedApiUrl} (Status: ${status})`, LogLevel.INFO);
                     break;
                 }
 
                 // If getVersion fails (e.g. 404), try login.json as fallback
-                log.debug(`[Discovery] getVersion probe failed for ${fullApiUrl}, trying login.json`, { error: error.message });
+                log.discovery(`getVersion probe failed for ${fullApiUrl}, trying login.json`, LogLevel.DEBUG, { error: error.message });
 
                 try {
                     // 2. Try login.json (GET might return 405 or 401 or 200)
@@ -167,22 +167,22 @@ export async function discoverZoneminder(inputUrl: string): Promise<DiscoveryRes
 
                     if (isValidApi(loginRes.status)) {
                         confirmedApiUrl = fullApiUrl;
-                        log.info(`[Discovery] API confirmed via login.json: ${confirmedApiUrl} (Status: ${loginRes.status})`);
+                        log.discovery(`API confirmed via login.json: ${confirmedApiUrl} (Status: ${loginRes.status})`, LogLevel.INFO);
                         break;
                     }
                 } catch (loginError: any) {
                     const loginStatus = loginError.status || loginError.response?.status;
                     if (isValidApi(loginStatus)) {
                         confirmedApiUrl = fullApiUrl;
-                        log.info(`[Discovery] API confirmed via login.json (auth check): ${confirmedApiUrl} (Status: ${loginStatus})`);
+                        log.discovery(`API confirmed via login.json (auth check): ${confirmedApiUrl} (Status: ${loginStatus})`, LogLevel.INFO);
                         break;
                     }
-                    log.debug(`[Discovery] login.json probe failed for ${fullApiUrl}`, { error: loginError.message });
+                    log.discovery(`login.json probe failed for ${fullApiUrl}`, LogLevel.DEBUG, { error: loginError.message });
                 }
             }
 
         } catch (error) {
-            log.debug(`[Discovery] API probe failed for ${fullApiUrl}`, { error: error instanceof Error ? error.message : String(error) });
+            log.discovery(`API probe failed for ${fullApiUrl}`, LogLevel.DEBUG, { error: error instanceof Error ? error.message : String(error) });
         }
     }
 
@@ -228,7 +228,7 @@ export async function discoverZoneminder(inputUrl: string): Promise<DiscoveryRes
     // to match the confirmed API structure is robust.
     // CGI URL now includes /nph-zms directly for consistency with ZM_PATH_ZMS API response.
 
-    log.info(`[Discovery] Inferred CGI URL: ${confirmedCgiUrl}`);
+    log.discovery(`Inferred CGI URL: ${confirmedCgiUrl}`, LogLevel.INFO);
 
     // CRITICAL: Verify that portal and API use the same protocol
     const portalProtocol = confirmedPortalUrl.startsWith('https://') ? 'https' : 'http';
@@ -239,7 +239,7 @@ export async function discoverZoneminder(inputUrl: string): Promise<DiscoveryRes
             `ZoneMinder Portal and API must use the same protocol. Please configure your ZoneMinder server to use ` +
             `consistent protocols, or enter URLs manually with matching protocols.`;
 
-        log.error(`[Discovery] Protocol mismatch!`, {
+        log.discovery(`Protocol mismatch!`, LogLevel.ERROR, {
             portalUrl: confirmedPortalUrl,
             apiUrl: confirmedApiUrl,
             portalProtocol,
@@ -249,7 +249,7 @@ export async function discoverZoneminder(inputUrl: string): Promise<DiscoveryRes
         throw new DiscoveryError(errorMsg, 'UNKNOWN');
     }
 
-    log.info(`[Discovery] Protocol validation passed - both using ${portalProtocol}://`);
+    log.discovery(`Protocol validation passed - both using ${portalProtocol}://`, LogLevel.INFO);
 
     return {
         portalUrl: confirmedPortalUrl,

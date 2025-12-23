@@ -27,7 +27,7 @@ import { ZM_CONSTANTS } from '../../lib/constants';
 import { downloadSnapshotFromElement } from '../../lib/download';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
-import { log } from '../../lib/logger';
+import { log, LogLevel } from '../../lib/logger';
 import { getMonitorAspectRatio } from '../../lib/monitor-rotation';
 
 interface MontageMonitorProps {
@@ -66,7 +66,7 @@ function MontageMonitorComponent({
 
   // Force regenerate connKey when component mounts
   useEffect(() => {
-    log.info('Regenerating connkey', { component: 'MontageMonitor', monitorId: monitor.Id });
+    log.montageMonitor('Regenerating connkey', LogLevel.INFO, { monitorId: monitor.Id });
     const newKey = regenerateConnKey(monitor.Id);
     setConnKey(newKey);
     setCacheBuster(Date.now());
@@ -88,7 +88,7 @@ function MontageMonitorComponent({
     const currentImg = imgRef.current;
     return () => {
       if (currentImg) {
-        log.info('Cleaning up stream', { component: 'MontageMonitor', monitorId: monitor.Id });
+        log.montageMonitor('Cleaning up stream', LogLevel.DEBUG, { monitorId: monitor.Id });
         // Set to empty data URI to abort the connection
         currentImg.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
       }
@@ -178,7 +178,7 @@ function MontageMonitorComponent({
             // Only retry if we haven't retried too recently (basic debounce)
             if (!img.dataset.retrying) {
               img.dataset.retrying = "true";
-              log.info('Stream failed, regenerating connkey', { component: 'MontageMonitor', monitorName: monitor.Name });
+              log.montageMonitor('Stream failed, regenerating connkey', LogLevel.INFO, { monitorName: monitor.Name });
               regenerateConnKey(monitor.Id);
               toast.error(t('montage.stream_lost_reconnecting', { name: monitor.Name }));
 
