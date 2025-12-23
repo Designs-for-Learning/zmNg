@@ -6,6 +6,7 @@
 3. **Settings**: Must be profile-scoped; read/write via profile settings only
 4. **Testing**: Data tags required, tests updated
 5. **Logging**: Use component-specific helpers (e.g., `log.secureStorage(msg, LogLevel.INFO, details)`), never `console.*`
+6. **Coding**: DRY principles, keep code files small and modular
 
 ---
 
@@ -160,6 +161,9 @@ console.log('Regenerating connkey');
 - Avoid duplication
 - Don't over-engineer
 - Three similar lines > premature abstraction
+
+## Keep It Small
+- Keep each file small (SLOC count) and cohesive
 
 ### Remove Legacy Code
 - When replacing functionality, delete old code
