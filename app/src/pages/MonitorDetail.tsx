@@ -163,8 +163,8 @@ export default function MonitorDetail() {
   );
   const updateSettings = useSettingsStore((state) => state.updateProfileSettings);
 
-  // Keep screen awake when Insomnia is enabled
-  useInsomnia({ enabled: settings.monitorDetailInsomnia });
+  // Keep screen awake when Insomnia is enabled (global setting)
+  useInsomnia({ enabled: settings.insomnia });
   const [scale, setScale] = useState(settings.streamScale);
   const [connKey, setConnKey] = useState(0);
   const [cacheBuster, setCacheBuster] = useState(Date.now());
@@ -752,29 +752,6 @@ export default function MonitorDetail() {
                   <p className="text-xs text-muted-foreground">
                     {t('monitor_detail.cycle_help')}
                   </p>
-                </div>
-
-                <div className="space-y-2 pt-2 border-t" data-testid="monitor-detail-insomnia-setting">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="insomnia-toggle" className="text-sm cursor-pointer">
-                        {t('monitor_detail.insomnia_label')}
-                      </Label>
-                      <p className="text-xs text-muted-foreground">
-                        {t('monitor_detail.insomnia_help')}
-                      </p>
-                    </div>
-                    <Switch
-                      id="insomnia-toggle"
-                      checked={settings.monitorDetailInsomnia}
-                      onCheckedChange={(checked) => {
-                        if (currentProfile) {
-                          updateSettings(currentProfile.id, { monitorDetailInsomnia: checked });
-                        }
-                      }}
-                      data-testid="monitor-detail-insomnia-toggle"
-                    />
-                  </div>
                 </div>
               </CardContent>
             </Card>

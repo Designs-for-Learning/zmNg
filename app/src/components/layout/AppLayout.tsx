@@ -9,10 +9,13 @@
 import { Link, Outlet, useLocation, Navigate } from 'react-router-dom';
 import { useProfileStore } from '../../stores/profile';
 import { useNotificationStore } from '../../stores/notifications';
+import { useSettingsStore } from '../../stores/settings';
 import { useShallow } from 'zustand/react/shallow';
 import { Button } from '../ui/button';
 import { ModeToggle } from '../mode-toggle';
 import { ProfileSwitcher } from '../profile-switcher';
+import { useToast } from '../../hooks/use-toast';
+import { useInsomnia } from '../../hooks/useInsomnia';
 import {
   LayoutGrid,
   Video,
@@ -27,7 +30,9 @@ import {
   FileText,
   Globe,
   LayoutDashboard,
-  Server
+  Server,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useState, useRef, useEffect } from 'react';
@@ -114,12 +119,30 @@ function SidebarContent({ onMobileClose, isCollapsed }: SidebarContentProps) {
       getProfileSettings: state.getProfileSettings,
     }))
   );
+  const { getProfileSettings: getSettings, updateProfileSettings } = useSettingsStore(
+    useShallow((state) => ({
+      getProfileSettings: state.getProfileSettings,
+      updateProfileSettings: state.updateProfileSettings,
+    }))
+  );
 
   // Get notification data for current profile
   const unreadCount = currentProfile ? getUnreadCount(currentProfile.id) : 0;
   const settings = currentProfile ? getProfileSettings(currentProfile.id) : null;
+  const profileSettings = currentProfile ? getSettings(currentProfile.id) : null;
 
   const { t } = useTranslation();
+  const { toast } = useToast();
+
+  const handleInsomniaToggle = () => {
+    if (currentProfile && profileSettings) {
+      const newValue = !profileSettings.insomnia;
+      updateProfileSettings(currentProfile.id, { insomnia: newValue });
+      toast({
+        description: t(newValue ? 'montage.insomnia_enabled' : 'montage.insomnia_disabled'),
+      });
+    }
+  };
 
 
   const navItems = [
@@ -214,7 +237,7 @@ function SidebarContent({ onMobileClose, isCollapsed }: SidebarContentProps) {
       </div>
 
       <div className={cn("border-t bg-card/50 backdrop-blur-sm space-y-3 transition-all duration-300", isCollapsed ? "p-2" : "p-4")}>
-        {!isCollapsed && (
+        {!isCollapsed ? (
           <>
             <div className="space-y-2">
               <span className="text-xs font-medium text-muted-foreground px-1">{t('sidebar.profile')}</span>
@@ -224,7 +247,31 @@ function SidebarContent({ onMobileClose, isCollapsed }: SidebarContentProps) {
               <span className="text-xs font-medium text-muted-foreground">{t('settings.theme')}</span>
               <ModeToggle />
             </div>
+            <div className="flex items-center justify-between pt-2">
+              <span className="text-xs font-medium text-muted-foreground">{t('monitor_detail.insomnia_label')}</span>
+              <Button
+                onClick={handleInsomniaToggle}
+                variant={profileSettings?.insomnia ? "default" : "outline"}
+                size="icon"
+                className="h-8 w-8"
+                title={profileSettings?.insomnia ? t('montage.insomnia_enabled') : t('montage.insomnia_disabled')}
+                data-testid="sidebar-insomnia-toggle"
+              >
+                {profileSettings?.insomnia ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+              </Button>
+            </div>
           </>
+        ) : (
+          <Button
+            onClick={handleInsomniaToggle}
+            variant={profileSettings?.insomnia ? "default" : "outline"}
+            size="icon"
+            className="h-8 w-8"
+            title={profileSettings?.insomnia ? t('montage.insomnia_enabled') : t('montage.insomnia_disabled')}
+            data-testid="sidebar-insomnia-toggle-collapsed"
+          >
+            {profileSettings?.insomnia ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+          </Button>
         )}
       </div>
     </div>
@@ -237,6 +284,9 @@ function SidebarContent({ onMobileClose, isCollapsed }: SidebarContentProps) {
  */
 export default function AppLayout() {
   const currentProfile = useProfileStore((state) => state.currentProfile());
+  const settings = useSettingsStore(
+    useShallow((state) => state.getProfileSettings(currentProfile?.id || ''))
+  );
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(256); // 256px = w-64
   const [isDragging, setIsDragging] = useState(false);
@@ -245,6 +295,9 @@ export default function AppLayout() {
   const MIN_WIDTH = 60;
   const MAX_WIDTH = 256;
   const { t } = useTranslation();
+
+  // Apply global insomnia setting
+  useInsomnia({ enabled: settings.insomnia });
 
   const handleMouseDown = (e: React.MouseEvent) => {
     setIsDragging(true);
