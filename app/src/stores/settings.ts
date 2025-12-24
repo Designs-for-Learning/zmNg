@@ -31,6 +31,8 @@ export interface ProfileSettings {
   monitorDetailFeedFit: MonitorFeedFit; // Object-fit for monitor detail feed
   eventsThumbnailFit: MonitorFeedFit; // Object-fit for event thumbnails
   monitorDetailCycleSeconds: number; // Auto-cycle interval for single monitor view (0 = off)
+  monitorDetailInsomnia: boolean; // Keep screen awake on monitor detail page
+  montageInsomnia: boolean; // Keep screen awake on montage page
   eventMontageFilters: {
     monitorIds: string[];
     cause: string;
@@ -93,6 +95,8 @@ const DEFAULT_SETTINGS: ProfileSettings = {
   monitorDetailFeedFit: 'contain',
   eventsThumbnailFit: 'contain',
   monitorDetailCycleSeconds: 0,
+  monitorDetailInsomnia: false,
+  montageInsomnia: false,
   eventMontageFilters: {
     monitorIds: [],
     cause: 'all',

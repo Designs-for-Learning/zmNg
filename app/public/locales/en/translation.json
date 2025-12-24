@@ -345,6 +345,8 @@
     "cycle_off": "Off",
     "cycle_seconds": "{{seconds}} seconds",
     "cycle_help": "Automatically switch to the next monitor.",
+    "insomnia_label": "Insomnia",
+    "insomnia_help": "Keep screen awake while viewing.",
     "alarm_title": "Alarm",
     "alarm_status": "Alarm Status",
     "alarm_armed": "Armed",
@@ -406,7 +408,9 @@
     "fit_none": "None (no scaling)",
     "fit_scale_down": "Scale down (shrink only)",
     "edit_layout": "Edit Layout",
-    "done_editing": "Done Editing"
+    "done_editing": "Done Editing",
+    "insomnia_enabled": "Insomnia enabled - screen will stay awake",
+    "insomnia_disabled": "Insomnia disabled - screen may sleep"
   },
   "notification_history": {
     "title": "Notifications",

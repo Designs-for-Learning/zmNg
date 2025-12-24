@@ -32,12 +32,13 @@ import {
 } from '../components/ui/dialog';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import { RefreshCw, Video, AlertCircle, LayoutDashboard, Grid2x2, Grid3x3, GripVertical, Maximize, Minimize, X, LayoutGrid, Pencil } from 'lucide-react';
+import { RefreshCw, Video, AlertCircle, LayoutDashboard, Grid2x2, Grid3x3, GripVertical, Maximize, Minimize, X, LayoutGrid, Pencil, Moon } from 'lucide-react';
 import { filterEnabledMonitors } from '../lib/filters';
 import { cn } from '../lib/utils';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { usePinchZoom } from '../hooks/usePinchZoom';
+import { useInsomnia } from '../hooks/useInsomnia';
 import GridLayout, { WidthProvider } from 'react-grid-layout';
 import type { Layout } from 'react-grid-layout';
 import 'react-grid-layout/css/styles.css';
@@ -73,6 +74,9 @@ export default function Montage() {
   );
   const updateSettings = useSettingsStore((state) => state.updateProfileSettings);
   const saveMontageLayout = useSettingsStore((state) => state.saveMontageLayout);
+
+  // Keep screen awake when Insomnia is enabled
+  useInsomnia({ enabled: settings.montageInsomnia });
 
   // Grid layout configuration state - load from settings
   const [gridCols, setGridCols] = useState<number>(settings.montageGridCols);
@@ -489,6 +493,20 @@ export default function Montage() {
                 </span>
               </Button>
               <Button
+                onClick={() => {
+                  if (currentProfile) {
+                    updateSettings(currentProfile.id, { montageInsomnia: !settings.montageInsomnia });
+                  }
+                }}
+                variant={settings.montageInsomnia ? "default" : "outline"}
+                size="sm"
+                className="h-8 sm:h-9"
+                title={settings.montageInsomnia ? t('montage.insomnia_enabled') : t('montage.insomnia_disabled')}
+                data-testid="montage-insomnia-toggle"
+              >
+                <Moon className="h-4 w-4" />
+              </Button>
+              <Button
                 onClick={() => handleToggleFullscreen(true)}
                 variant="default"
                 size="sm"
@@ -532,6 +550,20 @@ export default function Montage() {
                 <span className="hidden sm:inline">
                   {isEditMode ? t('montage.done_editing') : t('montage.edit_layout')}
                 </span>
+              </Button>
+              <Button
+                onClick={() => {
+                  if (currentProfile) {
+                    updateSettings(currentProfile.id, { montageInsomnia: !settings.montageInsomnia });
+                  }
+                }}
+                variant={settings.montageInsomnia ? "default" : "ghost"}
+                size="sm"
+                className="text-white hover:bg-white/10 h-8 sm:h-9"
+                title={settings.montageInsomnia ? t('montage.insomnia_enabled') : t('montage.insomnia_disabled')}
+                data-testid="montage-insomnia-toggle"
+              >
+                <Moon className="h-4 w-4" />
               </Button>
               <Button
                 onClick={() => handleToggleFullscreen(false)}

@@ -27,6 +27,7 @@ import { toast } from 'sonner';
 import { downloadSnapshotFromElement } from '../lib/download';
 import { useTranslation } from 'react-i18next';
 import { useSwipeNavigation } from '../hooks/useSwipeNavigation';
+import { useInsomnia } from '../hooks/useInsomnia';
 import { PTZControls } from '../components/monitors/PTZControls';
 import { controlMonitor } from '../api/monitors';
 import { filterEnabledMonitors } from '../lib/filters';
@@ -161,6 +162,9 @@ export default function MonitorDetail() {
     useShallow((state) => state.getProfileSettings(currentProfile?.id || ''))
   );
   const updateSettings = useSettingsStore((state) => state.updateProfileSettings);
+
+  // Keep screen awake when Insomnia is enabled
+  useInsomnia({ enabled: settings.monitorDetailInsomnia });
   const [scale, setScale] = useState(settings.streamScale);
   const [connKey, setConnKey] = useState(0);
   const [cacheBuster, setCacheBuster] = useState(Date.now());
@@ -748,6 +752,29 @@ export default function MonitorDetail() {
                   <p className="text-xs text-muted-foreground">
                     {t('monitor_detail.cycle_help')}
                   </p>
+                </div>
+
+                <div className="space-y-2 pt-2 border-t" data-testid="monitor-detail-insomnia-setting">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="insomnia-toggle" className="text-sm cursor-pointer">
+                        {t('monitor_detail.insomnia_label')}
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        {t('monitor_detail.insomnia_help')}
+                      </p>
+                    </div>
+                    <Switch
+                      id="insomnia-toggle"
+                      checked={settings.monitorDetailInsomnia}
+                      onCheckedChange={(checked) => {
+                        if (currentProfile) {
+                          updateSettings(currentProfile.id, { monitorDetailInsomnia: checked });
+                        }
+                      }}
+                      data-testid="monitor-detail-insomnia-toggle"
+                    />
+                  </div>
                 </div>
               </CardContent>
             </Card>

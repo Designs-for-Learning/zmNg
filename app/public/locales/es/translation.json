@@ -348,6 +348,8 @@
     "cycle_off": "Desactivado",
     "cycle_seconds": "{{seconds}} segundos",
     "cycle_help": "Cambia automáticamente al siguiente monitor.",
+    "insomnia_label": "Insomnio",
+    "insomnia_help": "Mantener la pantalla activa durante la visualización.",
     "alarm_title": "Alarma",
     "alarm_status": "Estado de alarma",
     "alarm_armed": "Activada",
@@ -409,7 +411,9 @@
     "fit_none": "Ninguno (sin escalar)",
     "fit_scale_down": "Reducir (solo encoger)",
     "edit_layout": "Editar diseño",
-    "done_editing": "Finalizar edición"
+    "done_editing": "Finalizar edición",
+    "insomnia_enabled": "Insomnio activado - la pantalla permanecerá activa",
+    "insomnia_disabled": "Insomnio desactivado - la pantalla puede dormir"
   },
   "notification_history": {
     "title": "Notificaciones",
