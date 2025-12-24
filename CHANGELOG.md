@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [zmNg-0.1.0](https://github.com/pliablepixels/zmNg/compare/zmNg-0.0.9..zmNg-0.1.0) - 2025-12-24
+
+### 🐛 Bug Fixes
+
+- Add failsafes to prevent Android splash screen hang on app restart - ([31d97c7](https://github.com/pliablepixels/zmNg/commit/31d97c744df141e5e50e9793493f21f566c1cb91))
+
+### 🔧 Miscellaneous
+
+- Updated release message - ([57f37d1](https://github.com/pliablepixels/zmNg/commit/57f37d17ad4b41c44d5a7d2f4caffb4289ceaa81))
+- 0.1.0 - ([dc2cb2c](https://github.com/pliablepixels/zmNg/commit/dc2cb2cfc5c805f2345095e24462b9f585dff2d2))
 ## [zmNg-0.0.9](https://github.com/pliablepixels/zmNg/compare/zmNg-0.0.8..zmNg-0.0.9) - 2025-12-24
 
 ### ✨ Features
@@ -41,6 +51,7 @@ All notable changes to this project will be documented in this file.
 
 ### 📚 Documentation
 
+- Update CHANGELOG.md for zmNg-0.0.9 - ([3021e61](https://github.com/pliablepixels/zmNg/commit/3021e61da057cad92c4ea0d7c5967d8f5e91d276))
 - Update language addition workflow for bundled translations - ([ddcac2d](https://github.com/pliablepixels/zmNg/commit/ddcac2dc8e2254091ef79c281172c3f10f78ef54))
 - Reminder to test mobile stack - ([23dc6fb](https://github.com/pliablepixels/zmNg/commit/23dc6fbfa739702e9ef2c276b54eec46991fb50f))
 - Enhance development guidelines in AGENTS.md - ([51b85db](https://github.com/pliablepixels/zmNg/commit/51b85db6b545a6c5403abc6daf370ae02493b59b))
