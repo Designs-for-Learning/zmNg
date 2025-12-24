@@ -5,7 +5,6 @@
  */
 
 import { useTranslation } from 'react-i18next';
-import { useState, useEffect } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { Loader2 } from 'lucide-react';
 import { Button } from '../ui/button';
@@ -38,35 +37,10 @@ export const EventListView = ({
   parentRef,
 }: EventListViewProps) => {
   const { t } = useTranslation();
-  const [isParentReady, setIsParentReady] = useState(!!parentRef.current);
 
-  // Wait for parentRef to be available (iOS timing fix)
-  // Check on every render cycle, not just when parentRef changes
-  useEffect(() => {
-    if (parentRef.current && !isParentReady) {
-      setIsParentReady(true);
-    }
-  });
-
-  // Reset ready state when component unmounts to ensure clean state on re-mount
-  useEffect(() => {
-    return () => {
-      setIsParentReady(false);
-    };
-  }, []);
-
-  // Virtualize the events list for better performance
-  // Pass enabled flag to prevent initialization until parent is ready
-  const rowVirtualizer = useVirtualizer({
-    count: isParentReady ? events.length : 0,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 140, // Approximate height of EventCard
-    overscan: 5, // Render 5 items above and below viewport
-    enabled: isParentReady, // Only enable virtualization when parent is ready
-  });
-
-  // Guard: Don't render virtualized list until parentRef is available
-  if (!isParentReady) {
+  // Don't render until we have a parent ref (iOS timing fix)
+  // Parent component will trigger re-render via callback ref
+  if (!parentRef.current) {
     return (
       <div className="min-h-0 p-4" data-testid="event-list-loading">
         <div className="text-center text-muted-foreground">
@@ -75,6 +49,14 @@ export const EventListView = ({
       </div>
     );
   }
+
+  // Virtualize the events list for better performance
+  const rowVirtualizer = useVirtualizer({
+    count: events.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 140, // Approximate height of EventCard
+    overscan: 5, // Render 5 items above and below viewport
+  });
 
   return (
     <div className="min-h-0" data-testid="event-list">
