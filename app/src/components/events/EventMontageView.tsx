@@ -6,7 +6,7 @@
 
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Video, Loader2 } from 'lucide-react';
+import { Download, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { Card } from '../ui/card';
@@ -77,7 +77,7 @@ export const EventMontageView = ({
           return (
             <Card
               key={event.Id}
-              className="group overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary transition-all"
+              className="overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary transition-all"
               onClick={() => navigate(`/events/${event.Id}`)}
             >
               <div className="relative bg-black" style={{ aspectRatio: aspectRatio.toString() }}>
@@ -92,18 +92,15 @@ export const EventMontageView = ({
                       'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="300" height="200"%3E%3Crect fill="%231a1a1a" width="300" height="200"/%3E%3Ctext fill="%23444" x="50%" y="50%" text-anchor="middle" font-family="sans-serif"%3ENo Image%3C/text%3E%3C/svg%3E';
                   }}
                 />
-                <div className="absolute top-2 right-2">
+                <div className="absolute top-2 right-2 flex items-center gap-2">
                   <Badge variant="secondary" className="text-xs">
                     {event.Length}s
                   </Badge>
-                </div>
-
-                {hasVideo && (
-                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                  {hasVideo && (
                     <Button
                       variant="secondary"
-                      size="sm"
-                      className="gap-2"
+                      size="icon"
+                      className="h-7 w-7"
                       onClick={(e) => {
                         e.stopPropagation();
                         downloadEventVideo(portalUrl, event.Id, event.Name, accessToken)
@@ -111,12 +108,13 @@ export const EventMontageView = ({
                           .catch(() => toast.error(t('eventMontage.video_download_failed')));
                       }}
                       title={t('eventMontage.download_video')}
+                      aria-label={t('eventMontage.download_video')}
+                      data-testid="event-download-button"
                     >
-                      <Video className="h-4 w-4" />
-                      {t('eventMontage.download_video')}
+                      <Download className="h-4 w-4" />
                     </Button>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
               <div className="p-3 space-y-1">
                 <div className="font-medium text-sm truncate" title={event.Name}>

@@ -213,13 +213,14 @@ function MonitorCardComponent({
             </Button>
             <Button
               variant="outline"
-              size="sm"
-              className="text-xs h-8"
+              size="icon"
+              className="h-8 w-8"
               onClick={handleDownloadSnapshot}
+              title={t('monitors.download_snapshot')}
+              aria-label={t('monitors.download_snapshot')}
               data-testid="monitor-download-button"
             >
-              <Download className="h-3 w-3 mr-1" />
-              {t('monitors.download_snapshot')}
+              <Download className="h-4 w-4" />
             </Button>
           </div>
         </div>
