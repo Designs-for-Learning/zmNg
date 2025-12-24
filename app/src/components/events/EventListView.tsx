@@ -12,6 +12,7 @@ import { EventCard } from './EventCard';
 import { getEventImageUrl } from '../../api/events';
 import { calculateThumbnailDimensions, EVENT_GRID_CONSTANTS } from '../../lib/event-utils';
 import type { Monitor } from '../../api/types';
+import { log, LogLevel } from '../../lib/logger';
 
 interface EventListViewProps {
   events: any[];
@@ -49,9 +50,18 @@ export const EventListView = ({
     overscan: 5, // Render 5 items above and below viewport
   });
 
+  log.eventDetail('EventListView render', LogLevel.DEBUG, {
+    hasParentElement: !!parentElement,
+    hasParentRef: !!parentRef.current,
+    eventsCount: events.length,
+    totalSize: rowVirtualizer.getTotalSize(),
+    virtualItemsCount: rowVirtualizer.getVirtualItems().length,
+  });
+
   // Don't render content until we have a parent element (iOS timing fix)
   // Parent component will trigger re-render via callback ref state update
   if (!parentElement) {
+    log.eventDetail('EventListView: no parentElement, showing loading', LogLevel.WARN);
     return (
       <div className="min-h-0 p-4" data-testid="event-list-loading">
         <div className="text-center text-muted-foreground">
@@ -60,6 +70,11 @@ export const EventListView = ({
       </div>
     );
   }
+
+  log.eventDetail('EventListView: rendering list', LogLevel.INFO, {
+    totalSize: rowVirtualizer.getTotalSize(),
+    virtualItemsCount: rowVirtualizer.getVirtualItems().length,
+  });
 
   return (
     <div className="min-h-0" data-testid="event-list">
