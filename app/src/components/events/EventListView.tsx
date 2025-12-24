@@ -38,7 +38,16 @@ export const EventListView = ({
 }: EventListViewProps) => {
   const { t } = useTranslation();
 
-  // Don't render until we have a parent ref (iOS timing fix)
+  // IMPORTANT: Always call hooks in the same order (Rules of Hooks)
+  // Virtualize the events list for better performance
+  const rowVirtualizer = useVirtualizer({
+    count: events.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 140, // Approximate height of EventCard
+    overscan: 5, // Render 5 items above and below viewport
+  });
+
+  // Don't render content until we have a parent ref (iOS timing fix)
   // Parent component will trigger re-render via callback ref
   if (!parentRef.current) {
     return (
@@ -49,14 +58,6 @@ export const EventListView = ({
       </div>
     );
   }
-
-  // Virtualize the events list for better performance
-  const rowVirtualizer = useVirtualizer({
-    count: events.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 140, // Approximate height of EventCard
-    overscan: 5, // Render 5 items above and below viewport
-  });
 
   return (
     <div className="min-h-0" data-testid="event-list">
