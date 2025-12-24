@@ -412,8 +412,8 @@
     "fit_scale_down": "Verkleinern (nur schrumpfen)",
     "edit_layout": "Layout bearbeiten",
     "done_editing": "Bearbeiten beenden",
-    "insomnia_enabled": "Insomnie aktiviert - Bildschirm bleibt wach",
-    "insomnia_disabled": "Insomnie deaktiviert - Bildschirm kann schlafen"
+    "insomnia_enabled": "Bildschirm bleibt wach",
+    "insomnia_disabled": "Bildschirmschlaf aktiviert"
   },
   "notification_history": {
     "title": "Benachrichtigungen",

@@ -412,8 +412,8 @@
     "fit_scale_down": "Reducir (solo encoger)",
     "edit_layout": "Editar diseño",
     "done_editing": "Finalizar edición",
-    "insomnia_enabled": "Insomnio activado - la pantalla permanecerá activa",
-    "insomnia_disabled": "Insomnio desactivado - la pantalla puede dormir"
+    "insomnia_enabled": "La pantalla permanecerá activa",
+    "insomnia_disabled": "Suspensión de pantalla activada"
   },
   "notification_history": {
     "title": "Notificaciones",

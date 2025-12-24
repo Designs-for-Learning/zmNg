@@ -412,8 +412,8 @@
     "fit_scale_down": "Réduire (rétrécir seulement)",
     "edit_layout": "Modifier la disposition",
     "done_editing": "Terminer la modification",
-    "insomnia_enabled": "Insomnie activée - l'écran restera actif",
-    "insomnia_disabled": "Insomnie désactivée - l'écran peut se mettre en veille"
+    "insomnia_enabled": "L'écran restera actif",
+    "insomnia_disabled": "Veille d'écran activée"
   },
   "notification_history": {
     "title": "Notifications",

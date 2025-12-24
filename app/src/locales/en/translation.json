@@ -409,8 +409,8 @@
     "fit_scale_down": "Scale down (shrink only)",
     "edit_layout": "Edit Layout",
     "done_editing": "Done Editing",
-    "insomnia_enabled": "Insomnia enabled - screen will stay awake",
-    "insomnia_disabled": "Insomnia disabled - screen may sleep"
+    "insomnia_enabled": "Screen will stay awake",
+    "insomnia_disabled": "Screen sleep enabled"
   },
   "notification_history": {
     "title": "Notifications",

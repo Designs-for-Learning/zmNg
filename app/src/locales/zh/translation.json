@@ -412,8 +412,8 @@
     "fit_scale_down": "仅缩小",
     "edit_layout": "编辑布局",
     "done_editing": "完成编辑",
-    "insomnia_enabled": "保持唤醒已启用 - 屏幕将保持唤醒",
-    "insomnia_disabled": "保持唤醒已禁用 - 屏幕可能休眠"
+    "insomnia_enabled": "屏幕将保持唤醒",
+    "insomnia_disabled": "屏幕休眠已启用"
   },
   "notification_history": {
     "title": "通知",
