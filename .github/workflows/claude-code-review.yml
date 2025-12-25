@@ -3,21 +3,9 @@ name: Claude Code Review
 on:
   pull_request_target:
     types: [opened, synchronize]
-    # Optional: Only run on specific file changes
-    # paths:
-    #   - "src/**/*.ts"
-    #   - "src/**/*.tsx"
-    #   - "src/**/*.js"
-    #   - "src/**/*.jsx"
 
 jobs:
   claude-review:
-    # Optional: Filter by PR author
-    # if: |
-    #   github.event.pull_request.user.login == 'external-contributor' ||
-    #   github.event.pull_request.user.login == 'new-developer' ||
-    #   github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR'
-
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -26,10 +14,12 @@ jobs:
       id-token: write
 
     steps:
-      - name: Checkout repository
+      - name: Checkout PR code
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
+          # CRITICAL: Fetch from the PR's head repository (handles external forks)
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 1
 
       - name: Run Claude Code Review
@@ -42,16 +32,38 @@ jobs:
             REPO: ${{ github.repository }}
             PR NUMBER: ${{ github.event.pull_request.number }}
 
-            Please review this pull request and provide feedback on:
-            - Code quality and best practices
-            - Potential bugs or issues
-            - Performance considerations
-            - Security concerns
-            - Test coverage
+            Review this PR and post a COMPACT review (50-75 lines max) using `gh pr comment`.
 
-            Use the repository's CLAUDE.md for guidance on style and conventions. Be constructive and helpful in your feedback.
+            **Review Structure:**
+            1. Quick summary (2-3 sentences)
+            2. AGENTS.md compliance check (see AGENTS.md in repo root):
+               - Internationalization (all 5 languages updated?)
+               - Logging (no console.*, uses component helpers?)
+               - Testing (unit tests? e2e if UI changed?)
+               - Code quality (DRY, small files?)
+               - Commits (descriptive, conventional format?)
+            3. Critical issues only (P0 bugs, security, breaking changes)
+            4. 2-3 improvement suggestions (optional)
 
-            Use `gh pr comment` with your Bash tool to leave your review as a comment on the PR.
+            **Format:**
+            ```
+            ## Code Review - PR #X
+
+            [2-3 sentence summary]
+
+            ### AGENTS.md Compliance
+            - ✅/❌ Item: brief note
+
+            ### Critical Issues
+            - Issue description with file:line reference
+
+            ### Suggestions
+            - Suggestion with rationale
+
+            Tests: ✅/❌ [result]
+            ```
+
+            Keep it SHORT and ACTIONABLE. Focus on what matters.
 
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://docs.claude.com/en/docs/claude-code/cli-reference for available options
