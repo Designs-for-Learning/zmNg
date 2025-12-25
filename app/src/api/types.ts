@@ -4,11 +4,11 @@ import { log, LogLevel } from '../lib/logger';
 // Authentication types
 export const LoginResponseSchema = z.object({
   access_token: z.string().optional(),
-  access_token_expires: z.number().optional(),
+  access_token_expires: z.coerce.number().optional(),
   refresh_token: z.string().optional(),
-  refresh_token_expires: z.number().optional(),
+  refresh_token_expires: z.coerce.number().optional(),
   credentials: z.string().optional(),
-  append_password: z.number().optional(),
+  append_password: z.coerce.number().optional(),
   version: z.string().optional(),
   apiversion: z.string().optional(),
 });
@@ -323,13 +323,13 @@ export const EventDataSchema = z.object({
 export const EventsResponseSchema = z.object({
   events: z.array(EventDataSchema),
   pagination: z.object({
-    pageCount: z.number(),
-    page: z.number(),
-    current: z.number(),
-    count: z.number(),
+    pageCount: z.coerce.number(),
+    page: z.coerce.number(),
+    current: z.coerce.number(),
+    count: z.coerce.number(),
     prevPage: z.boolean(),
     nextPage: z.boolean(),
-    limit: z.number(),
+    limit: z.coerce.number(),
   }),
 });
 
@@ -414,14 +414,14 @@ export const ZMLogDataSchema = z.object({
 export const ZMLogsResponseSchema = z.object({
   logs: z.array(ZMLogDataSchema),
   pagination: z.object({
-    page: z.number(),
-    current: z.number(),
-    count: z.number(),
+    page: z.coerce.number(),
+    current: z.coerce.number(),
+    count: z.coerce.number(),
     prevPage: z.boolean(),
     nextPage: z.boolean(),
-    pageCount: z.number(),
+    pageCount: z.coerce.number(),
     order: z.record(z.string(), z.string()).optional(),
-    limit: z.number(),
+    limit: z.coerce.number(),
     options: z.object({
       conditions: z.array(z.unknown()),
     }).optional(),
