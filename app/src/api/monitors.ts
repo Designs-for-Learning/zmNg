@@ -133,26 +133,50 @@ export async function setMonitorEnabled(monitorId: string, enabled: boolean): Pr
 
 /**
  * Trigger alarm on a monitor.
- * 
+ *
  * Forces an alarm state on the monitor.
- * 
+ *
  * @param monitorId - The ID of the monitor
+ * @throws Error if alarm trigger fails (ZM returns status: 'false' with error)
  */
 export async function triggerAlarm(monitorId: string): Promise<void> {
   const client = getApiClient();
-  await client.get(`/monitors/alarm/id:${monitorId}/command:on.json`);
+  const response = await client.get(`/monitors/alarm/id:${monitorId}/command:on.json`);
+
+  // Validate response with Zod to catch failures
+  const validated = validateApiResponse(AlarmStatusResponseSchema, response.data, {
+    endpoint: `/monitors/alarm/id:${monitorId}/command:on.json`,
+    method: 'GET',
+  });
+
+  // Check for error response
+  if (validated.status === 'false' && validated.error) {
+    throw new Error(`Failed to trigger alarm: ${validated.error} (code: ${validated.code})`);
+  }
 }
 
 /**
  * Cancel alarm on a monitor.
- * 
+ *
  * Forces an alarm state off on the monitor.
- * 
+ *
  * @param monitorId - The ID of the monitor
+ * @throws Error if alarm cancel fails (ZM returns status: 'false' with error)
  */
 export async function cancelAlarm(monitorId: string): Promise<void> {
   const client = getApiClient();
-  await client.get(`/monitors/alarm/id:${monitorId}/command:off.json`);
+  const response = await client.get(`/monitors/alarm/id:${monitorId}/command:off.json`);
+
+  // Validate response with Zod to catch failures
+  const validated = validateApiResponse(AlarmStatusResponseSchema, response.data, {
+    endpoint: `/monitors/alarm/id:${monitorId}/command:off.json`,
+    method: 'GET',
+  });
+
+  // Check for error response
+  if (validated.status === 'false' && validated.error) {
+    throw new Error(`Failed to cancel alarm: ${validated.error} (code: ${validated.code})`);
+  }
 }
 
 /**

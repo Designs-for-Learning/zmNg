@@ -188,17 +188,26 @@ export const MonitorUpdateResponseSchema = z.object({
 
 export type MonitorUpdateResponse = z.infer<typeof MonitorUpdateResponseSchema>;
 
-// Monitor alarm status response (for getAlarmStatus endpoint)
+// Monitor alarm status response (for getAlarmStatus and alarm control endpoints)
+// ZM alarm() function returns different structures based on command and success/failure:
+// - Success with 'status' command: { status: number, output: number }
+// - Success with 'on'/'off' commands: { status: string, output: string }
+// - Error: { status: 'false', code: number, error: string }
 export const AlarmStatusResponseSchema = z.object({
-  status: z.string(),
-  output: z.union([z.string(), z.number()]).optional(),
+  status: z.union([z.string(), z.coerce.number()]),
+  output: z.union([z.string(), z.coerce.number()]).optional(),
+  // Error response fields
+  code: z.coerce.number().optional(),
+  error: z.string().optional(),
 });
 
 export type AlarmStatusResponse = z.infer<typeof AlarmStatusResponseSchema>;
 
 // Monitor daemon status response (for getDaemonStatus endpoint)
+// ZM daemonControl() returns: { status: 'ok', statustext: string }
 export const DaemonStatusResponseSchema = z.object({
   status: z.string(),
+  statustext: z.string().optional(), // The actual status message
 });
 
 export type DaemonStatusResponse = z.infer<typeof DaemonStatusResponseSchema>;
