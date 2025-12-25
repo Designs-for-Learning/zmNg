@@ -36,11 +36,17 @@ Given('I am logged into zmNg', async ({ page }) => {
     await expect(connectBtn).toBeEnabled();
     await connectBtn.click();
 
-  // Wait for successful navigation by checking for navigation elements or mobile menu button
-  await Promise.race([
-    page.waitForSelector('[data-testid^="nav-item-"]', { timeout: testConfig.timeouts.transition }),
-    page.waitForSelector('[data-testid="mobile-menu-button"]', { timeout: testConfig.timeouts.transition }),
-  ]);
+    // Wait for navigation to complete (URL changes from /profiles/new or /setup to another route)
+    // The app waits 1 second before navigating, plus login time
+    await page.waitForURL((url) => !url.pathname.includes('/profiles/new') && !url.pathname.includes('/setup'), {
+      timeout: testConfig.timeouts.transition * 2, // 10 seconds to account for login + 1s delay + navigation
+    });
+
+    // Then wait for navigation elements or mobile menu button to appear
+    await Promise.race([
+      page.waitForSelector('[data-testid^="nav-item-"]', { timeout: testConfig.timeouts.transition }),
+      page.waitForSelector('[data-testid="mobile-menu-button"]', { timeout: testConfig.timeouts.transition }),
+    ]);
     log.info('E2E login successful', { component: 'e2e', action: 'login' });
   } else {
     log.info('E2E session already authenticated', { component: 'e2e', action: 'login' });
@@ -266,20 +272,28 @@ Then('I should be on the {string} page', async ({ page }, pageName: string) => {
 
 When('I open the events filter panel', async ({ page }) => {
   const filterButton = page.getByTestId('events-filter-button');
-  await filterButton.click({ force: true });
   const panel = page.getByTestId('events-filter-panel');
+
+  // Wait for button to be ready
+  await filterButton.waitFor({ state: 'visible', timeout: testConfig.timeouts.element });
+
+  // Click to open if not already open
   if (!(await panel.isVisible().catch(() => false))) {
-    await filterButton.click({ force: true });
+    await filterButton.click();
+    await expect(panel).toBeVisible({ timeout: testConfig.timeouts.transition });
   }
-  await expect(panel).toBeVisible({ timeout: testConfig.timeouts.transition });
 });
 
 When('I set the events date range', async ({ page }) => {
   const panel = page.getByTestId('events-filter-panel');
+  const filterButton = page.getByTestId('events-filter-button');
+
+  // Ensure panel is open
   if (!(await panel.isVisible().catch(() => false))) {
-    await page.getByTestId('events-filter-button').click({ force: true });
+    await filterButton.waitFor({ state: 'visible', timeout: testConfig.timeouts.element });
+    await filterButton.click();
+    await expect(panel).toBeVisible({ timeout: testConfig.timeouts.transition });
   }
-  await expect(panel).toBeVisible({ timeout: testConfig.timeouts.transition });
 
   const startInput = page.getByTestId('events-start-date');
   const endInput = page.getByTestId('events-end-date');
@@ -298,13 +312,21 @@ When('I apply event filters', async ({ page }) => {
 
 When('I clear event filters', async ({ page }) => {
   const panel = page.getByTestId('events-filter-panel');
+  const filterButton = page.getByTestId('events-filter-button');
+  const clearButton = page.getByTestId('events-clear-filters');
+
+  // Wait for filter button to be available
+  await filterButton.waitFor({ state: 'visible', timeout: testConfig.timeouts.element });
+
+  // Open panel if not already visible
   if (!(await panel.isVisible().catch(() => false))) {
-    const filterButton = page.getByTestId('events-filter-button');
-    await filterButton.waitFor({ state: 'visible', timeout: testConfig.timeouts.element });
     await filterButton.click();
     await expect(panel).toBeVisible({ timeout: testConfig.timeouts.transition });
   }
-  await page.getByTestId('events-clear-filters').click();
+
+  // Wait for clear button to be visible and clickable within the panel
+  await clearButton.waitFor({ state: 'visible', timeout: testConfig.timeouts.element });
+  await clearButton.click();
 });
 
 // Timeline Steps
