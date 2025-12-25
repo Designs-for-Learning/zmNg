@@ -5,8 +5,8 @@
  */
 
 import { getApiClient } from './client';
-import type { State, StatesResponse } from './types';
-import { StatesResponseSchema, StateDataSchema } from './types';
+import type { State } from './types';
+import { StatesResponseSchema } from './types';
 import { validateApiResponse } from '../lib/api-validator';
 
 /**
