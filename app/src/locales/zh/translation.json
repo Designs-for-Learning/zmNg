@@ -300,6 +300,8 @@
     "share_dialog_title": "分享应用日志",
     "share_failed": "分享失败",
     "zm_fetch_failed": "加载服务器日志失败",
+    "loading_server_logs": "正在加载服务器日志...",
+    "no_server_logs": "没有可用的服务器日志",
     "show_more": "显示更多",
     "show_less": "显示更少",
     "level_updated": "日志级别已更新",

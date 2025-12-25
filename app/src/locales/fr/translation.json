@@ -300,6 +300,8 @@
     "share_dialog_title": "Partager les journaux de l'application",
     "share_failed": "Échec du partage",
     "zm_fetch_failed": "Échec du chargement des journaux du serveur",
+    "loading_server_logs": "Chargement des journaux du serveur...",
+    "no_server_logs": "Aucun journal de serveur disponible",
     "show_more": "Afficher plus",
     "show_less": "Afficher moins",
     "level_updated": "Niveau de journal mis à jour",

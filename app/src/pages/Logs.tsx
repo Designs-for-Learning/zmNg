@@ -459,12 +459,12 @@ export default function Logs() {
                     {isLoadingZmLogs ? (
                         <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-8">
                             <ScrollText className="h-12 w-12 mb-4 opacity-20 animate-pulse" />
-                            <p>Loading server logs...</p>
+                            <p>{t('logs.loading_server_logs')}</p>
                         </div>
                     ) : filteredLogs.length === 0 ? (
                         <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-8" data-testid="logs-empty-state">
                             <ScrollText className="h-12 w-12 mb-4 opacity-20" />
-                            <p>{logSource === 'zmng' ? t('logs.no_logs_available') : 'No server logs available'}</p>
+                            <p>{logSource === 'zmng' ? t('logs.no_logs_available') : t('logs.no_server_logs')}</p>
                         </div>
                     ) : (
                         <div className="divide-y" data-testid="log-entries">

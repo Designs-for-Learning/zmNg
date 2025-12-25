@@ -298,6 +298,8 @@
     "share_dialog_title": "Share Application Logs",
     "share_failed": "Share failed",
     "zm_fetch_failed": "Failed to load server logs",
+    "loading_server_logs": "Loading server logs...",
+    "no_server_logs": "No server logs available",
     "show_more": "Show More",
     "show_less": "Show Less",
     "level_updated": "Log level updated",

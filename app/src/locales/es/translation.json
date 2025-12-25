@@ -300,6 +300,8 @@
     "share_dialog_title": "Compartir Registros de Aplicación",
     "share_failed": "Fallo al compartir",
     "zm_fetch_failed": "Error al cargar registros del servidor",
+    "loading_server_logs": "Cargando registros del servidor...",
+    "no_server_logs": "No hay registros del servidor disponibles",
     "show_more": "Mostrar Más",
     "show_less": "Mostrar Menos",
     "level_updated": "Nivel de registro actualizado",

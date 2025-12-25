@@ -300,6 +300,8 @@
     "share_dialog_title": "Anwendungsprotokolle teilen",
     "share_failed": "Teilen fehlgeschlagen",
     "zm_fetch_failed": "Serverprotokolle konnten nicht geladen werden",
+    "loading_server_logs": "Serverprotokolle werden geladen...",
+    "no_server_logs": "Keine Serverprotokolle verfügbar",
     "show_more": "Mehr anzeigen",
     "show_less": "Weniger anzeigen",
     "level_updated": "Protokollstufe aktualisiert",
