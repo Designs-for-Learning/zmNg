@@ -299,6 +299,7 @@
     "share_title": "Protokolle teilen",
     "share_dialog_title": "Anwendungsprotokolle teilen",
     "share_failed": "Teilen fehlgeschlagen",
+    "zm_fetch_failed": "Serverprotokolle konnten nicht geladen werden",
     "show_more": "Mehr anzeigen",
     "show_less": "Weniger anzeigen",
     "level_updated": "Protokollstufe aktualisiert",

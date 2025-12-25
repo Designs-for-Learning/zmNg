@@ -297,6 +297,7 @@
     "share_title": "Share Logs",
     "share_dialog_title": "Share Application Logs",
     "share_failed": "Share failed",
+    "zm_fetch_failed": "Failed to load server logs",
     "show_more": "Show More",
     "show_less": "Show Less",
     "level_updated": "Log level updated",

@@ -299,6 +299,7 @@
     "share_title": "Partager les journaux",
     "share_dialog_title": "Partager les journaux de l'application",
     "share_failed": "Échec du partage",
+    "zm_fetch_failed": "Échec du chargement des journaux du serveur",
     "show_more": "Afficher plus",
     "show_less": "Afficher moins",
     "level_updated": "Niveau de journal mis à jour",
