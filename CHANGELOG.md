@@ -2,20 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
-## [zmNg-0.1.3](https://github.com/pliablepixels/zmNg/compare/zmNg-0.1.2..zmNg-0.1.3) - 2025-12-31
-
-### ✨ Features
-
-- **Per-monitor streaming ports**: Support for ZoneMinder's `ZM_MIN_STREAMING_PORT` configuration. When enabled, each monitor streams on its own port (basePort + monitorId), bypassing the browser's 6-connection-per-domain limit. This allows streaming unlimited cameras simultaneously in the Montage view.
+## [zmNg-0.1.4](https://github.com/pliablepixels/zmNg/compare/zmNg-0.1.3..zmNg-0.1.4) - 2025-12-31
 
 ### 🐛 Bug Fixes
 
-- **Fix 6 monitor limit**: Implemented per-monitor streaming ports to bypass browser HTTP/1.1 connection limits
-- **Fix react-grid-layout React 19 compatibility**: Upgraded react-grid-layout from v1.5.2 to v2.2.2 and updated imports to use the legacy API, fixing "Spread syntax requires ...iterable" errors on the Montage page
-- **Reduce stream reconnection toast spam**: Only show "stream lost, reconnecting" toast once per monitor instead of on every retry attempt
+- Fixes for android for streaming more than 6 cameras - ([6e0f740](https://github.com/pliablepixels/zmNg/commit/6e0f740182a03306cad895300302cf06b10eafb0))
 
 ### 📝 Other
 
+- Bump version - ([85ecef1](https://github.com/pliablepixels/zmNg/commit/85ecef107a3ffd39cdbf9bde17ffb5687ce30475))
+- Update Docs - ([b5273c5](https://github.com/pliablepixels/zmNg/commit/b5273c53cd71896207da4d530b0fb16c9cdea2d4))
+## [zmNg-0.1.3](https://github.com/pliablepixels/zmNg/compare/zmNg-0.1.2..zmNg-0.1.3) - 2025-12-31
+
+### 🐛 Bug Fixes
+
+- Fix 6 monitor limit - ([3dd5e08](https://github.com/pliablepixels/zmNg/commit/3dd5e08c389e66ba6f0a26f87d1a15ed56cc9731))
+
+### 📝 Other
+
+- Preparing release for: zmNg-0.1.3 - ([7fd90f6](https://github.com/pliablepixels/zmNg/commit/7fd90f605ec6d786308d49f39927bf61c1c054b9))
 - Preparing release for: zmNg-0.1.3 - ([bc030cc](https://github.com/pliablepixels/zmNg/commit/bc030ccb86487541c02887d14b14e5b27ec229aa))
 - Preparing release for: zmNg-0.1.3 - ([19d84d4](https://github.com/pliablepixels/zmNg/commit/19d84d4dc66cb06ba4bc57a3dcf328bcf3980374))
 - Preparing release for: zmNg-0.1.3 - ([87fa841](https://github.com/pliablepixels/zmNg/commit/87fa8411932954e7d9a84652ee1506179cf66b05))
