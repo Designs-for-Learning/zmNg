@@ -104,6 +104,7 @@ function SingleMonitor({ monitorId, objectFit }: { monitorId: string; objectFit:
             token: accessToken || undefined,
             connkey: connKey,
             cacheBuster: cacheBuster,
+            streamingBasePort: currentProfile.streamingBasePort,
         })
         : '';
 

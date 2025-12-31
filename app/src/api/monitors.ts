@@ -231,6 +231,9 @@ export async function getDaemonStatus(
  * Generates the URL for the ZMS CGI script to stream video or images.
  * In development mode on web, routes through proxy to avoid CORS issues.
  *
+ * If streamingBasePort is provided, each monitor streams on its own port
+ * (basePort + monitorId) which bypasses the browser's 6-connection limit.
+ *
  * @param cgiUrl - Base CGI URL (e.g. https://zm.example.com/cgi-bin)
  * @param monitorId - The ID of the monitor
  * @param options - Streaming options (mode, scale, dimensions, etc.)
@@ -249,9 +252,25 @@ export function getStreamUrl(
     token?: string;
     connkey?: number;
     cacheBuster?: number;
+    streamingBasePort?: number;
   } = {}
 ): string {
-  const fullUrl = buildMonitorStreamUrl(cgiUrl, monitorId, options);
+  const { streamingBasePort, ...streamOptions } = options;
+
+  // If per-monitor streaming ports are configured, modify the CGI URL to use the monitor's port
+  let effectiveCgiUrl = cgiUrl;
+  if (streamingBasePort && streamingBasePort > 0) {
+    try {
+      const url = new URL(cgiUrl);
+      const monitorPort = streamingBasePort + parseInt(monitorId, 10);
+      url.port = monitorPort.toString();
+      effectiveCgiUrl = url.toString();
+    } catch {
+      // URL parsing failed, fall back to original cgiUrl
+    }
+  }
+
+  const fullUrl = buildMonitorStreamUrl(effectiveCgiUrl, monitorId, streamOptions);
 
   // In dev mode on web, use proxy server to avoid CORS issues
   // Native platforms and production can access directly

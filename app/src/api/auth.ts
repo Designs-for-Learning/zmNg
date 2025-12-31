@@ -7,7 +7,7 @@
 
 import { getApiClient } from './client';
 import type { LoginResponse, ZmsPathResponse, VersionResponse } from './types';
-import { LoginResponseSchema, ZmsPathResponseSchema, VersionResponseSchema } from './types';
+import { LoginResponseSchema, ZmsPathResponseSchema, StreamingPortResponseSchema, VersionResponseSchema } from './types';
 import { log, LogLevel } from '../lib/logger';
 
 export interface LoginCredentials {
@@ -178,6 +178,46 @@ export async function fetchZmsPath(): Promise<string | null> {
     });
 
     // Return null to allow fallback to inference logic
+    return null;
+  }
+}
+
+/**
+ * Fetch the streaming port from server configuration.
+ *
+ * This API endpoint returns the ZM_MIN_STREAMING_PORT configuration value.
+ * When set, each monitor streams on its own port (basePort + monitorId),
+ * which bypasses the browser's 6-connection-per-domain limit.
+ *
+ * @returns Promise resolving to the streaming base port number or null if not configured
+ */
+export async function fetchStreamingPort(): Promise<number | null> {
+  try {
+    const client = getApiClient();
+    log.auth('Fetching streaming port from server config', LogLevel.DEBUG);
+
+    const response = await client.get('/configs/viewByName/ZM_MIN_STREAMING_PORT.json');
+
+    // Validate response with Zod
+    const validated = StreamingPortResponseSchema.parse(response.data);
+    const portStr = validated.config.Value;
+
+    // Parse as number, return null if empty or invalid
+    if (!portStr || portStr.trim() === '') {
+      log.auth('ZM_MIN_STREAMING_PORT is not configured', LogLevel.INFO);
+      return null;
+    }
+
+    const port = parseInt(portStr, 10);
+    if (isNaN(port) || port <= 0) {
+      log.auth('ZM_MIN_STREAMING_PORT has invalid value', LogLevel.WARN, { value: portStr });
+      return null;
+    }
+
+    log.auth('Streaming port fetched successfully', LogLevel.INFO, { streamingBasePort: port });
+    return port;
+  } catch {
+    // Return null - streaming port is optional, app works without it
     return null;
   }
 }

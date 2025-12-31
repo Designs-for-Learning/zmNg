@@ -18,14 +18,14 @@ import { MonitorWidget } from './widgets/MonitorWidget';
 import { EventsWidget } from './widgets/EventsWidget';
 import { TimelineWidget } from './widgets/TimelineWidget';
 import { HeatmapWidget } from './widgets/HeatmapWidget';
-import GridLayout, { WidthProvider } from 'react-grid-layout';
-import type { Layout } from 'react-grid-layout';
+import { ReactGridLayout, WidthProvider } from 'react-grid-layout/legacy';
+import type { Layout, LayoutItem } from 'react-grid-layout/legacy';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 import { useMemo, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
-const WrappedGridLayout = WidthProvider(GridLayout);
+const WrappedGridLayout = WidthProvider(ReactGridLayout);
 const GRID_COLS = 12;
 /** Height of each row in pixels */
 const ROW_HEIGHT = 100;
@@ -48,18 +48,18 @@ export function DashboardLayout() {
     const isEditing = useDashboardStore((state) => state.isEditing);
 
     const [mounted, setMounted] = useState(false);
-    const [layout, setLayout] = useState<Layout[]>([]);
+    const [layout, setLayout] = useState<LayoutItem[]>([]);
 
     // Force component to mount properly
     useEffect(() => {
         setMounted(true);
     }, []);
 
-    const layouts = useMemo(() => {
+    const layouts = useMemo((): LayoutItem[] => {
         return widgets.map((w) => ({ ...w.layout, i: w.id }));
     }, [widgets]);
 
-    const areLayoutsEqual = (a: Layout[], b: Layout[]) => {
+    const areLayoutsEqual = (a: LayoutItem[], b: LayoutItem[]) => {
         if (a.length !== b.length) return false;
         const map = new Map(a.map((item) => [item.i, item]));
         return b.every((item) => {
@@ -78,11 +78,12 @@ export function DashboardLayout() {
         setLayout((prev) => (areLayoutsEqual(prev, layouts) ? prev : layouts));
     }, [layouts]);
 
-    const handleLayoutChange = (nextLayout: Layout[]) => {
-        setLayout((prev) => (areLayoutsEqual(prev, nextLayout) ? prev : nextLayout));
+    const handleLayoutChange = (nextLayout: Layout) => {
+        const items = [...nextLayout] as LayoutItem[];
+        setLayout((prev) => (areLayoutsEqual(prev, items) ? prev : items));
         if (!isEditing) return;
 
-        updateLayouts(profileId, { lg: nextLayout });
+        updateLayouts(profileId, { lg: items });
     };
 
     if (widgets.length === 0) {

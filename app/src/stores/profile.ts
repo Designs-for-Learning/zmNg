@@ -16,7 +16,7 @@ import { persist } from 'zustand/middleware';
 import type { Profile } from '../api/types';
 import { createApiClient, setApiClient } from '../api/client';
 import { getServerTimeZone } from '../api/time';
-import { fetchZmsPath } from '../api/auth';
+import { fetchZmsPath, fetchStreamingPort } from '../api/auth';
 import { ProfileService } from '../services/profile';
 import { log, LogLevel } from '../lib/logger';
 import { useAuthStore } from './auth';
@@ -26,7 +26,7 @@ interface ProfileState {
   currentProfileId: string | null;
   isInitialized: boolean;
   isBootstrapping: boolean;
-  bootstrapStep: 'start' | 'auth' | 'timezone' | 'zms' | 'finalize' | null;
+  bootstrapStep: 'start' | 'auth' | 'timezone' | 'zms' | 'streamport' | 'finalize' | null;
 
   // Computed
   currentProfile: () => Profile | null;
@@ -358,6 +358,24 @@ export const useProfileStore = create<ProfileState>()(
               }
             } catch (zmsError) {
               log.profileService('Failed to fetch ZMS path during profile switch', LogLevel.WARN, { error: zmsError });
+              // Don't fail the switch for this
+            }
+
+            // STEP 5.6: Fetch streaming port for per-monitor streaming
+            try {
+              const streamingBasePort = await fetchStreamingPort();
+              if (streamingBasePort !== null && streamingBasePort !== profile.streamingBasePort) {
+                log.profileService('Streaming port fetched, updating profile', LogLevel.INFO, {
+                  oldPort: profile.streamingBasePort,
+                  newPort: streamingBasePort
+                });
+                get().updateProfile(id, { streamingBasePort });
+              } else if (streamingBasePort === null && profile.streamingBasePort !== undefined) {
+                log.profileService('Streaming port not configured on server, clearing from profile', LogLevel.INFO);
+                get().updateProfile(id, { streamingBasePort: undefined });
+              }
+            } catch (portError) {
+              log.profileService('Failed to fetch streaming port during profile switch', LogLevel.WARN, { error: portError });
               // Don't fail the switch for this
             }
 
@@ -695,6 +713,31 @@ export const useProfileStore = create<ProfileState>()(
                   log.profileService('Failed to fetch ZMS path on load', LogLevel.WARN, { error: zmsError });
                   logDuration('Bootstrap step: ZMS path fetch failed', zmsStart);
                 }
+
+                // Fetch streaming port configuration (for per-monitor ports)
+                setState({ bootstrapStep: 'streamport' });
+                const streamingPortStart = Date.now();
+                try {
+                  const streamingBasePort = await withTimeout('Streaming port fetch', fetchStreamingPort());
+                  if (streamingBasePort !== null && streamingBasePort !== profile.streamingBasePort) {
+                    log.profileService('Streaming port fetched, updating profile', LogLevel.INFO, {
+                      oldPort: profile.streamingBasePort,
+                      newPort: streamingBasePort
+                    });
+                    getState().updateProfile(profile.id, { streamingBasePort });
+                  } else if (streamingBasePort === null && profile.streamingBasePort !== undefined) {
+                    // Server no longer has streaming port configured, clear it
+                    log.profileService('Streaming port not configured on server, clearing from profile', LogLevel.INFO);
+                    getState().updateProfile(profile.id, { streamingBasePort: undefined });
+                  } else {
+                    log.profileService('Streaming port unchanged', LogLevel.DEBUG, { port: streamingBasePort });
+                  }
+                  logDuration('Bootstrap step: Streaming port fetched', streamingPortStart);
+                } catch (portError) {
+                  log.profileService('Failed to fetch streaming port on load', LogLevel.WARN, { error: portError });
+                  logDuration('Bootstrap step: Streaming port fetch failed', streamingPortStart);
+                }
+
                 setState({ bootstrapStep: 'finalize' });
               } finally {
                 logDuration('Profile bootstrap completed', bootstrapStart, {

@@ -65,6 +65,15 @@ export const HostTimeZoneResponseSchema = z.object({
 
 export type HostTimeZoneResponse = z.infer<typeof HostTimeZoneResponseSchema>;
 
+// Streaming port configuration schema
+export const StreamingPortResponseSchema = z.object({
+  config: z.object({
+    Value: z.string(),
+  }),
+});
+
+export type StreamingPortResponse = z.infer<typeof StreamingPortResponseSchema>;
+
 // Monitor types
 export const MonitorStatusSchema = z.object({
   MonitorId: z.coerce.string().nullable(),
@@ -473,6 +482,7 @@ export interface Profile {
   createdAt: number;
   lastUsed?: number;
   timezone?: string;
+  streamingBasePort?: number; // ZM_MIN_STREAMING_PORT - per-monitor streaming ports start here
 }
 
 // Error types
@@ -520,12 +530,11 @@ export interface EventCardProps {
 }
 
 // Montage layout types
-export interface MontageLayout {
-  lg?: ReactGridLayout.Layout[];
-  md?: ReactGridLayout.Layout[];
-  sm?: ReactGridLayout.Layout[];
-  xs?: ReactGridLayout.Layout[];
-}
+import type { LayoutItem } from 'react-grid-layout/legacy';
 
-// Import for ReactGridLayout namespace
-import type * as ReactGridLayout from 'react-grid-layout';
+export interface MontageLayout {
+  lg?: LayoutItem[];
+  md?: LayoutItem[];
+  sm?: LayoutItem[];
+  xs?: LayoutItem[];
+}

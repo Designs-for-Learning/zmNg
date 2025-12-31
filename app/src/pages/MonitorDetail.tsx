@@ -414,6 +414,7 @@ export default function MonitorDetail() {
       token: accessToken || undefined,
       connkey: connKey,
       cacheBuster: cacheBuster,
+      streamingBasePort: currentProfile.streamingBasePort,
     })
     : '';
 

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { Layouts } from 'react-grid-layout';
+import type { ResponsiveLayouts } from 'react-grid-layout/legacy';
 import { LogLevel } from '../lib/log-level';
 
 export type ViewMode = 'snapshot' | 'streaming';
@@ -19,8 +19,8 @@ export interface ProfileSettings {
   streamScale: number; // Scale percentage for live streams (1-100)
   defaultEventLimit: number; // Default number of events to fetch when no filters applied
   dashboardRefreshInterval: number; // in seconds, for dashboard widgets (events/timeline)
-  montageLayouts: Layouts; // Store montage layouts per profile
-  eventMontageLayouts: Layouts; // Store event montage layouts per profile
+  montageLayouts: ResponsiveLayouts; // Store montage layouts per profile
+  eventMontageLayouts: ResponsiveLayouts; // Store event montage layouts per profile
   montageGridRows: number; // Grid rows for Montage page
   montageGridCols: number; // Grid columns for Montage page
   eventMontageGridCols: number; // Grid columns for EventMontage page
@@ -55,10 +55,10 @@ interface SettingsState {
   updateProfileSettings: (profileId: string, updates: Partial<ProfileSettings>) => void;
 
   // Save montage layout for current profile
-  saveMontageLayout: (profileId: string, layout: Layouts) => void;
+  saveMontageLayout: (profileId: string, layout: ResponsiveLayouts) => void;
 
   // Save event montage layout for current profile
-  saveEventMontageLayout: (profileId: string, layout: Layouts) => void;
+  saveEventMontageLayout: (profileId: string, layout: ResponsiveLayouts) => void;
 }
 
 // Determine default display mode based on device type

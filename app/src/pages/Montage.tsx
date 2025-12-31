@@ -45,8 +45,8 @@ import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { usePinchZoom } from '../hooks/usePinchZoom';
 import { useInsomnia } from '../hooks/useInsomnia';
-import GridLayout, { WidthProvider } from 'react-grid-layout';
-import type { Layout } from 'react-grid-layout';
+import { ReactGridLayout, WidthProvider } from 'react-grid-layout/legacy';
+import type { Layout, LayoutItem } from 'react-grid-layout/legacy';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 import type { Monitor } from '../api/types';
@@ -57,7 +57,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 const GRID_ROW_HEIGHT = 10;
 const GRID_MARGIN = 16;
 const MIN_CARD_WIDTH = 50;
-const WrappedGridLayout = WidthProvider(GridLayout);
+const WrappedGridLayout = WidthProvider(ReactGridLayout);
 
 const getMaxColsForWidth = (width: number, minWidth: number, margin: number) => {
   if (width <= 0) return 1;
@@ -90,7 +90,7 @@ export default function Montage() {
   const [customCols, setCustomCols] = useState<string>(settings.montageGridCols.toString());
   const [isScreenTooSmall, setIsScreenTooSmall] = useState(false);
   const screenTooSmallRef = useRef(false);
-  const [layout, setLayout] = useState<Layout[]>([]);
+  const [layout, setLayout] = useState<LayoutItem[]>([]);
   const [isEditMode, setIsEditMode] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isGridSheetOpen, setIsGridSheetOpen] = useState(false);
@@ -145,7 +145,7 @@ export default function Montage() {
     return new Map(monitors.map((item) => [item.Monitor.Id, item.Monitor]));
   }, [monitors]);
 
-  const areLayoutsEqual = (a: Layout[], b: Layout[]) => {
+  const areLayoutsEqual = (a: LayoutItem[], b: LayoutItem[]) => {
     if (a.length !== b.length) return false;
     const map = new Map(a.map((item) => [item.i, item]));
     for (const item of b) {
@@ -265,7 +265,7 @@ export default function Montage() {
     return Math.max(2, Math.round(unit));
   };
 
-  const buildDefaultLayout = (monitorList: typeof monitors, cols: number, gridWidth: number) => {
+  const buildDefaultLayout = (monitorList: typeof monitors, cols: number, gridWidth: number): LayoutItem[] => {
     return monitorList.map(({ Monitor }, index) => {
       const widthUnits = 1;
       const heightUnits = calculateHeightUnits(Monitor.Id, widthUnits, gridWidth, cols, GRID_MARGIN);
@@ -281,7 +281,7 @@ export default function Montage() {
     });
   };
 
-  const normalizeLayout = (current: Layout[], cols: number, gridWidth: number, margin: number) => {
+  const normalizeLayout = (current: LayoutItem[], cols: number, gridWidth: number, margin: number): LayoutItem[] => {
     return current.map((item) => ({
       ...item,
       x: item.x % cols,
@@ -292,8 +292,8 @@ export default function Montage() {
   useEffect(() => {
     if (monitors.length === 0) return;
 
-    let nextLayout: Layout[] = [];
-    const stored = settings.montageLayouts?.lg;
+    let nextLayout: LayoutItem[] = [];
+    const stored = settings.montageLayouts?.lg as LayoutItem[] | undefined;
 
     if (stored && stored.length > 0) {
       const existingIds = new Set(monitors.map((item) => item.Monitor.Id));
@@ -346,14 +346,17 @@ export default function Montage() {
     setIsGridSheetOpen(false);
   };
 
-  const handleLayoutChange = (nextLayout: Layout[]) => {
-    setLayout((prev) => (areLayoutsEqual(prev, nextLayout) ? prev : nextLayout));
+  const handleLayoutChange = (nextLayout: Layout) => {
+    const items = [...nextLayout] as LayoutItem[];
+    setLayout((prev) => (areLayoutsEqual(prev, items) ? prev : items));
     if (isEditMode && currentProfile) {
-      saveMontageLayout(currentProfile.id, { ...settings.montageLayouts, lg: nextLayout });
+      saveMontageLayout(currentProfile.id, { ...settings.montageLayouts, lg: items });
     }
   };
 
-  const handleResizeStop = (_layout: Layout[], _oldItem: Layout, newItem: Layout) => {
+  const handleResizeStop = (_layout: Layout, _oldItem: LayoutItem | null, newItem: LayoutItem | null) => {
+    if (!newItem) return;
+
     const adjustedHeight = calculateHeightUnits(
       newItem.i,
       newItem.w,

@@ -103,6 +103,7 @@ function MontageMonitorComponent({
       token: accessToken || undefined,
       connkey: connKey,
       cacheBuster: cacheBuster,
+      streamingBasePort: currentProfile.streamingBasePort,
     })
     : '';
 
@@ -178,9 +179,17 @@ function MontageMonitorComponent({
             // Only retry if we haven't retried too recently (basic debounce)
             if (!img.dataset.retrying) {
               img.dataset.retrying = "true";
-              log.montageMonitor('Stream failed, regenerating connkey', LogLevel.INFO, { monitorName: monitor.Name });
+              img.dataset.retryCount = String((parseInt(img.dataset.retryCount || '0', 10) + 1));
+              log.montageMonitor('Stream failed, regenerating connkey', LogLevel.INFO, {
+                monitorName: monitor.Name,
+                retryCount: img.dataset.retryCount
+              });
               regenerateConnKey(monitor.Id);
-              toast.error(t('montage.stream_lost_reconnecting', { name: monitor.Name }));
+
+              // Only show toast on first error to reduce noise
+              if (img.dataset.retryCount === '1') {
+                toast.error(t('montage.stream_lost_reconnecting', { name: monitor.Name }));
+              }
 
               // Reset retry flag after a delay
               setTimeout(() => {

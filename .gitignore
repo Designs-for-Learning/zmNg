@@ -40,3 +40,4 @@ android/app/src/main/assets/public/
 android/keystore.properties
 *.jks
 *.keystore
+.claude/settings.local.json

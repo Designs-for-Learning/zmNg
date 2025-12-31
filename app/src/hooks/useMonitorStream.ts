@@ -101,6 +101,7 @@ export function useMonitorStream({
       token: accessToken || undefined,
       connkey: connKey,
       cacheBuster: cacheBuster,
+      streamingBasePort: currentProfile.streamingBasePort,
       ...streamOptions,
     })
     : '';
