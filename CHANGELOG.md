@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [zmNg-0.1.3](https://github.com/pliablepixels/zmNg/compare/zmNg-0.1.2..zmNg-0.1.3) - 2025-12-31
+
+### 🐛 Bug Fixes
+
+- Fix 6 monitor limit - ([3dd5e08](https://github.com/pliablepixels/zmNg/commit/3dd5e08c389e66ba6f0a26f87d1a15ed56cc9731))
+
+### 📝 Other
+
+- Bump version - ([7cbe4de](https://github.com/pliablepixels/zmNg/commit/7cbe4de36284c008b9c7ec354bd3507fef78c5f6))
 ## [zmNg-0.1.2](https://github.com/pliablepixels/zmNg/compare/zmNg-0.1.1..zmNg-0.1.2) - 2025-12-25
 
 ### ✨ Features
@@ -43,6 +52,7 @@ All notable changes to this project will be documented in this file.
 
 ### 📝 Other
 
+- Preparing release for: zmNg-0.1.2 - ([61124e0](https://github.com/pliablepixels/zmNg/commit/61124e026b61ccd4c722028a8401e1df894d1875))
 - Merge branch 'feat/comprehensive-zod-validation' - ([5087bb6](https://github.com/pliablepixels/zmNg/commit/5087bb671252e2d2dc3d717de08449822e730615))
 ## [zmNg-0.1.1](https://github.com/pliablepixels/zmNg/compare/zmNg-0.1.0..zmNg-0.1.1) - 2025-12-25
 
