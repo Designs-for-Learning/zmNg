@@ -55,6 +55,48 @@ I am happy to accept PRs, but I don't want [AI slop](https://en.wikipedia.org/wi
 - Push notifications won't work till you build the mobile apps yourself (web notifications, when the app is in foreground will work). See [Android](docs/building/ANDROID.md) and [iOS](docs/building/IOS.md) guides.
 - If you want push notifications, you'll have to use a newer [Event Server](https://github.com/pliablepixels/zm_docker_macos) that has support for direct FCM (yep, you don't need the proxy cloud function anymore)
 
+### Streaming More Than 6 Cameras (Per-Monitor Streaming Ports)
+
+By default, browsers limit concurrent connections to 6 per domain (HTTP/1.1 limit). This means you can only stream 6 cameras simultaneously in the Montage view. To bypass this limitation, zmNg supports ZoneMinder's per-monitor streaming ports feature.
+
+**How it works:** When `ZM_MIN_STREAMING_PORT` is configured in ZoneMinder, each monitor streams on its own port (basePort + monitorId). For example, with `ZM_MIN_STREAMING_PORT=30000`:
+- Monitor 1 streams on port 30001
+- Monitor 2 streams on port 30002
+- etc.
+
+**Server Setup Required:**
+
+1. **Configure ZoneMinder** - Set `ZM_MIN_STREAMING_PORT` in Options → System (e.g., `30000`)
+
+2. **Configure Apache** - Each streaming port needs its own VirtualHost. Example for port 30001:
+   ```apache
+   <VirtualHost *:30001>
+       ServerName your-zm-server.com
+
+       # IMPORTANT: Use HTTP/1.1 for MJPEG streaming (HTTP/2 doesn't work with MJPEG)
+       Protocols http/1.1
+
+       # SSL configuration (copy from your main site)
+       SSLEngine on
+       SSLCertificateFile /path/to/cert.pem
+       SSLCertificateKeyFile /path/to/key.pem
+
+       # Proxy to ZMS
+       ScriptAlias /zm/cgi-bin /usr/lib/zoneminder/cgi-bin
+       <Directory "/usr/lib/zoneminder/cgi-bin">
+           AllowOverride None
+           Options +ExecCGI
+           Require all granted
+       </Directory>
+   </VirtualHost>
+   ```
+
+3. **Open Firewall Ports** - Ensure ports 30001-300XX are open (where XX is your highest monitor ID)
+
+4. **Restart Apache** - `sudo systemctl restart apache2`
+
+**Important:** If you're using HTTP/2 on your main site, you **must** set `Protocols http/1.1` on the streaming ports. MJPEG streaming is incompatible with HTTP/2 and will cause "PROTOCOL_ERROR" failures.
+
 
 ## Quick Start
 

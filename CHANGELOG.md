@@ -4,9 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## [zmNg-0.1.3](https://github.com/pliablepixels/zmNg/compare/zmNg-0.1.2..zmNg-0.1.3) - 2025-12-31
 
+### ✨ Features
+
+- **Per-monitor streaming ports**: Support for ZoneMinder's `ZM_MIN_STREAMING_PORT` configuration. When enabled, each monitor streams on its own port (basePort + monitorId), bypassing the browser's 6-connection-per-domain limit. This allows streaming unlimited cameras simultaneously in the Montage view.
+
 ### 🐛 Bug Fixes
 
-- Fix 6 monitor limit - ([3dd5e08](https://github.com/pliablepixels/zmNg/commit/3dd5e08c389e66ba6f0a26f87d1a15ed56cc9731))
+- **Fix 6 monitor limit**: Implemented per-monitor streaming ports to bypass browser HTTP/1.1 connection limits
+- **Fix react-grid-layout React 19 compatibility**: Upgraded react-grid-layout from v1.5.2 to v2.2.2 and updated imports to use the legacy API, fixing "Spread syntax requires ...iterable" errors on the Montage page
+- **Reduce stream reconnection toast spam**: Only show "stream lost, reconnecting" toast once per monitor instead of on every retry attempt
 
 ### 📝 Other
 
