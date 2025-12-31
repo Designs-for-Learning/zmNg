@@ -19,7 +19,7 @@ import { useMonitorStore } from '../stores/monitors';
 import { useProfileStore } from '../stores/profile';
 import { useAuthStore } from '../stores/auth';
 import { useSettingsStore } from '../stores/settings';
-import { log } from '../lib/logger';
+import { log, LogLevel } from '../lib/logger';
 import type { StreamOptions } from '../api/types';
 
 interface UseMonitorStreamOptions {
@@ -57,13 +57,16 @@ export function useMonitorStream({
   const [displayedImageUrl, setDisplayedImageUrl] = useState<string>('');
   const imgRef = useRef<HTMLImageElement>(null);
 
-  // Regenerate connKey on mount and when monitor changes
+  // Regenerate connKey on mount, when monitor changes, or when streamingBasePort changes
+  // The streamingBasePort dependency ensures streams reconnect after migration
   useEffect(() => {
-    log.monitor(`Regenerating connkey for monitor ${monitorId}`);
+    log.monitor(`Regenerating connkey for monitor ${monitorId}`, LogLevel.DEBUG, {
+      streamingBasePort: currentProfile?.streamingBasePort
+    });
     const newKey = regenerateConnKey(monitorId);
     setConnKey(newKey);
     setCacheBuster(Date.now());
-  }, [monitorId, regenerateConnKey]);
+  }, [monitorId, regenerateConnKey, currentProfile?.streamingBasePort]);
 
   // Snapshot mode: periodic refresh
   useEffect(() => {

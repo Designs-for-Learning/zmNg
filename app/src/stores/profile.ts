@@ -715,20 +715,34 @@ export const useProfileStore = create<ProfileState>()(
                 }
 
                 // Fetch streaming port configuration (for per-monitor ports)
+                // This is also a migration step for profiles created before this feature was added
                 setState({ bootstrapStep: 'streamport' });
                 const streamingPortStart = Date.now();
+                const needsMigration = profile.streamingBasePort === undefined;
+                if (needsMigration) {
+                  log.profileService('Profile needs streaming port migration (created before feature was added)', LogLevel.INFO, {
+                    profileId: profile.id,
+                    profileName: profile.name
+                  });
+                }
                 try {
                   const streamingBasePort = await withTimeout('Streaming port fetch', fetchStreamingPort());
-                  if (streamingBasePort !== null && streamingBasePort !== profile.streamingBasePort) {
+                  // Get fresh profile reference from store to ensure we're comparing against current state
+                  const currentProfile = getState().profiles.find(p => p.id === profile.id);
+                  const currentStreamingPort = currentProfile?.streamingBasePort;
+
+                  if (streamingBasePort !== null && streamingBasePort !== currentStreamingPort) {
                     log.profileService('Streaming port fetched, updating profile', LogLevel.INFO, {
-                      oldPort: profile.streamingBasePort,
-                      newPort: streamingBasePort
+                      oldPort: currentStreamingPort,
+                      newPort: streamingBasePort,
+                      wasMigration: needsMigration
                     });
-                    getState().updateProfile(profile.id, { streamingBasePort });
-                  } else if (streamingBasePort === null && profile.streamingBasePort !== undefined) {
+                    await getState().updateProfile(profile.id, { streamingBasePort });
+                    log.profileService('Profile updated with streaming port', LogLevel.INFO, { streamingBasePort });
+                  } else if (streamingBasePort === null && currentStreamingPort !== undefined) {
                     // Server no longer has streaming port configured, clear it
                     log.profileService('Streaming port not configured on server, clearing from profile', LogLevel.INFO);
-                    getState().updateProfile(profile.id, { streamingBasePort: undefined });
+                    await getState().updateProfile(profile.id, { streamingBasePort: undefined });
                   } else {
                     log.profileService('Streaming port unchanged', LogLevel.DEBUG, { port: streamingBasePort });
                   }

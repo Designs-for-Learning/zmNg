@@ -64,13 +64,17 @@ function MontageMonitorComponent({
   const resolvedFit = objectFit ?? (isFullscreen ? 'cover' : 'contain');
   const aspectRatio = getMonitorAspectRatio(monitor.Width, monitor.Height, monitor.Orientation);
 
-  // Force regenerate connKey when component mounts
+  // Force regenerate connKey when component mounts or when streamingBasePort changes
+  // The streamingBasePort dependency ensures streams reconnect after migration
   useEffect(() => {
-    log.montageMonitor('Regenerating connkey', LogLevel.INFO, { monitorId: monitor.Id });
+    log.montageMonitor('Regenerating connkey', LogLevel.INFO, {
+      monitorId: monitor.Id,
+      streamingBasePort: currentProfile?.streamingBasePort
+    });
     const newKey = regenerateConnKey(monitor.Id);
     setConnKey(newKey);
     setCacheBuster(Date.now());
-  }, [monitor.Id, regenerateConnKey]);
+  }, [monitor.Id, regenerateConnKey, currentProfile?.streamingBasePort]);
 
   // Snapshot mode: periodic refresh
   useEffect(() => {
