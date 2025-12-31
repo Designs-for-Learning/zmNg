@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [zmNg-0.1.5](https://github.com/pliablepixels/zmNg/compare/zmNg-0.1.4..zmNg-0.1.5) - 2025-12-31
+
+### 🐛 Bug Fixes
+
+- Zustand selector reactivity for per-monitor streaming ports on Android - ([94dfd6b](https://github.com/pliablepixels/zmNg/commit/94dfd6b7d511870f9a900ae66ad1cd3e999f9a62))
+
+### 🔧 Miscellaneous
+
+- Bump version to 0.1.5 - ([fa230fd](https://github.com/pliablepixels/zmNg/commit/fa230fded7fcb580f443a7d13d3bd372778e859a))
+- Add Gradle toolchain auto-provisioning for Android builds - ([5e59887](https://github.com/pliablepixels/zmNg/commit/5e5988732d5b67466431e9e861acd534f5626442))
 ## [zmNg-0.1.4](https://github.com/pliablepixels/zmNg/compare/zmNg-0.1.3..zmNg-0.1.4) - 2025-12-31
 
 ### 🐛 Bug Fixes
@@ -10,6 +20,7 @@ All notable changes to this project will be documented in this file.
 
 ### 📝 Other
 
+- Preparing release for: zmNg-0.1.4 - ([e96c56c](https://github.com/pliablepixels/zmNg/commit/e96c56c4c23eedc472d6f343b83b4c2433d1fe87))
 - Bump version - ([85ecef1](https://github.com/pliablepixels/zmNg/commit/85ecef107a3ffd39cdbf9bde17ffb5687ce30475))
 - Update Docs - ([b5273c5](https://github.com/pliablepixels/zmNg/commit/b5273c53cd71896207da4d530b0fb16c9cdea2d4))
 ## [zmNg-0.1.3](https://github.com/pliablepixels/zmNg/compare/zmNg-0.1.2..zmNg-0.1.3) - 2025-12-31
