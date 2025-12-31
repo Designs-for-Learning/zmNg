@@ -45,7 +45,10 @@ export function useMonitorStream({
   monitorId,
   streamOptions = {},
 }: UseMonitorStreamOptions): UseMonitorStreamReturn {
-  const currentProfile = useProfileStore((state) => state.currentProfile());
+  // Use direct selector to ensure proper reactivity when profile updates (e.g., streamingBasePort changes)
+  const currentProfile = useProfileStore((state) =>
+    state.profiles.find((p) => p.id === state.currentProfileId) || null
+  );
   const accessToken = useAuthStore((state) => state.accessToken);
   const settings = useSettingsStore(
     useShallow((state) => state.getProfileSettings(currentProfile?.id || ''))

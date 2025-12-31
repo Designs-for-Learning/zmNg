@@ -155,7 +155,10 @@ export default function MonitorDetail() {
     enabled: enabledMonitors.length > 1,
   });
 
-  const currentProfile = useProfileStore((state) => state.currentProfile());
+  // Use direct selector to ensure proper reactivity when profile updates (e.g., streamingBasePort changes)
+  const currentProfile = useProfileStore((state) =>
+    state.profiles.find((p) => p.id === state.currentProfileId) || null
+  );
   const accessToken = useAuthStore((state) => state.accessToken);
   const regenerateConnKey = useMonitorStore((state) => state.regenerateConnKey);
   const settings = useSettingsStore(

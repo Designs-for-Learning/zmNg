@@ -41,7 +41,11 @@ export interface UseCurrentProfileReturn {
  * ```
  */
 export function useCurrentProfile(): UseCurrentProfileReturn {
-  const currentProfile = useProfileStore((state) => state.currentProfile());
+  // Use direct selector to ensure proper reactivity when profile updates
+  // The state.currentProfile() method doesn't allow zustand to track the dependency on state.profiles
+  const currentProfile = useProfileStore((state) =>
+    state.profiles.find((p) => p.id === state.currentProfileId) || null
+  );
 
   const settings = useSettingsStore(
     useShallow((state) => state.getProfileSettings(currentProfile?.id || ''))
