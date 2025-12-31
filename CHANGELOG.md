@@ -10,6 +10,7 @@ All notable changes to this project will be documented in this file.
 
 ### 📝 Other
 
+- Preparing release for: zmNg-0.1.3 - ([19d84d4](https://github.com/pliablepixels/zmNg/commit/19d84d4dc66cb06ba4bc57a3dcf328bcf3980374))
 - Preparing release for: zmNg-0.1.3 - ([87fa841](https://github.com/pliablepixels/zmNg/commit/87fa8411932954e7d9a84652ee1506179cf66b05))
 - Bump version - ([7cbe4de](https://github.com/pliablepixels/zmNg/commit/7cbe4de36284c008b9c7ec354bd3507fef78c5f6))
 ## [zmNg-0.1.2](https://github.com/pliablepixels/zmNg/compare/zmNg-0.1.1..zmNg-0.1.2) - 2025-12-25
