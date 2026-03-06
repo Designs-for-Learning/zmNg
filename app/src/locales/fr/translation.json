@@ -490,7 +490,8 @@
     "monitor_id": "Moniteur {{id}}",
     "select_profile_first": "Sélectionnez d'abord un profil",
     "source_websocket": "Temps réel",
-    "source_push": "Push"
+    "source_push": "Push",
+    "source_poll": "Interrogé"
   },
   "notification_settings": {
     "title": "Paramètres de notification",
@@ -541,19 +542,35 @@
     "profile_credentials_required": "Identifiants de profil requis",
     "hide_advanced": "Masquer avancé",
     "show_advanced": "Afficher avancé",
-    "unread_count": "Nombre non lu",
+    "unread_count": "{{count}} notifications non lues",
     "view_history": "Voir l'historique",
     "function": "Fonction",
     "disconnected": "Déconnecté",
     "notifications_enabled": "Notifications activées",
-    "select_profile_first": "Sélectionnez d'abord un profil"
+    "select_profile_first": "Sélectionnez d'abord un profil",
+    "mode_title": "Configuration des notifications",
+    "mode_desc": "Sélectionnez selon votre configuration ZoneMinder",
+    "mode_es": "Event Server",
+    "mode_direct": "Direct",
+    "mode_es_desc": "ES est activé",
+    "mode_direct_desc": "ES est désactivé, les détections utilisent les commandes Event Start/End",
+    "mode_direct_unavailable": "Nécessite ZoneMinder avec le support de l'API Notifications",
+    "mode_switched_direct": "Basculé en mode Direct ZM",
+    "mode_switched_es": "Basculé en mode Event Server",
+    "direct_options_title": "Options du mode direct",
+    "direct_options_desc": "Configurer le filtrage des événements pour le sondage direct",
+    "polling_interval": "Intervalle de sondage",
+    "polling_interval_desc": "Fréquence de vérification des nouveaux événements",
+    "only_detected": "Événements détectés uniquement",
+    "only_detected_desc": "Notifier uniquement les événements traités par la détection d'objets (zm_detect)"
   },
   "notifications": {
     "status": {
       "disabled": "Désactivé",
       "connected": "Connecté",
       "disconnected": "Déconnecté",
-      "connecting": "Connexion..."
+      "connecting": "Connexion...",
+      "direct_active": "Mode direct actif"
     }
   },
   "profiles": {

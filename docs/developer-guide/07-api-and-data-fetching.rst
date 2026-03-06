@@ -467,13 +467,15 @@ Global / App-Level Timers
 |             |                               |                   | 5 minutes     |
 |             |                               |                   | before expiry |
 +-------------+-------------------------------+-------------------+---------------+
-| WebSocket   | ``services/notifications.ts`` | **60 seconds**    | Sends ping to |
-| Keepalive   |                               |                   | keep          |
+| WebSocket   | ``services/notifications.ts`` | **60 seconds**    | Sends version |
+| Keepalive   |                               |                   | request ping  |
+|             |                               |                   | to keep ES    |
 |             |                               |                   | WebSocket     |
-|             |                               |                   | connection    |
-|             |                               |                   | alive for     |
-|             |                               |                   | push          |
-|             |                               |                   | notifications |
+|             |                               |                   | alive. On     |
+|             |                               |                   | disconnect,   |
+|             |                               |                   | reconnects    |
+|             |                               |                   | with exp.     |
+|             |                               |                   | backoff       |
 +-------------+-------------------------------+-------------------+---------------+
 
 **Token Refresh Implementation:**
@@ -1472,6 +1474,102 @@ Returns ``null`` instead of throwing on 404/401/403 responses
 
 Data Flow Example
 -----------------
+
+Notifications API
+-----------------
+
+The notifications API (``src/api/notifications.ts``) manages FCM push token
+registration via ZoneMinder’s Notifications REST API. Used in Direct ZM
+notification mode where tokens are registered via REST instead of the Event
+Server WebSocket.
+
+**Key functions:**
+
+.. code:: tsx
+
+   import {
+     registerToken,
+     updateNotification,
+     deleteNotification,
+     listNotifications,
+     checkNotificationsApiSupport,
+   } from ‘../api/notifications’;
+
+   // Check if server supports the Notifications API
+   const supported = await checkNotificationsApiSupport();
+   // Returns false on 404 (older ZM versions)
+
+   // Register or upsert an FCM token
+   const notif = await registerToken({
+     token: fcmToken,
+     platform: ‘android’,
+     monitorList: ‘1,2,3’,
+     interval: 60,
+     pushState: ‘enabled’,
+     appVersion: ‘2.0.0’,
+   });
+
+   // Update monitor filter or push state
+   await updateNotification(notif.Id, { monitorList: ‘1,2’, interval: 30 });
+
+   // Delete a registration
+   await deleteNotification(notif.Id);
+
+**Features:** - Upsert semantics (POST with existing token updates the row)
+- User-scoped (server returns only the current user’s tokens) - Feature
+detection via 404 response for older ZM versions
+
+Event Poller Service
+--------------------
+
+The event poller (``src/services/eventPoller.ts``) polls the ZM events API
+for new events in Direct notification mode on desktop (Tauri). New events
+are fed into the notification store, which triggers toast display via
+``NotificationHandler``.
+
+**Usage:** The poller is started automatically by ``NotificationHandler``
+when ``notificationMode === ‘direct’`` on desktop/web (``Platform.isDesktopOrWeb``).
+On mobile (iOS/Android), FCM push notifications handle event delivery instead.
+The polling interval is configurable per-profile via ``pollingInterval`` in
+notification settings (default 30 seconds). The poller uses recursive
+``setTimeout`` so interval changes take effect on the next tick.
+
+**Filters:** When ``onlyDetectedEvents`` is enabled in notification settings,
+the poller adds a ``Notes REGEXP:detected:`` filter to the events API request,
+limiting results to events with object detection data.
+
+WebSocket Notification Service
+------------------------------
+
+The WebSocket service (``src/services/notifications.ts``) connects to
+ZoneMinder’s Event Server (``zmeventnotification.pl``) for real-time alarm
+notifications in ES mode.
+
+**Reconnection strategy:**
+
+- Exponential backoff with jitter: 2s, 4s, 8s, 16s, ... capped at 2 minutes
+- Jitter of ±25% prevents thundering herd when multiple clients reconnect
+- Reconnection continues indefinitely until the user explicitly disconnects
+- An ``intentionalDisconnect`` flag distinguishes user-initiated disconnect from
+  network failures — only the former stops reconnection
+- ``reconnectAttempts`` counter resets after successful authentication (not on
+  socket open), preventing auth failures from resetting the backoff
+
+**Liveness detection:**
+
+- **Keepalive ping**: Sends a version-request every 60 seconds
+- **``checkAlive(timeoutMs)``**: Sends a version request and resolves
+  ``true``/``false`` based on whether a response arrives within the timeout.
+  Used by ``NotificationHandler`` on app resume (mobile) and tab visibility
+  change (desktop) to detect dead connections
+- **Network change listener**: ``NotificationHandler`` listens to
+  ``window.addEventListener(‘online’)`` (desktop/web) and
+  ``@capacitor/network`` (mobile) to trigger immediate reconnect via
+  ``reconnectNow()`` when connectivity is restored
+- **App resume check** (mobile): On ``appStateChange`` active, a liveness
+  probe is sent; if unresponsive, reconnect is triggered
+- **Visibility change** (desktop): On ``visibilitychange`` to visible, a
+  liveness probe is sent to detect connections killed during tab backgrounding
 
 Let’s trace a complete data flow: viewing monitors
 

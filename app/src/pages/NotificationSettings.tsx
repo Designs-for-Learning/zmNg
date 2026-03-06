@@ -5,7 +5,7 @@
  * monitor filters, and push notification settings.
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useNotificationStore } from '../stores/notifications';
@@ -18,6 +18,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Label } from '../components/ui/label';
 import { Input } from '../components/ui/input';
 import { Switch } from '../components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Badge } from '../components/ui/badge';
 import { Separator } from '../components/ui/separator';
 import {
@@ -35,8 +36,12 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Capacitor } from '@capacitor/core';
+import { Platform } from '../lib/platform';
 import { useTranslation } from 'react-i18next';
 import { log, LogLevel } from '../lib/logger';
+import { checkNotificationsApiSupport } from '../api/notifications';
+import { getEventPoller } from '../services/eventPoller';
+import type { NotificationMode } from '../types/notifications';
 
 export default function NotificationSettings() {
   const navigate = useNavigate();
@@ -71,6 +76,21 @@ export default function NotificationSettings() {
 
   const [isConnecting, setIsConnecting] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [directModeAvailable, setDirectModeAvailable] = useState<boolean | null>(null);
+
+  // Feature detection: check if ZM server supports Notifications API
+  useEffect(() => {
+    if (!currentProfile || !isAuthenticated) return;
+
+    checkNotificationsApiSupport()
+      .then((supported) => {
+        setDirectModeAvailable(supported);
+        log.notificationSettings('ZM Notifications API support check', LogLevel.INFO, { supported });
+      })
+      .catch(() => {
+        setDirectModeAvailable(false);
+      });
+  }, [currentProfile?.id, isAuthenticated]);
 
   const handleEnableToggle = async (enabled: boolean) => {
     if (!currentProfile) {
@@ -155,6 +175,52 @@ export default function NotificationSettings() {
     toast.info(t('notification_settings.disconnected'));
   };
 
+  const handleModeChange = async (mode: NotificationMode) => {
+    if (!currentProfile) return;
+
+    const currentMode = settings?.notificationMode || 'es';
+    if (mode === currentMode) return;
+
+    log.notificationSettings('Switching notification mode', LogLevel.INFO, { from: currentMode, to: mode });
+
+    if (currentMode === 'es' && mode === 'direct') {
+      // Switching from ES to Direct: disconnect websocket, start poller on desktop
+      disconnect();
+      updateProfileSettings(currentProfile.id, { notificationMode: 'direct' });
+
+      if (Platform.isDesktopOrWeb) {
+        // Desktop (Tauri) or web browser: start event poller
+        log.notificationSettings('Starting event poller from mode switch', LogLevel.INFO);
+        const poller = getEventPoller();
+        poller.start(currentProfile.id);
+      }
+
+      toast.info(t('notification_settings.mode_switched_direct'));
+    } else if (currentMode === 'direct' && mode === 'es') {
+      // Switching from Direct to ES: stop poller, connect websocket
+      const poller = getEventPoller();
+      if (poller.isRunning()) {
+        poller.stop();
+      }
+
+      updateProfileSettings(currentProfile.id, { notificationMode: 'es' });
+
+      // Auto-connect websocket if host is configured
+      if (settings?.host && currentProfile.username && currentProfile.password) {
+        try {
+          const password = await getDecryptedPassword(currentProfile.id);
+          if (password) {
+            await connect(currentProfile.id, currentProfile.username, password, currentProfile.portalUrl);
+          }
+        } catch (error) {
+          log.notificationSettings('Failed to connect after switching to ES mode', LogLevel.ERROR, error);
+        }
+      }
+
+      toast.info(t('notification_settings.mode_switched_es'));
+    }
+  };
+
   const handleAllMonitorsToggle = (allMonitors: boolean) => {
     if (!currentProfile) return;
     updateProfileSettings(currentProfile.id, { allMonitors });
@@ -180,6 +246,18 @@ export default function NotificationSettings() {
   };
 
   const getConnectionBadge = () => {
+    const mode = settings?.notificationMode || 'es';
+
+    // Direct mode doesn't use a WebSocket — show mode-specific status
+    if (mode === 'direct' && settings?.enabled) {
+      return (
+        <Badge variant="default" className="gap-1.5 bg-blue-500">
+          <CheckCircle className="h-3 w-3" />
+          {t('notifications.status.direct_active')}
+        </Badge>
+      );
+    }
+
     switch (connectionState) {
       case 'connected':
         return (
@@ -306,8 +384,127 @@ export default function NotificationSettings() {
           </CardContent>
         </Card>
 
-        {/* Server Configuration */}
+        {/* Notification Mode Selector */}
         {settings.enabled && (
+          <Card>
+            <CardHeader>
+              <CardTitle>{t('notification_settings.mode_title')}</CardTitle>
+              <CardDescription>
+                {t('notification_settings.mode_desc')}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* ES Mode */}
+                <button
+                  type="button"
+                  onClick={() => handleModeChange('es')}
+                  className={`p-4 rounded-lg border text-left transition-colors ${
+                    (settings.notificationMode || 'es') === 'es'
+                      ? 'border-primary bg-primary/5'
+                      : 'border-border hover:border-muted-foreground/50'
+                  }`}
+                  data-testid="notification-mode-es"
+                >
+                  <div className="font-semibold text-sm">{t('notification_settings.mode_es')}</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {t('notification_settings.mode_es_desc')}
+                  </p>
+                </button>
+
+                {/* Direct Mode */}
+                <button
+                  type="button"
+                  onClick={() => handleModeChange('direct')}
+                  disabled={directModeAvailable !== true}
+                  className={`p-4 rounded-lg border text-left transition-colors ${
+                    settings.notificationMode === 'direct'
+                      ? 'border-primary bg-primary/5'
+                      : directModeAvailable
+                        ? 'border-border hover:border-muted-foreground/50'
+                        : 'border-border opacity-50 cursor-not-allowed'
+                  }`}
+                  title={directModeAvailable === false ? t('notification_settings.mode_direct_unavailable') : undefined}
+                  data-testid="notification-mode-direct"
+                >
+                  <div className="font-semibold text-sm">{t('notification_settings.mode_direct')}</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {t('notification_settings.mode_direct_desc')}
+                  </p>
+                  {directModeAvailable === false && (
+                    <p className="text-xs text-destructive mt-1">
+                      {t('notification_settings.mode_direct_unavailable')}
+                    </p>
+                  )}
+                </button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Direct Mode Options */}
+        {settings.enabled && settings.notificationMode === 'direct' && (
+          <Card>
+            <CardHeader>
+              <CardTitle>{t('notification_settings.direct_options_title')}</CardTitle>
+              <CardDescription>
+                {t('notification_settings.direct_options_desc')}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>{t('notification_settings.polling_interval')}</Label>
+                  <p className="text-xs text-muted-foreground">
+                    {t('notification_settings.polling_interval_desc')}
+                  </p>
+                </div>
+                <Select
+                  value={String(settings.pollingInterval || 30)}
+                  onValueChange={(value) => {
+                    updateProfileSettings(currentProfile.id, { pollingInterval: parseInt(value, 10) });
+                    // Restart poller with new interval
+                    const poller = getEventPoller();
+                    if (poller.isRunning()) {
+                      poller.start(currentProfile.id);
+                    }
+                  }}
+                >
+                  <SelectTrigger className="w-28" data-testid="polling-interval-select">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10">10s</SelectItem>
+                    <SelectItem value="15">15s</SelectItem>
+                    <SelectItem value="30">30s</SelectItem>
+                    <SelectItem value="60">60s</SelectItem>
+                    <SelectItem value="120">120s</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Separator />
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="only-detected">{t('notification_settings.only_detected')}</Label>
+                  <p className="text-xs text-muted-foreground">
+                    {t('notification_settings.only_detected_desc')}
+                  </p>
+                </div>
+                <Switch
+                  id="only-detected"
+                  checked={settings.onlyDetectedEvents || false}
+                  onCheckedChange={(checked) =>
+                    updateProfileSettings(currentProfile.id, { onlyDetectedEvents: checked })
+                  }
+                  data-testid="only-detected-toggle"
+                />
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Server Configuration (ES mode only) */}
+        {settings.enabled && (settings.notificationMode || 'es') === 'es' && (
           <Card>
             <CardHeader>
               <div className="flex items-center gap-2">

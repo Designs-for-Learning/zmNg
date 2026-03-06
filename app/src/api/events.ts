@@ -23,6 +23,7 @@ export interface EventFilters {
   endDateTime?: string;
   archived?: boolean;
   minAlarmFrames?: number;
+  notesRegexp?: string; // REGEXP filter on Notes field (e.g., "detected:" for object detection)
   limit?: number;
   sort?: string;
   direction?: 'asc' | 'desc';
@@ -64,6 +65,9 @@ export async function getEvents(filters: EventFilters = {}): Promise<EventsRespo
   }
   if (filters.minAlarmFrames) {
     addFilterSegment(`AlarmFrames >=:${filters.minAlarmFrames}`);
+  }
+  if (filters.notesRegexp) {
+    addFilterSegment(`Notes REGEXP:${filters.notesRegexp}`);
   }
 
   const filterPath = filterSegments.join('');

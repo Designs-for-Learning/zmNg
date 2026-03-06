@@ -19,7 +19,10 @@ import { log, LogLevel } from '../lib/logger';
 import { navigationService } from '../lib/navigation';
 import { useTranslation } from 'react-i18next';
 import { Capacitor } from '@capacitor/core';
+import { Platform } from '../lib/platform';
 import { getPushService } from '../services/pushNotifications';
+import { getEventPoller } from '../services/eventPoller';
+import { getNotificationService } from '../services/notifications';
 
 /**
  * NotificationHandler component.
@@ -40,6 +43,7 @@ export function NotificationHandler() {
     currentProfileId,
     connect,
     disconnect,
+    reconnect,
   } = useNotificationStore();
 
   const lastEventId = useRef<number | null>(null);
@@ -50,25 +54,46 @@ export function NotificationHandler() {
   const settings = currentProfile ? getProfileSettings(currentProfile.id) : null;
   const events = currentProfile ? getEvents(currentProfile.id) : [];
 
-  // Reset auto-connect flag when profile changes or disabled
+  // Reset auto-connect flag when profile changes, disabled, or mode changes
   useEffect(() => {
     if (!settings?.enabled) {
       hasAttemptedAutoConnect.current = false;
     }
   }, [settings?.enabled]);
 
-  // Initialize push notifications on mobile
-  // This runs whenever notifications are enabled to ensure we get the FCM token
   useEffect(() => {
-    if (Capacitor.isNativePlatform() && settings && settings.enabled) {
-      const pushService = getPushService();
+    hasAttemptedAutoConnect.current = false;
+  }, [settings?.notificationMode]);
 
-      // Initialize push service - this will call register() to get the current FCM token
+  // Initialize push notifications on mobile
+  // Runs when notifications are enabled or mode changes to ensure FCM token
+  // is registered with the correct backend (ES websocket vs ZM REST API)
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform() || !settings?.enabled || !currentProfile) return;
+
+    const mode = settings.notificationMode || 'es';
+
+    // In direct mode, set currentProfileId so the push service knows which
+    // profile to register against (there's no WebSocket connect to set it)
+    if (mode === 'direct') {
+      useNotificationStore.setState({ currentProfileId: currentProfile.id });
+    }
+
+    const pushService = getPushService();
+
+    if (pushService.isReady()) {
+      // Token already obtained — re-register with server for current mode
+      log.notificationHandler('Re-registering FCM token for mode change', LogLevel.INFO, { mode });
+      pushService.registerTokenWithServer().catch((error) => {
+        log.notificationHandler('Failed to re-register FCM token', LogLevel.ERROR, error);
+      });
+    } else {
+      // First time — initialize to get FCM token and register
       pushService.initialize().catch((error) => {
         log.notificationHandler('Failed to initialize push notifications', LogLevel.ERROR, error);
       });
     }
-  }, [settings?.enabled]);
+  }, [settings?.enabled, settings?.notificationMode, currentProfile]);
 
   // Handle profile switching
   useEffect(() => {
@@ -113,6 +138,99 @@ export function NotificationHandler() {
     return () => { listenerCleanup?.(); };
   }, []);
 
+  // Network change listener: reconnect when connectivity is restored
+  useEffect(() => {
+    const mode = settings?.notificationMode || 'es';
+    if (!settings?.enabled || mode !== 'es') return;
+
+    const handleOnline = () => {
+      log.notificationHandler('Network restored, triggering reconnect', LogLevel.INFO);
+      reconnect();
+    };
+
+    window.addEventListener('online', handleOnline);
+
+    // On native platforms, also use Capacitor's Network plugin for faster detection
+    let networkCleanup: (() => void) | undefined;
+
+    if (Capacitor.isNativePlatform()) {
+      import('@capacitor/network').then(({ Network }) => {
+        Network.addListener('networkStatusChange', (status) => {
+          if (status.connected) {
+            log.notificationHandler('Native network restored, triggering reconnect', LogLevel.INFO);
+            reconnect();
+          }
+        }).then((handle) => {
+          networkCleanup = () => handle.remove();
+        });
+      }).catch(() => {});
+    }
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      networkCleanup?.();
+    };
+  }, [settings?.enabled, settings?.notificationMode, reconnect]);
+
+  // Visibility change listener (desktop/web): check liveness when tab becomes visible
+  useEffect(() => {
+    const mode = settings?.notificationMode || 'es';
+    if (!settings?.enabled || mode !== 'es' || Capacitor.isNativePlatform()) return;
+
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState !== 'visible') return;
+      if (!isConnected) return;
+
+      log.notificationHandler('Tab visible, checking WebSocket liveness', LogLevel.DEBUG);
+      const service = getNotificationService();
+      const alive = await service.checkAlive(5000);
+
+      if (!alive) {
+        log.notificationHandler('WebSocket not responding after tab resume, reconnecting', LogLevel.WARN);
+        reconnect();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [settings?.enabled, settings?.notificationMode, isConnected, reconnect]);
+
+  // App resume liveness check (mobile): verify WebSocket is alive when app returns to foreground
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+
+    const mode = settings?.notificationMode || 'es';
+    if (!settings?.enabled || mode !== 'es') return;
+
+    let listenerCleanup: (() => void) | undefined;
+
+    const setup = async () => {
+      try {
+        const { App: CapApp } = await import('@capacitor/app');
+
+        const listener = await CapApp.addListener('appStateChange', async ({ isActive }) => {
+          if (!isActive || !isConnected) return;
+
+          log.notificationHandler('App resumed, checking WebSocket liveness', LogLevel.DEBUG);
+          const service = getNotificationService();
+          const alive = await service.checkAlive(5000);
+
+          if (!alive) {
+            log.notificationHandler('WebSocket not responding after app resume, reconnecting', LogLevel.WARN);
+            reconnect();
+          }
+        });
+
+        listenerCleanup = () => { listener.remove(); };
+      } catch (e) {
+        log.notificationHandler('Failed to setup app resume liveness check', LogLevel.ERROR, e);
+      }
+    };
+
+    setup();
+    return () => { listenerCleanup?.(); };
+  }, [settings?.enabled, settings?.notificationMode, isConnected, reconnect]);
+
   // Listen to navigation events from services (e.g., push notifications)
   useEffect(() => {
     const unsubscribe = navigationService.addListener((event) => {
@@ -132,56 +250,90 @@ export function NotificationHandler() {
   }, [navigate]);
 
   // Auto-connect when profile loads (if enabled)
+  // In ES mode: connects websocket. In Direct mode on desktop: starts event poller.
   useEffect(() => {
     if (
-      settings?.enabled &&
-      settings?.host && // Don't auto-connect if host is not set
-      !isConnected &&
-      connectionState === 'disconnected' &&
-      currentProfile &&
-      currentProfile.username &&
-      currentProfile.password &&
-      !hasAttemptedAutoConnect.current
+      !settings?.enabled ||
+      !currentProfile ||
+      !currentProfile.username ||
+      !currentProfile.password ||
+      hasAttemptedAutoConnect.current
     ) {
-      hasAttemptedAutoConnect.current = true;
-
-      log.notifications('Auto-connecting to notification server', LogLevel.INFO, { profileId: currentProfile.id, });
-
-      const attemptConnect = async (retries = 3) => {
-        try {
-          const password = await getDecryptedPassword(currentProfile.id);
-
-          // Check state again right before connecting to avoid race conditions
-          // This is crucial because getDecryptedPassword is async and state might have changed
-          const currentState = useNotificationStore.getState().connectionState;
-          if (currentState !== 'disconnected') {
-             log.notifications('Skipping auto-connect - already connected or connecting', LogLevel.INFO, { state: currentState,
-               profileId: currentProfile.id, });
-             return;
-          }
-
-          if (password) {
-            await connect(currentProfile.id, currentProfile.username!, password, currentProfile.portalUrl);
-            log.notifications('Auto-connected to notification server', LogLevel.INFO, { profileId: currentProfile.id, });
-          } else {
-            throw new Error('Failed to get password');
-          }
-        } catch (error) {
-          log.notifications(`Auto-connect failed (retries left: ${retries})`, LogLevel.ERROR, {
-            profileId: currentProfile.id,
-            error,
-          });
-
-          if (retries > 0) {
-            setTimeout(() => attemptConnect(retries - 1), 2000);
-          }
-        }
-      };
-
-      // Add a small delay to ensure everything is initialized
-      setTimeout(() => attemptConnect(), 500);
+      return;
     }
-  }, [settings?.enabled, settings?.host, isConnected, connectionState, currentProfile, connect, getDecryptedPassword]);
+
+    const mode = settings.notificationMode || 'es';
+
+    if (mode === 'direct') {
+      if (Platform.isDesktopOrWeb) {
+        // Desktop (Tauri) or web browser: start event poller
+        hasAttemptedAutoConnect.current = true;
+        log.notifications('Starting event poller for direct mode', LogLevel.INFO, {
+          profileId: currentProfile.id,
+        });
+        const poller = getEventPoller();
+        poller.start(currentProfile.id);
+      }
+      // Native mobile (iOS/Android): push notifications handle everything via FCM
+      return;
+    }
+
+    // ES mode: auto-connect websocket (existing behavior)
+    if (
+      !settings.host ||
+      isConnected ||
+      connectionState !== 'disconnected'
+    ) {
+      return;
+    }
+
+    hasAttemptedAutoConnect.current = true;
+
+    log.notifications('Auto-connecting to notification server', LogLevel.INFO, { profileId: currentProfile.id, });
+
+    const attemptConnect = async () => {
+      try {
+        const password = await getDecryptedPassword(currentProfile.id);
+
+        // Check state again right before connecting to avoid race conditions
+        // This is crucial because getDecryptedPassword is async and state might have changed
+        const currentState = useNotificationStore.getState().connectionState;
+        if (currentState !== 'disconnected') {
+           log.notifications('Skipping auto-connect - already connected or connecting', LogLevel.INFO, { state: currentState,
+             profileId: currentProfile.id, });
+           return;
+        }
+
+        if (password) {
+          await connect(currentProfile.id, currentProfile.username!, password, currentProfile.portalUrl);
+          log.notifications('Auto-connected to notification server', LogLevel.INFO, { profileId: currentProfile.id, });
+        } else {
+          log.notifications('Auto-connect failed - could not decrypt password', LogLevel.ERROR, {
+            profileId: currentProfile.id,
+          });
+        }
+      } catch (error) {
+        // The service handles reconnection internally via exponential backoff
+        log.notifications('Auto-connect failed, service will retry automatically', LogLevel.ERROR, {
+          profileId: currentProfile.id,
+          error,
+        });
+      }
+    };
+
+    // Small delay to ensure store initialization is complete
+    setTimeout(() => attemptConnect(), 500);
+  }, [settings?.enabled, settings?.notificationMode, settings?.host, isConnected, connectionState, currentProfile, connect, getDecryptedPassword]);
+
+  // Stop event poller on cleanup or when mode/profile changes
+  useEffect(() => {
+    return () => {
+      const poller = getEventPoller();
+      if (poller.isRunning()) {
+        poller.stop();
+      }
+    };
+  }, [currentProfile?.id, settings?.notificationMode, settings?.enabled]);
 
   // Listen for new events and show toasts
   useEffect(() => {
