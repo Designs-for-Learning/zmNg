@@ -10,7 +10,7 @@
 
 <img src="app/assets/logo.png" align="right" width="120" />
 
-A modern web and mobile application for ZoneMinder, providing a clean, intuitive interface for viewing live camera feeds, reviewing events, and managing multiple server profiles. It is a ground-up rewrite of the original [zmNinja](https://zmninja.zoneminder.com/) application, using modern web technologies and a more intuitive user interface. The code was 99% Claude CLI generated when I first started. Since then, I've been using `codex`, `antigravity` and `copilot w/Gemini3` depending on where I have tokens. `claude` is still head and shoulders above the rest, but codex isn't bad. 
+A modern web and mobile application for ZoneMinder, providing a clean, intuitive interface for viewing live camera feeds, reviewing events, and managing multiple server profiles. It is a ground-up rewrite of the original [zmNinja](https://zmninja.zoneminder.com/) application, using modern web technologies and a more intuitive user interface. 
 
 Watch a video of the demo [HERE](https://youtu.be/ces_2ap-htc)
 
@@ -36,7 +36,7 @@ Watch a video of the demo [HERE](https://youtu.be/ces_2ap-htc)
 
 ### Agentic AI, you and me
 
-Agentic AI and me: I built the very first version of zmNinja over several months and built in more features over multiple years. I built the first version of zmNg over 2.5 days with almost as many features as the last version of zmNinja. My agent of choice was Claude CLI (with Antigraviy and Copilot when tokens expired). Honestly, zmNg is better structured, more modern and easier to support than zmNinja (which uses tons of now deprecated tech and other code issues). I built it to learn how to effectively use agentic coding tools and wow, was I pleasantly surprised. zmNg has better tests, better release workflow (100% automated), easier to read code and better UX as well (imho).
+Agentic AI and me: I built the very first version of zmNinja over several months and built in more features over multiple years. I built the first version of zmNg over 2.5 days with almost as many features as the last version of zmNinja. Thanks to Claude.
 
 Agentic AI and you: I don't plan to support zmNg at all. Please don't ping me and expect quick answers. 
 Instead, treat this as "personal software" - i.e. download the code and fix it yourself. If you don't code, or do code, but aren't familiar with the environment of zmNg, I'd encourage you to use an agentic AI tool to help you along the way. Pick one you prefer. Remember, for mobile support, you'll need to generate your own FCM tokens. See mobile guides later for more.
@@ -52,15 +52,14 @@ I am happy to accept PRs, but I don't want [AI slop](https://en.wikipedia.org/wi
 
 ### Limitations & Notes
 - Self signed/untrusted certificates are not supported. It's not worth the effort to support them. Please use LetsEncrypt or other free certs, or just use http.
-- Push notifications won't work till you build the mobile apps yourself (web notifications, when the app is in foreground will work). See [Android](docs/building/ANDROID.md) and [iOS](docs/building/IOS.md) guides.
-- If you want push notifications, you'll have to use a newer [Event Server](https://github.com/pliablepixels/zm_docker_macos) that has support for direct FCM (yep, you don't need the proxy cloud function anymore)
+- If you want push notifications, you'll have to use a newer [Event Server](https://zmeventnotificationv7.readthedocs.io/en/latest/)
 
 
 ## Quick Start
 
 ### Binaries
 - Download binaries from [zmNg Releases](https://github.com/pliablepixels/zmNg/releases)
-- iOS is not uploaded - I don't have a dev account anymore
+- iOS will be in the app store soon. Isaac is on it.
 - I use Github workflows and runners to automatically build release binaries [here](https://github.com/pliablepixels/zmNg/tree/main/.github/workflows). Binaries are built for specific platforms. If the binary doesn't work for your linux distro, look at those files
 
 ## Build from Source

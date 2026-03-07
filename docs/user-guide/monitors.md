@@ -30,10 +30,14 @@ The detail view for a single monitor provides:
 
 ### Live View
 
-A live stream from the camera. zmNg supports:
+A live stream from the camera. zmNg supports multiple streaming modes:
 
 - **Snapshot mode** - Periodically refreshed JPEG images (lower bandwidth)
-- **go2rtc streaming** - Real-time streaming via go2rtc if configured on your server
+- **MJPEG streaming** - Motion JPEG stream via ZoneMinder's zms
+- **go2rtc streaming** - Real-time streaming via go2rtc if configured on your server, with multiple protocol options:
+  - WebRTC (lowest latency)
+  - MSE (Media Source Extensions)
+  - HLS (HTTP Live Streaming)
 
 ### PTZ Controls
 

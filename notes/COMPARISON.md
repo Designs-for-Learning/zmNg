@@ -4,9 +4,9 @@
 
 **Platforms Compared:** Android, Web, iOS, Desktop
 
-**Last Updated:** December 15, 2025
+**Last Updated:** March 7, 2026
 **zmNinja version:** v1.8.000 (September 9, 2025)
-**zmNg version:** v0.0.1 (Beta)
+**zmNg version:** v1.0.2
 
 ---
 
@@ -63,7 +63,7 @@ zmNg represents a complete ground-up rewrite of zmNinja using modern web technol
 8. cordova-plugin-advanced-websocket (v1.1.5)
 9. cordova-plugin-ionic-keyboard (v2.2.0)
 
-### zmNg (Modern - v0.0.1)
+### zmNg (Modern - v1.0.2)
 
 | Component | Technology | Version | Status |
 |-----------|-----------|---------|--------|
@@ -331,9 +331,9 @@ app/src/
 
 **Current:**
 - ✅ Android (Capacitor)
+- ✅ iOS (Capacitor)
 - ✅ Web (Progressive Web App)
-- ⏳ iOS (Capacitor)
-- ⏳ Desktop (Tauri)
+- ✅ Desktop (Tauri - Windows, macOS, Linux)
 
 **Advantages:**
 - PWA installable on any platform
@@ -856,7 +856,7 @@ Networking:
 | **Smoother UI** | 60 FPS vs 30-45 FPS |
 | **Better Battery Life** | 8 plugins vs 26+ plugins |
 | **Modern Design** | Clean, intuitive, responsive |
-| **Dark Mode** | System-aware automatic theme |
+| **Themes** | 5 themes (Light, Cream, Dark, Slate, Amber) + System auto-detect |
 | **Faster Scrolling** | Virtualized lists (smooth 1000+ events) |
 | **More Secure** | Hardware-backed encryption |
 | **Enhanced Dashboard** | Customizable widgets, drag-drop layout |
@@ -1034,7 +1034,7 @@ function Monitors() {
 
 ### zmNg (Active Development)
 
-**Current (v0.0.1):**
+**Current (v1.0.2):**
 - ✅ Modern stack (React 19, TypeScript 5.9, Vite 7)
 - ✅ Feature parity with zmNinja core features
 - ✅ Enhanced dashboard with widgets

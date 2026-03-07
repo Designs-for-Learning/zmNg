@@ -7,7 +7,7 @@ Settings are stored per profile. Each ZoneMinder server profile has its own inde
 | Setting | Description |
 |---------|-------------|
 | **Language** | Interface language (English, German, Spanish, French, Chinese) |
-| **Dark Mode** | Follows system theme by default |
+| **Theme** | Light, Cream, Dark, Slate, Amber, or System (follows system setting by default) |
 
 ## Bandwidth Settings
 

@@ -47,12 +47,12 @@ See {doc}`installation` for detailed instructions per platform, and {doc}`profil
 | Montage (multi-camera) view | Supported |
 | Customizable dashboard | Supported |
 | Event timeline and heatmap | Supported |
-| Push notifications (Android) | Supported (requires custom build) |
-| Web notifications | Supported (foreground only) |
+| Push notifications (mobile) | Supported on iOS and Android (requires custom build with Firebase credentials) |
+| In-app notifications | Supported (foreground toast notifications on all platforms) |
 | Multiple server profiles | Supported |
 | Monitor groups and filters | Supported |
 | PTZ controls | Supported |
-| Dark mode | Supported (follows system setting) |
+| Themes | Light, Cream, Dark, Slate, Amber (+ System auto-detect) |
 | Internationalization | 5 languages (EN, DE, ES, FR, ZH) |
 
 ## What's Different from zmNinja?

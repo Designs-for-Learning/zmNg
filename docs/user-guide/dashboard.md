@@ -8,10 +8,10 @@ The dashboard supports several widget types:
 
 | Widget | Description |
 |--------|-------------|
-| **System Status** | ZoneMinder daemon status and server health |
-| **Monitor Summary** | Count of monitors by state (online, alarm, offline) |
-| **Recent Events** | Latest events across all monitors |
-| **Event Statistics** | Event counts and charts over time |
+| **Monitor** | Live camera feeds — single or multiple monitors in a seamless grid |
+| **Recent Events** | Latest events, filterable by one or more selected monitors |
+| **Timeline** | Event counts over time as a bar chart |
+| **Heatmap** | Event activity heatmap showing busy hours and days |
 
 ## Customizing the Layout
 
