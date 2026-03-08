@@ -4,7 +4,7 @@ for your environment (especially linux, which is well known for breaking glibc a
 See [README](README.md)
 
 ### macOS
-- The macOS build is signed using ZoneMinder certs. You may be to allow running external apps if prompted
+- The macOS build is signed using ZoneMinder certs. You may need to allow running external apps if prompted
 - (You should no longer need Sentinel to bypass Gatekeeer)
 
 ### Windows
