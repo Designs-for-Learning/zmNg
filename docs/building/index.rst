@@ -39,6 +39,23 @@ Produces a native desktop app that is lighter than Electron-based alternatives.
    npm run tauri:dev     # Development with HMR
    npm run tauri:build   # Production build -> src-tauri/target/release/bundle/
 
+macOS Code Signing: Avoiding Keychain Prompts
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When running ``npm run tauri:build`` on macOS, you may be prompted for your
+keychain password multiple times (once per binary that needs signing). To
+avoid this:
+
+1. Open **Keychain Access**
+2. Under **My Certificates**, find your signing certificate and expand it to
+   reveal the private key
+3. Right-click the private key and select **Get Info**
+4. Go to the **Access Control** tab
+5. Select **Allow all applications to access this item**
+6. Click **Save Changes** and enter your keychain password when prompted
+
+This is a one-time change. You will not be prompted again for subsequent builds.
+
 Mobile Builds
 -------------
 
