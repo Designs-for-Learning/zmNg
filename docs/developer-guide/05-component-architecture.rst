@@ -766,6 +766,22 @@ a shared device (or even a phone) is a security risk. SecureStorage uses
 the device’s hardware-backed keystore (Keychain on iOS, Keystore on
 Android).
 
+Connection Settings (``components/settings/ConnectionSettings.tsx``)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Settings card with a Switch toggle for enabling self-signed certificate
+support. Follows the same pattern as ``DebugSettings``.
+
+- Reads/writes ``allowSelfSignedCerts`` from profile-scoped settings
+- Calls ``applySSLTrustSetting()`` from ``lib/ssl-trust.ts`` on toggle
+- Shows a warning when enabled
+- Shows a desktop-specific note on non-native platforms
+- ``data-testid="settings-self-signed-certs-switch"``
+
+The same toggle also appears in ``ProfileForm.tsx`` (below the password
+field) so users can enable it when adding a new profile before the first
+connection attempt.
+
 Feature Deep Dive: Notifications
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

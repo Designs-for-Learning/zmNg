@@ -104,8 +104,64 @@ CORS handling - **Mobile (Capacitor)**: Uses ``CapacitorHttp`` for
 native networking - **Desktop (Tauri)**: Uses
 ``@tauri-apps/plugin-http`` for native fetch
 
+**SSL Trust:** When self-signed certificates are enabled for a profile,
+the Tauri HTTP path passes ``danger: { acceptInvalidCerts: true,
+acceptInvalidHostnames: true }`` to ``@tauri-apps/plugin-http``. On
+mobile, the native Capacitor plugin handles SSL trust separately (see
+SSL Trust section below).
+
 **Used By:** API functions (``api/``), download utilities, all network
 requests
+
+--------------
+
+SSL Trust (``lib/ssl-trust.ts``)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Controls whether the app accepts self-signed/untrusted HTTPS certificates.
+The setting is profile-scoped (``allowSelfSignedCerts`` in ``ProfileSettings``)
+and disabled by default.
+
+**Features:** - Per-profile toggle (off by default) - Platform-dispatched:
+Capacitor plugin on mobile, module flag on Tauri, no-op on web -
+Applied during profile bootstrap before any API calls
+
+**Platform Implementations:**
+
+- **Mobile (iOS/Android)**: Uses a custom Capacitor plugin (``SSLTrust``)
+  registered in ``src/plugins/ssl-trust/``. On Android, installs a trust-all
+  ``X509TrustManager`` and overrides ``BridgeWebViewClient.onReceivedSslError``.
+  On iOS, registers a ``URLProtocol`` subclass to intercept ``URLSession.shared``
+  and installs a ``WKNavigationDelegate`` proxy on the WebView.
+- **Desktop (Tauri)**: Sets a module-level flag read by ``http.ts`` to pass
+  ``danger`` options to ``@tauri-apps/plugin-http``. Requires the
+  ``dangerous-settings`` Cargo feature on ``tauri-plugin-http``.
+- **Web**: No-op (browsers enforce certificate validation).
+
+**Implementation:**
+
+.. code:: typescript
+
+   import { applySSLTrustSetting } from '../lib/ssl-trust';
+
+   // Enable SSL trust (called during profile bootstrap)
+   await applySSLTrustSetting(true);
+
+   // Disable SSL trust
+   await applySSLTrustSetting(false);
+
+   // Check Tauri flag (used internally by http.ts)
+   import { isTauriSslTrustEnabled } from '../lib/ssl-trust';
+   if (isTauriSslTrustEnabled()) {
+     // pass danger options
+   }
+
+**Bootstrap Order:** ``bootstrapSSLTrust()`` in ``stores/profile-bootstrap.ts``
+runs before ``bootstrapAuth()`` so SSL trust is active before any API calls
+when switching profiles.
+
+**Used By:** ``stores/profile-bootstrap.ts``, ``pages/ProfileForm.tsx``,
+``components/settings/ConnectionSettings.tsx``
 
 --------------
 

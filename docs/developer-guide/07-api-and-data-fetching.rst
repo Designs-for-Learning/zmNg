@@ -1214,7 +1214,8 @@ Platform-Specific Implementations
    });
 
 Benefits: - Bypasses CORS restrictions - Uses native networking stack
-(faster, more reliable) - Handles SSL/TLS natively
+(faster, more reliable) - Handles SSL/TLS natively - Self-signed certificate
+support via ``SSLTrust`` Capacitor plugin (see ``lib/ssl-trust.ts``)
 
 **Tauri (Desktop) - Tauri Fetch Plugin:**
 
@@ -1222,12 +1223,23 @@ Benefits: - Bypasses CORS restrictions - Uses native networking stack
 
    // Automatically used when Platform.isTauri is true
    import { fetch as tauriFetch } from '@tauri-apps/plugin-http';
+
+   // When self-signed certs are enabled, danger options are added
+   const { isTauriSslTrustEnabled } = await import('./ssl-trust');
+   const dangerOpts = isTauriSslTrustEnabled()
+     ? { danger: { acceptInvalidCerts: true, acceptInvalidHostnames: true } }
+     : {};
+
    const response = await tauriFetch(url, {
      method,
      headers,
      body: JSON.stringify(body),
      signal,
+     ...dangerOpts,
    });
+
+Note: The ``danger`` option requires the ``dangerous-settings`` Cargo feature
+on ``tauri-plugin-http`` in ``src-tauri/Cargo.toml``.
 
 **Web (Browser) - Standard Fetch:**
 
