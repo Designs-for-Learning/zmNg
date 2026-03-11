@@ -26,7 +26,8 @@ public class SSLTrustPlugin: CAPPlugin, CAPBridgedPlugin {
         // Register URLProtocol to intercept URLSession.shared HTTPS requests
         // This covers CapacitorHttp which uses URLSession.shared
         URLProtocol.registerClass(SSLTrustURLProtocol.self)
-        installWebViewDelegate()
+        // WebView delegate is installed via setTrustedFingerprint() only when
+        // a fingerprint is available, so the delegate never accepts without validation
         call.resolve()
     }
 
@@ -43,6 +44,10 @@ public class SSLTrustPlugin: CAPPlugin, CAPBridgedPlugin {
 
     @objc func setTrustedFingerprint(_ call: CAPPluginCall) {
         SSLTrustPlugin.trustedFingerprint = call.getString("fingerprint")
+        // Only install WebView delegate when we have a fingerprint to validate against
+        if SSLTrustPlugin.sslTrustEnabled && SSLTrustPlugin.trustedFingerprint != nil {
+            installWebViewDelegate()
+        }
         call.resolve()
     }
 
@@ -187,11 +192,22 @@ func sha256Fingerprint(_ certificate: SecCertificate) -> String {
     return hash.map { String(format: "%02X", $0) }.joined(separator: ":")
 }
 
-/// Check if a certificate's fingerprint matches the trusted one
-func isCertTrusted(_ certificate: SecCertificate) -> Bool {
+/// Check if a certificate's fingerprint matches the trusted one.
+/// Used by URLProtocol (HTTP requests) — allows when no fingerprint is set (TOFU cert-fetch).
+func isCertTrustedForHTTP(_ certificate: SecCertificate) -> Bool {
     guard let trusted = SSLTrustPlugin.trustedFingerprint, !trusted.isEmpty else {
-        // No fingerprint stored yet — allow for TOFU flow
+        // No fingerprint stored yet — allow for TOFU cert-fetch flow
         return true
+    }
+    let actual = sha256Fingerprint(certificate)
+    return actual == trusted
+}
+
+/// Check if a certificate's fingerprint matches the trusted one.
+/// Used by WKNavigationDelegate (WebView) — rejects when no fingerprint is set.
+func isCertTrustedForWebView(_ certificate: SecCertificate) -> Bool {
+    guard let trusted = SSLTrustPlugin.trustedFingerprint, !trusted.isEmpty else {
+        return false
     }
     let actual = sha256Fingerprint(certificate)
     return actual == trusted
@@ -257,7 +273,7 @@ class SSLTrustURLProtocol: URLProtocol, URLSessionDelegate, URLSessionDataDelega
                 cert = SecTrustGetCertificateAtIndex(serverTrust, 0)
             }
 
-            if let leafCert = cert, isCertTrusted(leafCert) {
+            if let leafCert = cert, isCertTrustedForHTTP(leafCert) {
                 completionHandler(.useCredential, URLCredential(trust: serverTrust))
                 return
             }
@@ -343,7 +359,7 @@ class SSLTrustNavigationDelegate: NSObject, WKNavigationDelegate {
                 cert = SecTrustGetCertificateAtIndex(serverTrust, 0)
             }
 
-            if let leafCert = cert, isCertTrusted(leafCert) {
+            if let leafCert = cert, isCertTrustedForWebView(leafCert) {
                 completionHandler(.useCredential, URLCredential(trust: serverTrust))
                 return
             }

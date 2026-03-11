@@ -49,7 +49,8 @@ public class SSLTrustPlugin extends Plugin {
     public void enable(PluginCall call) {
         this.enabled = true;
         installFingerprintTrustManager();
-        installWebViewSslHandler();
+        // WebView handler is only installed via setTrustedFingerprint()
+        // so that onReceivedSslError never calls proceed() without validation
         call.resolve();
     }
 
@@ -72,10 +73,15 @@ public class SSLTrustPlugin extends Plugin {
     @PluginMethod
     public void setTrustedFingerprint(PluginCall call) {
         this.trustedFingerprint = call.getString("fingerprint");
-        // Re-install handlers with the updated fingerprint
         if (this.enabled) {
             installFingerprintTrustManager();
-            installWebViewSslHandler();
+            // Only install WebView handler when we have a fingerprint to validate against.
+            // This ensures onReceivedSslError never calls proceed() without cert validation.
+            if (this.trustedFingerprint != null && !this.trustedFingerprint.isEmpty()) {
+                installWebViewSslHandler();
+            } else {
+                restoreWebViewSslHandler();
+            }
         }
         call.resolve();
     }
@@ -219,14 +225,8 @@ public class SSLTrustPlugin extends Plugin {
                 webView.setWebViewClient(new BridgeWebViewClient(getBridge()) {
                     @Override
                     public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
-                        if (!enabled) {
+                        if (!enabled || fp == null || fp.isEmpty()) {
                             handler.cancel();
-                            return;
-                        }
-                        if (fp == null || fp.isEmpty()) {
-                            // No fingerprint stored yet — allow connection so the app can
-                            // fetch the cert and show the TOFU dialog
-                            handler.proceed();
                             return;
                         }
                         // Validate the certificate fingerprint
