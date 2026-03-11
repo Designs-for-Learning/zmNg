@@ -7,9 +7,16 @@
 
 import { log, LogLevel } from './logger';
 
+export interface NavigationState {
+  from?: string;
+  fromNotification?: boolean;
+  [key: string]: unknown;
+}
+
 export interface NavigationEvent {
   path: string;
   replace?: boolean;
+  state?: NavigationState;
 }
 
 type NavigationListener = (event: NavigationEvent) => void;
@@ -20,10 +27,10 @@ class NavigationService {
   /**
    * Navigate to a path
    */
-  public navigate(path: string, replace = false): void {
+  public navigate(path: string, replace = false, state?: NavigationState): void {
     log.navigation('Navigation requested', LogLevel.INFO, { path, replace });
 
-    const event: NavigationEvent = { path, replace };
+    const event: NavigationEvent = { path, replace, state };
     this.listeners.forEach((listener) => {
       try {
         listener(event);
@@ -36,8 +43,8 @@ class NavigationService {
   /**
    * Navigate to event detail page
    */
-  public navigateToEvent(eventId: string | number): void {
-    this.navigate(`/events/${eventId}`);
+  public navigateToEvent(eventId: string | number, state?: NavigationState): void {
+    this.navigate(`/events/${eventId}`, false, state);
   }
 
   /**

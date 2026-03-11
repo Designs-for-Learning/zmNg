@@ -17,6 +17,11 @@ You will find the version in the logs menu option
 **zmNinjaNG platform**
 OS (example iOS, Android, Linux, MacOS, Windows)
 
+**ZM/ES/zm_detect versions (as applicable)**
+ES: `/usr/bin/zmeventnotification.pl --version`
+zm_detect: `/var/lib/zmeventnotification/bin/zm_detect.py --version`
+ZM: 
+
 **Describe the bug**
 A clear and concise description of what the bug is.
 

@@ -308,9 +308,10 @@ export default function AppLayout() {
   useEffect(() => {
     if (!currentProfile?.id) return;
 
-    // Exclude setup/profile routes from being saved as lastRoute
+    // Exclude setup/profile routes and notification-opened pages from being saved as lastRoute
     const excludedRoutes = ['/profiles/new', '/setup', '/profiles'];
-    const shouldSave = !excludedRoutes.includes(location.pathname);
+    const fromNotification = (location.state as Record<string, unknown>)?.fromNotification === true;
+    const shouldSave = !excludedRoutes.includes(location.pathname) && !fromNotification;
 
     if (shouldSave) {
       updateProfileSettings(currentProfile.id, { lastRoute: location.pathname });

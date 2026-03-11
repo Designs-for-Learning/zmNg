@@ -76,7 +76,7 @@ export function NotificationHandler() {
 
     try {
       await switchProfile(targetProfileId);
-      navigationService.navigateToEvent(eventId);
+      navigationService.navigateToEvent(eventId, { from: '/monitors', fromNotification: true });
     } catch (error) {
       log.notificationHandler('Profile switch failed', LogLevel.ERROR, error);
       toast.error(t('notifications.profile_switch_failed'));
@@ -392,9 +392,9 @@ export function NotificationHandler() {
         replace: event.replace, });
 
       if (event.replace) {
-        navigate(event.path, { replace: true });
+        navigate(event.path, { replace: true, state: event.state });
       } else {
-        navigate(event.path);
+        navigate(event.path, { state: event.state });
       }
     });
 

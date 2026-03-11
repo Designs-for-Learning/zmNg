@@ -559,8 +559,8 @@ export class MobilePushService {
         eventId: String(eid),
       });
     } else {
-      // Same profile — navigate directly
-      navigationService.navigateToEvent(String(eid));
+      // Same profile — navigate directly (with fallback route for back button)
+      navigationService.navigateToEvent(String(eid), { from: '/monitors', fromNotification: true });
       log.push('Navigating to event detail', LogLevel.INFO, { eventId: eid });
     }
   }
