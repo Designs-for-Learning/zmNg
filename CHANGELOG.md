@@ -1,5 +1,27 @@
 # Changelog
 
+## [zmNinjaNG-1.0.8](https://github.com/pliablepixels/zmNinjaNG/tree/zmNinjaNG-1.0.8) (2026-03-15)
+
+[Full Changelog](https://github.com/pliablepixels/zmNinjaNG/compare/zmNinjaNG-1.0.7...zmNinjaNG-1.0.8)
+
+**Implemented enhancements:**
+
+- feat: notification bell icon at top of app with animated badge [\#61](https://github.com/pliablepixels/zmNinjaNG/issues/61)
+- feat: reorderable sidebar menu items [\#60](https://github.com/pliablepixels/zmNinjaNG/issues/60)
+- feat: display event Notes field \(detection info\) across all event views [\#59](https://github.com/pliablepixels/zmNinjaNG/issues/59)
+- feat: add detected objects filter, tag filter, and tag display to dashboard events widget [\#58](https://github.com/pliablepixels/zmNinjaNG/issues/58)
+- feat: add Only Detected Objects filter to events page [\#57](https://github.com/pliablepixels/zmNinjaNG/issues/57)
+- feat: add All Tagged option to events tag filter [\#55](https://github.com/pliablepixels/zmNinjaNG/issues/55)
+- feat: add pinch-to-zoom and fullscreen to monitor detail view [\#51](https://github.com/pliablepixels/zmNinjaNG/issues/51)
+
+**Fixed bugs:**
+
+- fix: event filters not persisting across navigation [\#56](https://github.com/pliablepixels/zmNinjaNG/issues/56)
+- fix: remove broken Account/Logout from Settings [\#54](https://github.com/pliablepixels/zmNinjaNG/issues/54)
+- fix: remove dead scale percentage widget from monitor detail [\#53](https://github.com/pliablepixels/zmNinjaNG/issues/53)
+- fix: fullscreen monitor detail overlaps iOS status bar [\#52](https://github.com/pliablepixels/zmNinjaNG/issues/52)
+- Montage full screen video controls opening between 2 windows and swapping continuously [\#50](https://github.com/pliablepixels/zmNinjaNG/issues/50)
+
 ## [zmNinjaNG-1.0.7](https://github.com/pliablepixels/zmNinjaNG/tree/zmNinjaNG-1.0.7) (2026-03-12)
 
 [Full Changelog](https://github.com/pliablepixels/zmNinjaNG/compare/zmNinjaNG-1.0.6...zmNinjaNG-1.0.7)
