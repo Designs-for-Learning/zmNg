@@ -7,7 +7,6 @@
 
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
 import { useNotificationStore } from '../stores/notifications';
 import { useCurrentProfile } from '../hooks/useCurrentProfile';
 import { useProfileStore } from '../stores/profile';
@@ -32,7 +31,6 @@ import {
   XCircle,
   AlertCircle,
   Loader2,
-  History,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Capacitor } from '@capacitor/core';
@@ -44,7 +42,6 @@ import { getEventPoller } from '../services/eventPoller';
 import type { NotificationMode } from '../types/notifications';
 
 export default function NotificationSettings() {
-  const navigate = useNavigate();
   const { t } = useTranslation();
   const { currentProfile } = useCurrentProfile();
   const getDecryptedPassword = useProfileStore((state) => state.getDecryptedPassword);
@@ -315,23 +312,6 @@ export default function NotificationSettings() {
             {t('notification_settings.subtitle')}
           </p>
         </div>
-        <Button
-          variant="outline"
-          onClick={() => navigate('/notifications/history')}
-          className="relative"
-          data-testid="notification-history-button"
-        >
-          <History className="h-4 w-4 mr-2" />
-          {t('notification_settings.view_history')}
-          {unreadCount > 0 && (
-            <Badge
-              variant="destructive"
-              className="absolute -top-2 -right-2 h-5 min-w-5 px-1 flex items-center justify-center text-xs"
-            >
-              {unreadCount > 99 ? '99+' : unreadCount}
-            </Badge>
-          )}
-        </Button>
       </div>
 
       <div className="grid gap-6">
