@@ -9,7 +9,6 @@ import { useNavigate } from 'react-router-dom';
 import { Bell } from 'lucide-react';
 import { useProfileStore } from '../stores/profile';
 import { useNotificationStore } from '../stores/notifications';
-import { cn } from '../lib/utils';
 
 export function NotificationBadge() {
   const navigate = useNavigate();
@@ -20,13 +19,17 @@ export function NotificationBadge() {
     return events.filter((e) => !e.read).length;
   });
 
+  // ringKey increments to force the Bell element to remount, which restarts the CSS animation.
+  // Without this, adding the animation class to an existing element doesn't replay the animation.
+  const [ringKey, setRingKey] = useState(0);
   const [isRinging, setIsRinging] = useState(false);
   const prevCountRef = useRef(0);
 
   useEffect(() => {
     if (unreadCount > prevCountRef.current) {
+      setRingKey((k) => k + 1);
       setIsRinging(true);
-      const timeout = setTimeout(() => setIsRinging(false), 1000);
+      const timeout = setTimeout(() => setIsRinging(false), 1200);
       prevCountRef.current = unreadCount;
       return () => clearTimeout(timeout);
     }
@@ -42,10 +45,14 @@ export function NotificationBadge() {
       aria-label={`${unreadCount} unread notifications`}
       data-testid="notification-badge"
     >
-      <Bell className={cn(
-        "h-3.5 w-3.5 text-muted-foreground",
-        isRinging && "animate-[ring_0.5s_ease-in-out_2]"
-      )} />
+      <Bell
+        key={ringKey}
+        className={
+          isRinging
+            ? "h-3.5 w-3.5 text-muted-foreground animate-[ring_0.5s_ease-in-out_2]"
+            : "h-3.5 w-3.5 text-muted-foreground"
+        }
+      />
       <span className="absolute -top-1 -right-1 h-4 min-w-4 px-0.5 flex items-center justify-center text-[9px] font-bold rounded-full bg-destructive text-destructive-foreground">
         {unreadCount > 99 ? '99+' : unreadCount}
       </span>
