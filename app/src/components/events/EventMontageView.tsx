@@ -168,6 +168,11 @@ export const EventMontageView = ({
                     </Badge>
                   );
                 })()}
+                {event.Notes && (
+                  <p className="text-[10px] text-muted-foreground truncate" title={event.Notes}>
+                    {event.Notes.split('|')[0].trim()}
+                  </p>
+                )}
                 {/* Tags */}
                 {eventTagMap && eventTagMap.get(event.Id) && (
                   <TagChipList

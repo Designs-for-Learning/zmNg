@@ -134,6 +134,11 @@ export const EventsWidget = memo(function EventsWidget({
                                         {event.Event.Length}s
                                     </span>
                                 </div>
+                                {event.Event.Notes && (
+                                    <p className="text-[10px] text-muted-foreground truncate mt-0.5" title={event.Event.Notes}>
+                                        {event.Event.Notes.split('|')[0].trim()}
+                                    </p>
+                                )}
                                 {tags.length > 0 && (
                                     <div className="mt-1">
                                         <TagChipList tags={tags} maxVisible={3} size="sm" />
