@@ -293,19 +293,11 @@ function SidebarContent({ onMobileClose, isCollapsed }: SidebarContentProps) {
           {!isCollapsed && (
             <>
               <h1 className="text-xl font-bold tracking-tight whitespace-nowrap">{t('app.name')}</h1>
-              <div className="flex items-center gap-1 ml-auto">
-                <LanguageSwitcher />
-                <NotificationBell />
-              </div>
+              <LanguageSwitcher />
             </>
           )}
         </div>
-        {isCollapsed && (
-          <div className="flex flex-col items-center gap-1">
-            <LanguageSwitcher collapsed />
-            <NotificationBell />
-          </div>
-        )}
+        {isCollapsed && <LanguageSwitcher collapsed />}
         {!isCollapsed && currentProfile && (
           <p className="text-xs text-muted-foreground font-medium px-1 truncate">
             {currentProfile.name}
@@ -642,6 +634,13 @@ export default function AppLayout() {
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto overflow-x-hidden relative w-full pt-[calc(3rem+env(safe-area-inset-top))] md:pt-0 pb-[env(safe-area-inset-bottom)]">
+        {/* Desktop notification bell — sticky top-right, zero height so it doesn't push content */}
+        <div className="hidden md:flex sticky top-0 z-20 h-0 justify-end pr-3 pt-2 pointer-events-none">
+          <div className="pointer-events-auto">
+            <NotificationBell />
+          </div>
+        </div>
+
         {/* Background gradient blob for visual interest */}
         <div className="absolute top-0 left-0 w-full h-96 bg-gradient-to-b from-primary/5 to-transparent -z-10 pointer-events-none" />
 
