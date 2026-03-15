@@ -302,10 +302,10 @@ export default function Logs() {
 
     return (
         <div className="p-3 sm:p-4 md:p-6 max-w-7xl mx-auto space-y-4 sm:space-y-6 h-[calc(100vh-4rem)] flex flex-col">
-            <div className="flex items-center justify-between shrink-0">
+            <div className="flex items-center justify-between gap-4 shrink-0">
                 <div>
-                    <div className="flex items-center gap-3">
-                        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">{t('logs.title')}</h1>
+                    <div className="flex items-center gap-2">
+                        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight mr-1">{t('logs.title')}</h1>
                         <NotificationBadge />
                     </div>
                     <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
