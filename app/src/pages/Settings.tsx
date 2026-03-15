@@ -6,7 +6,6 @@
  */
 
 import { useTranslation } from 'react-i18next';
-import { AccountSettings } from '../components/settings/AccountSettings';
 import { DashboardSettings } from '../components/settings/DashboardSettings';
 import { ConnectionSettings } from '../components/settings/ConnectionSettings';
 import { DebugSettings } from '../components/settings/DebugSettings';
@@ -35,7 +34,6 @@ export default function Settings() {
         <DashboardSettings />
         <ConnectionSettings />
         <DebugSettings />
-        <AccountSettings />
       </div>
     </div>
   );
