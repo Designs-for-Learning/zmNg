@@ -29,10 +29,9 @@ import {
   Bell,
   ChevronLeft,
   ChevronRight,
-  ChevronUp,
-  ChevronDown,
   FileText,
   Globe,
+  GripVertical,
   LayoutDashboard,
   Server,
   Eye,
@@ -180,17 +179,44 @@ function SidebarContent({ onMobileClose, isCollapsed }: SidebarContentProps) {
   }, [savedOrder, t]);
 
   const [isReordering, setIsReordering] = useState(false);
+  const dragIndexRef = useRef<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
-  const moveNavItem = useCallback((index: number, direction: -1 | 1) => {
+  const saveNavOrder = useCallback((reordered: typeof navItems) => {
     if (!currentProfile) return;
-    const newIndex = index + direction;
-    if (newIndex < 0 || newIndex >= navItems.length) return;
-    const reordered = [...navItems];
-    [reordered[index], reordered[newIndex]] = [reordered[newIndex], reordered[index]];
     updateProfileSettings(currentProfile.id, {
       sidebarNavOrder: reordered.map((item) => item.path),
     });
-  }, [currentProfile, navItems, updateProfileSettings]);
+  }, [currentProfile, updateProfileSettings]);
+
+  const handleDragStart = useCallback((index: number) => {
+    dragIndexRef.current = index;
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    setDragOverIndex(index);
+  }, []);
+
+  const handleDrop = useCallback((dropIndex: number) => {
+    const fromIndex = dragIndexRef.current;
+    if (fromIndex === null || fromIndex === dropIndex) {
+      dragIndexRef.current = null;
+      setDragOverIndex(null);
+      return;
+    }
+    const reordered = [...navItems];
+    const [moved] = reordered.splice(fromIndex, 1);
+    reordered.splice(dropIndex, 0, moved);
+    saveNavOrder(reordered);
+    dragIndexRef.current = null;
+    setDragOverIndex(null);
+  }, [navItems, saveNavOrder]);
+
+  const handleDragEnd = useCallback(() => {
+    dragIndexRef.current = null;
+    setDragOverIndex(null);
+  }, []);
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -237,31 +263,20 @@ function SidebarContent({ onMobileClose, isCollapsed }: SidebarContentProps) {
               return (
                 <div
                   key={item.path}
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground"
+                  draggable
+                  onDragStart={() => handleDragStart(index)}
+                  onDragOver={(e) => handleDragOver(e, index)}
+                  onDrop={() => handleDrop(index)}
+                  onDragEnd={handleDragEnd}
+                  className={cn(
+                    "flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground cursor-grab active:cursor-grabbing transition-colors",
+                    dragOverIndex === index && "bg-accent/50 border border-dashed border-primary/40"
+                  )}
                   data-testid={`nav-reorder-${item.path.replace('/', '')}`}
                 >
+                  <GripVertical className="h-4 w-4 flex-shrink-0 text-muted-foreground/50" />
                   <Icon className="h-4 w-4 flex-shrink-0" />
                   <span className="truncate flex-1">{item.label}</span>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className={cn("h-6 w-6", index === 0 && "opacity-30 pointer-events-none")}
-                    onClick={() => moveNavItem(index, -1)}
-                    disabled={index === 0}
-                    data-testid={`nav-up-${item.path.replace('/', '')}`}
-                  >
-                    <ChevronUp className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className={cn("h-6 w-6", index === navItems.length - 1 && "opacity-30 pointer-events-none")}
-                    onClick={() => moveNavItem(index, 1)}
-                    disabled={index === navItems.length - 1}
-                    data-testid={`nav-down-${item.path.replace('/', '')}`}
-                  >
-                    <ChevronDown className="h-3.5 w-3.5" />
-                  </Button>
                 </div>
               );
             }
