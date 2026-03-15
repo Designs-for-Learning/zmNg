@@ -19,6 +19,7 @@ import { Label } from '../components/ui/label';
 import type { LogEntry } from '../stores/logs';
 import { getZMLogs, getZMLogLevel, getUniqueZMComponents } from '../api/logs';
 import type { ZMLog } from '../api/types';
+import { NotificationBadge } from '../components/NotificationBadge';
 
 function LogCodeBlock({ content }: { content: string }) {
     const [isExpanded, setIsExpanded] = useState(false);
@@ -305,6 +306,7 @@ export default function Logs() {
                 <div>
                     <div className="flex items-center gap-3">
                         <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">{t('logs.title')}</h1>
+                        <NotificationBadge />
                     </div>
                     <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
                         {logSource === 'zmng' ? t('logs.subtitle') : 'ZoneMinder Server Logs'}

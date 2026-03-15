@@ -39,6 +39,7 @@ import { toast as sonnerToast } from 'sonner';
 import { createApiClient, setApiClient } from '../api/client';
 import { discoverZoneminder, DiscoveryError } from '../lib/discovery';
 import { useTranslation } from 'react-i18next';
+import { NotificationBadge } from '../components/NotificationBadge';
 
 export default function Profiles() {
   const navigate = useNavigate();
@@ -289,7 +290,10 @@ export default function Profiles() {
     <>
       <div className="p-3 sm:p-4 md:p-6 max-w-5xl mx-auto space-y-4 sm:space-y-6">
         <div>
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">{t('profiles.title')}</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">{t('profiles.title')}</h1>
+            <NotificationBadge />
+          </div>
           <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 hidden sm:block">
             {t('profiles.subtitle')}
           </p>

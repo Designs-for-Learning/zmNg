@@ -19,6 +19,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
+import { NotificationBadge } from '../components/NotificationBadge';
 
 export default function Dashboard() {
     const { t } = useTranslation();
@@ -53,6 +54,7 @@ export default function Dashboard() {
                 <div className="flex items-center gap-2">
                     <LayoutDashboard className="h-5 w-5 sm:h-6 sm:w-6" />
                     <h1 className="text-lg sm:text-2xl font-bold">{t('dashboard.title')}</h1>
+                    <NotificationBadge />
                 </div>
                 <div className="flex items-center gap-2">
                     {widgets.length > 0 && (

@@ -42,6 +42,7 @@ import { log, LogLevel } from '../lib/logger';
 import { checkNotificationsApiSupport } from '../api/notifications';
 import { getEventPoller } from '../services/eventPoller';
 import type { NotificationMode } from '../types/notifications';
+import { NotificationBadge } from '../components/NotificationBadge';
 
 export default function NotificationSettings() {
   const { t } = useTranslation();
@@ -310,7 +311,10 @@ export default function NotificationSettings() {
     <div className="p-6 md:p-8 max-w-5xl mx-auto space-y-8" data-testid="notification-settings">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">{t('notification_settings.title')}</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-3xl font-bold tracking-tight">{t('notification_settings.title')}</h1>
+            <NotificationBadge />
+          </div>
           <p className="text-muted-foreground mt-1">
             {t('notification_settings.subtitle')}
           </p>

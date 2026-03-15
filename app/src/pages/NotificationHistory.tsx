@@ -26,6 +26,7 @@ import { getEventCauseIcon } from '../lib/event-icons';
 import { formatDistanceToNow } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { NotificationBadge } from '../components/NotificationBadge';
 
 export default function NotificationHistory() {
   const navigate = useNavigate();
@@ -79,14 +80,17 @@ export default function NotificationHistory() {
     >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div>
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight flex items-center gap-2">
-            {t('notification_history.title')}
-            {unreadCount > 0 && (
-              <Badge variant="destructive" className="text-[10px] sm:text-xs h-4 sm:h-5">
-                {unreadCount}
-              </Badge>
-            )}
-          </h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight flex items-center gap-2">
+              {t('notification_history.title')}
+              {unreadCount > 0 && (
+                <Badge variant="destructive" className="text-[10px] sm:text-xs h-4 sm:h-5">
+                  {unreadCount}
+                </Badge>
+              )}
+            </h1>
+            <NotificationBadge />
+          </div>
           <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 hidden sm:block">
             {t('notification_history.subtitle')}
           </p>

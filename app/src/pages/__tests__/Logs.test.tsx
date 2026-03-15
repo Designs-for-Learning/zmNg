@@ -70,6 +70,10 @@ vi.mock('../../lib/version', () => ({
   getAppVersion: () => '1.0.0',
 }));
 
+vi.mock('../../components/NotificationBadge', () => ({
+  NotificationBadge: () => null,
+}));
+
 vi.mock('../../hooks/useCurrentProfile', () => ({
   useCurrentProfile: () => ({
     currentProfile: { id: 'profile-1', name: 'Test Profile', apiUrl: 'https://api.test' },

@@ -25,6 +25,7 @@ import { cn } from '../lib/utils';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { usePinchZoom } from '../hooks/usePinchZoom';
+import { NotificationBadge } from '../components/NotificationBadge';
 import { useInsomnia } from '../hooks/useInsomnia';
 import GridLayout, { WidthProvider } from 'react-grid-layout';
 import 'react-grid-layout/css/styles.css';
@@ -209,6 +210,7 @@ export default function Montage() {
                   {t('montage.title')}
                 </h1>
               </div>
+              <NotificationBadge />
             </div>
             <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
               <GroupFilterSelect />

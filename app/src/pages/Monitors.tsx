@@ -30,6 +30,7 @@ import { filterEnabledMonitors, filterMonitorsByGroup } from '../lib/filters';
 import { useGroupFilter } from '../hooks/useGroupFilter';
 import { GroupFilterSelect } from '../components/filters/GroupFilterSelect';
 import type { Monitor } from '../api/types';
+import { NotificationBadge } from '../components/NotificationBadge';
 export default function Monitors() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -121,7 +122,10 @@ export default function Monitors() {
     <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div>
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">{t('monitors.title')}</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">{t('monitors.title')}</h1>
+            <NotificationBadge />
+          </div>
           <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
             {t('monitors.count', { count: allMonitors.length })}
           </p>

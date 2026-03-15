@@ -36,6 +36,7 @@ import { formatForServer, formatLocalDateTime } from '../lib/time';
 import { EmptyState } from '../components/ui/empty-state';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { useEventFavoritesStore } from '../stores/eventFavorites';
+import { NotificationBadge } from '../components/NotificationBadge';
 
 export default function Events() {
   const navigate = useNavigate();
@@ -327,7 +328,10 @@ export default function Events() {
                 </Button>
               )}
               <div>
-                <h1 className="text-xl sm:text-2xl font-bold tracking-tight">{t('events.title')}</h1>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-xl sm:text-2xl font-bold tracking-tight">{t('events.title')}</h1>
+                  <NotificationBadge />
+                </div>
                 <p className="text-xs text-muted-foreground hidden sm:block">{t('events.subtitle')}</p>
               </div>
             </div>

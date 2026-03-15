@@ -94,6 +94,10 @@ vi.mock('../../components/ui/select', () => ({
   },
 }));
 
+vi.mock('../../components/NotificationBadge', () => ({
+  NotificationBadge: () => null,
+}));
+
 describe('Settings Page', () => {
   beforeEach(() => {
     updateProfileSettings.mockClear();

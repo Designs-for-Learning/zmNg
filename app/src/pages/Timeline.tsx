@@ -26,6 +26,7 @@ import { useTranslation } from 'react-i18next';
 import { QuickDateRangeButtons } from '../components/ui/quick-date-range-buttons';
 import { MonitorFilterPopoverContent } from '../components/filters/MonitorFilterPopover';
 import { EmptyState } from '../components/ui/empty-state';
+import { NotificationBadge } from '../components/NotificationBadge';
 
 interface TimelineGroup {
   id: string;
@@ -238,7 +239,10 @@ export default function Timeline() {
     <div className="p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4 md:space-y-6" data-testid="timeline-page">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div>
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">{t('timeline.title')}</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">{t('timeline.title')}</h1>
+            <NotificationBadge />
+          </div>
           <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 hidden sm:block">
             <span className="hidden sm:inline">{t('timeline.subtitle')}</span>
             {selectedMonitorIds.length > 0 && ` (${t('timeline.cameras_selected', { count: selectedMonitorIds.length })})`}
