@@ -10,6 +10,10 @@ import { Bell } from 'lucide-react';
 import { useProfileStore } from '../stores/profile';
 import { useNotificationStore } from '../stores/notifications';
 
+// Module-level: persists across component mount/unmount cycles so
+// navigating between pages doesn't re-trigger the animation.
+let lastKnownUnreadCount = 0;
+
 export function NotificationBadge() {
   const navigate = useNavigate();
   const currentProfileId = useProfileStore((state) => state.currentProfileId);
@@ -23,17 +27,19 @@ export function NotificationBadge() {
   // Without this, adding the animation class to an existing element doesn't replay the animation.
   const [ringKey, setRingKey] = useState(0);
   const [isRinging, setIsRinging] = useState(false);
-  const prevCountRef = useRef(0);
+  const prevCountRef = useRef(lastKnownUnreadCount);
 
   useEffect(() => {
     if (unreadCount > prevCountRef.current) {
       setRingKey((k) => k + 1);
       setIsRinging(true);
-      const timeout = setTimeout(() => setIsRinging(false), 1200);
+      const timeout = setTimeout(() => setIsRinging(false), 3500);
       prevCountRef.current = unreadCount;
+      lastKnownUnreadCount = unreadCount;
       return () => clearTimeout(timeout);
     }
     prevCountRef.current = unreadCount;
+    lastKnownUnreadCount = unreadCount;
   }, [unreadCount]);
 
   if (unreadCount === 0) return null;
