@@ -21,7 +21,7 @@ export function DebugSettings() {
     };
 
     return (
-        <CollapsibleCard
+        <CollapsibleCard storageKey="settings-debug"
             header={
                 <>
                     <div className="flex items-center gap-2">

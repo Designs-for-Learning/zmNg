@@ -21,7 +21,7 @@ export function DisplaySettings() {
     };
 
     return (
-        <CollapsibleCard
+        <CollapsibleCard storageKey="settings-display"
             header={
                 <>
                     <div className="flex items-center gap-2">

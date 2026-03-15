@@ -3,6 +3,7 @@
  *
  * A Card with a clickable header that collapses/expands the content.
  * Uses Radix Collapsible for accessible expand/collapse behavior.
+ * Optionally persists open/closed state to localStorage via storageKey.
  */
 
 import { useState } from 'react';
@@ -18,21 +19,41 @@ interface CollapsibleCardProps {
   children: React.ReactNode;
   /** Start expanded (default: true) */
   defaultOpen?: boolean;
+  /** localStorage key for persisting collapse state */
+  storageKey?: string;
   /** data-testid for the card */
   'data-testid'?: string;
+}
+
+function readStoredOpen(key: string | undefined, fallback: boolean): boolean {
+  if (!key) return fallback;
+  try {
+    const stored = localStorage.getItem(key);
+    if (stored === 'false') return false;
+    if (stored === 'true') return true;
+  } catch { /* ignore */ }
+  return fallback;
 }
 
 export function CollapsibleCard({
   header,
   children,
   defaultOpen = true,
+  storageKey,
   ...props
 }: CollapsibleCardProps) {
-  const [open, setOpen] = useState(defaultOpen);
+  const [open, setOpen] = useState(() => readStoredOpen(storageKey, defaultOpen));
+
+  const handleOpenChange = (value: boolean) => {
+    setOpen(value);
+    if (storageKey) {
+      try { localStorage.setItem(storageKey, String(value)); } catch { /* ignore */ }
+    }
+  };
 
   return (
     <Card data-testid={props['data-testid']}>
-      <Collapsible open={open} onOpenChange={setOpen}>
+      <Collapsible open={open} onOpenChange={handleOpenChange}>
         <CollapsibleTrigger asChild>
           <CardHeader className="cursor-pointer select-none">
             <div className="flex items-center justify-between">

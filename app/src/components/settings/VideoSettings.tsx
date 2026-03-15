@@ -61,7 +61,7 @@ export function VideoSettings() {
     };
 
     return (
-        <CollapsibleCard
+        <CollapsibleCard storageKey="settings-video"
             header={
                 <>
                     <div className="flex items-center gap-2">

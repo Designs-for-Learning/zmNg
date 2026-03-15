@@ -22,7 +22,7 @@ export function DashboardSettings() {
     };
 
     return (
-        <CollapsibleCard
+        <CollapsibleCard storageKey="settings-dashboard"
             header={
                 <>
                     <div className="flex items-center gap-2">

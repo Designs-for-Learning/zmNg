@@ -14,7 +14,7 @@ export function LanguageSettings() {
     const { t, i18n } = useTranslation();
 
     return (
-        <CollapsibleCard
+        <CollapsibleCard storageKey="settings-language"
             header={
                 <>
                     <div className="flex items-center gap-2">

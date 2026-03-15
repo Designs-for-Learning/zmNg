@@ -22,7 +22,7 @@ export function EventSettings() {
     };
 
     return (
-        <CollapsibleCard
+        <CollapsibleCard storageKey="settings-events"
             header={
                 <>
                     <div className="flex items-center gap-2">

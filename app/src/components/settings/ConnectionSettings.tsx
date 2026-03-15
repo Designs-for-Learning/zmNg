@@ -106,7 +106,7 @@ export function ConnectionSettings() {
 
     return (
         <>
-            <CollapsibleCard
+            <CollapsibleCard storageKey="settings-connection"
                 header={
                     <>
                         <div className="flex items-center gap-2">
