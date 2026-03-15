@@ -87,14 +87,6 @@ export default function Montage() {
   // Monitor label overlay toggle for fullscreen mode
   const [showMonitorLabels, setShowMonitorLabels] = useState(false);
 
-  // Incrementing key forces all MontageMonitor components to remount,
-  // which sends CMD_QUIT for old streams and starts fresh ones.
-  const [streamRefreshKey, setStreamRefreshKey] = useState(0);
-  const handleRefreshStreams = () => {
-    setStreamRefreshKey((k) => k + 1);
-    refetch();
-  };
-
   // Fullscreen mode
   const { isFullscreen, handleToggleFullscreen } =
     useFullscreenMode({
@@ -252,7 +244,7 @@ export default function Montage() {
                   </SelectContent>
                 </Select>
               </div>
-              <Button onClick={handleRefreshStreams} variant="outline" size="sm" className="h-8 sm:h-9">
+              <Button onClick={() => refetch()} variant="outline" size="sm" className="h-8 sm:h-9">
                 <RefreshCw className="h-4 w-4 sm:mr-2" />
                 <span className="hidden sm:inline">{t('common.refresh')}</span>
               </Button>
@@ -292,7 +284,7 @@ export default function Montage() {
       {/* Fullscreen toolbar — always visible, thin, translucent */}
       {isFullscreen && (
         <FullscreenControls
-          onRefetch={handleRefreshStreams}
+          onRefetch={() => refetch()}
           onExitFullscreen={() => handleToggleFullscreen(false)}
           showLabels={showMonitorLabels}
           onToggleLabels={() => setShowMonitorLabels((prev) => !prev)}
@@ -339,7 +331,7 @@ export default function Montage() {
               onResizeStop={handleResizeStop}
             >
               {monitors.map(({ Monitor, Monitor_Status }) => (
-                <div key={`${Monitor.Id}-${streamRefreshKey}`} className="relative">
+                <div key={Monitor.Id} className="relative">
                   <MontageMonitor
                     monitor={Monitor}
                     status={Monitor_Status}
