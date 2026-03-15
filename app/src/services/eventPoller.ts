@@ -158,6 +158,7 @@ class EventPollerService {
           EventId: eventId,
           Cause: cause,
           Name: monitorName,
+          Notes: event.Event.Notes || undefined,
           ImageUrl: imageUrl,
         }, 'poll');
       }

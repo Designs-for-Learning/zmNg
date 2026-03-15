@@ -186,14 +186,20 @@ export default function NotificationHistory() {
                   )}
                   <div className="flex-1 space-y-2">
                     {(() => {
-                      const CauseIcon = getEventCauseIcon(event.Cause);
+                      const causeDisplay = event.Cause.split('|')[0].trim();
+                      const CauseIcon = getEventCauseIcon(causeDisplay);
                       return (
                         <div className="flex items-center gap-2">
                           <CauseIcon className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm font-medium">{event.Cause}</span>
+                          <span className="text-sm font-medium" title={event.Cause}>{causeDisplay}</span>
                         </div>
                       );
                     })()}
+                    {event.Notes && (
+                      <p className="text-xs text-muted-foreground truncate" title={event.Notes}>
+                        {event.Notes.split('|')[0].trim()}
+                      </p>
+                    )}
                     <div className="text-xs text-muted-foreground space-y-1">
                       <div>{t('notification_history.event_id', { id: event.EventId })}</div>
                       <div>{t('notification_history.monitor_id', { id: event.MonitorId })}</div>
