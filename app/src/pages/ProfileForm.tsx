@@ -366,7 +366,7 @@ export default function ProfileForm() {
           <div className="mx-auto w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-4 ring-1 ring-primary/20">
             <Video className="w-8 h-8 text-primary" />
           </div>
-          <CardTitle className="text-2xl font-bold tracking-tight">
+          <CardTitle className="text-lg font-bold tracking-tight">
             {isFirstProfile ? t('setup.welcome') : t('profiles.add_dialog_title')}
           </CardTitle>
           <CardDescription className="text-base mt-2">

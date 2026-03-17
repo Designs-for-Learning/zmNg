@@ -22,7 +22,7 @@ export default function Settings() {
     <div className="p-3 sm:p-4 md:p-6 max-w-5xl mx-auto space-y-4 sm:space-y-6">
       <div>
         <div className="flex items-center gap-2">
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">{t('settings.title')}</h1>
+          <h1 className="text-base sm:text-lg font-bold tracking-tight">{t('settings.title')}</h1>
           <NotificationBadge />
         </div>
         <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 hidden sm:block">

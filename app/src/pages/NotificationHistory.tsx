@@ -81,7 +81,7 @@ export default function NotificationHistory() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">
+            <h1 className="text-base sm:text-lg font-bold tracking-tight">
               {t('notification_history.title')}
             </h1>
             <NotificationBadge />

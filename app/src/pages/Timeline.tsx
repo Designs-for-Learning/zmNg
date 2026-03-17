@@ -227,7 +227,7 @@ export default function Timeline() {
   if (error) {
     return (
       <div className="p-8">
-        <h1 className="text-3xl font-bold mb-6">{t('timeline.title')}</h1>
+        <h1 className="text-lg font-bold mb-6">{t('timeline.title')}</h1>
         <div className="p-4 bg-destructive/10 text-destructive rounded-md">
           {t('timeline.load_error')}: {(error as Error).message}
         </div>
@@ -240,7 +240,7 @@ export default function Timeline() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">{t('timeline.title')}</h1>
+            <h1 className="text-base sm:text-lg font-bold tracking-tight">{t('timeline.title')}</h1>
             <NotificationBadge />
           </div>
           <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 hidden sm:block">
@@ -365,7 +365,7 @@ export default function Timeline() {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-3xl font-bold text-blue-600">{data.events.length}</div>
+                  <div className="text-2xl font-bold text-blue-600">{data.events.length}</div>
                   <p className="text-xs text-muted-foreground mt-1 font-medium">{t('timeline.total_events')}</p>
                 </div>
                 <div className="h-12 w-12 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
@@ -378,7 +378,7 @@ export default function Timeline() {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-3xl font-bold text-green-600">
+                  <div className="text-2xl font-bold text-green-600">
                     {new Set(data.events.map(e => e.Event.MonitorId)).size}
                   </div>
                   <p className="text-xs text-muted-foreground mt-1 font-medium">{t('timeline.active_monitors')}</p>
@@ -393,7 +393,7 @@ export default function Timeline() {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-3xl font-bold text-amber-600">
+                  <div className="text-2xl font-bold text-amber-600">
                     {data.events.reduce((sum, e) => sum + parseInt(e.Event.AlarmFrames || '0'), 0).toLocaleString()}
                   </div>
                   <p className="text-xs text-muted-foreground mt-1 font-medium">{t('timeline.alarm_frames')}</p>
@@ -408,7 +408,7 @@ export default function Timeline() {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-3xl font-bold text-purple-600">
+                  <div className="text-2xl font-bold text-purple-600">
                     {Math.round(data.events.reduce((sum, e) => sum + parseFloat(e.Event.Length || '0'), 0) / 60)}m
                   </div>
                   <p className="text-xs text-muted-foreground mt-1 font-medium">{t('timeline.total_duration')}</p>

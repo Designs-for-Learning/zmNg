@@ -34,7 +34,7 @@ export default function States() {
   if (isLoading) {
     return (
       <div className="p-8">
-        <h1 className="text-3xl font-bold mb-6">{t('states.title')}</h1>
+        <h1 className="text-lg font-bold mb-6">{t('states.title')}</h1>
         <p>{t('common.loading')}</p>
       </div>
     );
@@ -43,7 +43,7 @@ export default function States() {
   if (error) {
     return (
       <div className="p-8">
-        <h1 className="text-3xl font-bold mb-6">{t('states.title')}</h1>
+        <h1 className="text-lg font-bold mb-6">{t('states.title')}</h1>
         <div className="p-4 bg-destructive/10 text-destructive rounded-md">
           {t('states.load_error')}: {(error as Error).message}
         </div>
@@ -55,7 +55,7 @@ export default function States() {
     <div className="p-8">
       <div className="flex items-center gap-3 mb-6">
         <Activity className="h-8 w-8" />
-        <h1 className="text-3xl font-bold">{t('states.title')}</h1>
+        <h1 className="text-lg font-bold">{t('states.title')}</h1>
       </div>
 
       <p className="text-muted-foreground mb-6">

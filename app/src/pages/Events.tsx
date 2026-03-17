@@ -329,7 +329,7 @@ export default function Events() {
               )}
               <div>
                 <div className="flex items-center gap-2">
-                  <h1 className="text-xl sm:text-2xl font-bold tracking-tight">{t('events.title')}</h1>
+                  <h1 className="text-base sm:text-lg font-bold tracking-tight">{t('events.title')}</h1>
                   <NotificationBadge />
                 </div>
                 <p className="text-xs text-muted-foreground hidden sm:block">{t('events.subtitle')}</p>

@@ -193,7 +193,7 @@ export default function EventMontage() {
     return (
       <div className="p-8">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold tracking-tight">{t('eventMontage.title')}</h1>
+          <h1 className="text-lg font-bold tracking-tight">{t('eventMontage.title')}</h1>
         </div>
         <div className="p-4 bg-destructive/10 text-destructive rounded-lg flex items-center gap-2">
           <AlertCircle className="h-5 w-5" />
@@ -211,8 +211,8 @@ export default function EventMontage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div>
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight flex items-center gap-2">
-            <LayoutGrid className="h-5 w-5 sm:h-6 sm:w-6 md:h-7 md:w-7" />
+          <h1 className="text-base sm:text-lg font-bold tracking-tight flex items-center gap-2">
+            <LayoutGrid className="h-4 w-4 sm:h-5 sm:w-5" />
             {t('eventMontage.title')}
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">

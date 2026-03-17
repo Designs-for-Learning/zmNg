@@ -244,7 +244,7 @@ function SidebarContent({ onMobileClose, isCollapsed }: SidebarContentProps) {
           <img src="/logo.png" alt={t('app.logo_alt')} className="h-8 w-8 rounded-lg" />
           {!isCollapsed && (
             <>
-              <h1 className="text-xl font-bold tracking-tight whitespace-nowrap">{t('app.name')}</h1>
+              <h1 className="text-base font-bold tracking-tight whitespace-nowrap">{t('app.name')}</h1>
               <LanguageSwitcher />
             </>
           )}
@@ -337,6 +337,31 @@ function SidebarContent({ onMobileClose, isCollapsed }: SidebarContentProps) {
                 {!isCollapsed && (
                   <>
                     <span className="truncate">{item.label}</span>
+
+                    {item.path === '/montage' && isActive && (() => {
+                      return (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 ml-auto flex-shrink-0"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            if (currentProfile) {
+                              updateProfileSettings(currentProfile.id, {
+                                montageShowToolbar: !profileSettings?.montageShowToolbar,
+                              });
+                            }
+                          }}
+                          title={t('montage.toggle_toolbar')}
+                          data-testid="sidebar-montage-toolbar-toggle"
+                        >
+                          {profileSettings?.montageShowToolbar
+                            ? <Eye className="h-3.5 w-3.5" />
+                            : <EyeOff className="h-3.5 w-3.5" />}
+                        </Button>
+                      );
+                    })()}
 
                     {item.path === '/notifications' && (() => {
                       const statusLabel =
@@ -566,6 +591,23 @@ export default function AppLayout() {
           <LanguageSwitcher />
         </div>
         <div className="flex items-center gap-1">
+          {location.pathname === '/montage' && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                if (currentProfile) {
+                  updateProfileSettings(currentProfile.id, {
+                    montageShowToolbar: !settings.montageShowToolbar,
+                  });
+                }
+              }}
+              title={t('montage.toggle_toolbar')}
+              data-testid="montage-toolbar-toggle"
+            >
+              {settings.montageShowToolbar ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
+            </Button>
+          )}
           <Sheet open={isMobileOpen} onOpenChange={setIsMobileOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" data-testid="mobile-menu-button">

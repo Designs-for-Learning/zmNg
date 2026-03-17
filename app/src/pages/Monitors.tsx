@@ -108,7 +108,7 @@ export default function Monitors() {
     return (
       <div className="p-8">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold tracking-tight">{t('monitors.title')}</h1>
+          <h1 className="text-lg font-bold tracking-tight">{t('monitors.title')}</h1>
         </div>
         <div className="p-4 bg-destructive/10 text-destructive rounded-lg flex items-center gap-2">
           <AlertCircle className="h-5 w-5" />
@@ -123,7 +123,7 @@ export default function Monitors() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">{t('monitors.title')}</h1>
+            <h1 className="text-base sm:text-lg font-bold tracking-tight">{t('monitors.title')}</h1>
             <NotificationBadge />
           </div>
           <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">

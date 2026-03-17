@@ -155,7 +155,7 @@ export default function Server() {
       <div className="flex items-start justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">
+            <h1 className="text-base sm:text-lg font-bold tracking-tight">
               {t('server.title')}
             </h1>
             <NotificationBadge />
@@ -191,13 +191,13 @@ export default function Server() {
               <div className="text-sm font-medium text-muted-foreground">
                 {t('server.zm_version')}
               </div>
-              <div className="text-2xl font-bold mt-1">{version || t('common.unknown')}</div>
+              <div className="text-lg font-bold mt-1">{version || t('common.unknown')}</div>
             </div>
             <div className="p-4 rounded-lg bg-muted/50 border">
               <div className="text-sm font-medium text-muted-foreground">
                 {t('server.api_version')}
               </div>
-              <div className="text-2xl font-bold mt-1">{apiVersion || t('common.unknown')}</div>
+              <div className="text-lg font-bold mt-1">{apiVersion || t('common.unknown')}</div>
             </div>
             <div className="p-4 rounded-lg bg-muted/50 border">
               <div className="text-sm font-medium text-muted-foreground">
@@ -223,7 +223,7 @@ export default function Server() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">
+            <div className="text-2xl font-bold">
               {loadData?.load !== undefined
                 ? (Array.isArray(loadData.load)
                     ? loadData.load[0]
@@ -247,7 +247,7 @@ export default function Server() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">
+            <div className="text-2xl font-bold">
               {diskUsageGB !== undefined ? `${diskUsageGB.toFixed(1)} GB` : '--'}
             </div>
             <p className="text-xs text-muted-foreground mt-1">{t('server.disk_desc')}</p>

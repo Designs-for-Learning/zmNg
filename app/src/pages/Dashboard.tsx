@@ -52,8 +52,8 @@ export default function Dashboard() {
         <div className="flex flex-col h-full bg-background">
             <div className="flex items-center justify-between p-4 border-b">
                 <div className="flex items-center gap-2">
-                    <LayoutDashboard className="h-5 w-5 sm:h-6 sm:w-6" />
-                    <h1 className="text-lg sm:text-2xl font-bold">{t('dashboard.title')}</h1>
+                    <LayoutDashboard className="h-4 w-4 sm:h-5 sm:w-5" />
+                    <h1 className="text-base sm:text-lg font-bold">{t('dashboard.title')}</h1>
                     <NotificationBadge />
                 </div>
                 <div className="flex items-center gap-2">

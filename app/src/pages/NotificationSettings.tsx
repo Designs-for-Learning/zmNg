@@ -312,7 +312,7 @@ export default function NotificationSettings() {
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-3xl font-bold tracking-tight">{t('notification_settings.title')}</h1>
+            <h1 className="text-base sm:text-lg font-bold tracking-tight">{t('notification_settings.title')}</h1>
             <NotificationBadge />
           </div>
           <p className="text-muted-foreground mt-1">

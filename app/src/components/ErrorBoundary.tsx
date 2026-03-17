@@ -79,7 +79,7 @@ class ErrorBoundaryClass extends Component<Props, State> {
           <Card className="max-w-2xl w-full p-8 space-y-6">
             <div className="flex items-center gap-3 text-destructive">
               <AlertCircle className="h-8 w-8" />
-              <h1 className="text-2xl font-bold">{t('error.something_went_wrong')}</h1>
+              <h1 className="text-lg font-bold">{t('error.something_went_wrong')}</h1>
             </div>
 
             <div className="space-y-4">
