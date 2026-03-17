@@ -33,6 +33,7 @@
     "tauri": "npm --prefix app run tauri",
     "tauri:dev": "npm --prefix app run tauri:dev",
     "tauri:build": "npm --prefix app run tauri:build",
+    "tauri:build:dmg": "scripts/build-desktop.sh",
     "icons:tauri": "npm --prefix app run icons:tauri",
     "icons:mobile": "npm --prefix app run icons:mobile",
     "icons": "npm --prefix app run icons"
