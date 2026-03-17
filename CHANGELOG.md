@@ -1,5 +1,14 @@
 # Changelog
 
+## [zmNinjaNG-1.0.9](https://github.com/pliablepixels/zmNinjaNG/tree/zmNinjaNG-1.0.9) (2026-03-17)
+
+[Full Changelog](https://github.com/pliablepixels/zmNinjaNG/compare/zmNinjaNG-1.0.8...zmNinjaNG-1.0.9)
+
+**Implemented enhancements:**
+
+- feat: reduce heading font sizes app-wide for space efficiency [\#63](https://github.com/pliablepixels/zmNinjaNG/issues/63)
+- feat: montage view display enhancements [\#62](https://github.com/pliablepixels/zmNinjaNG/issues/62)
+
 ## [zmNinjaNG-1.0.8](https://github.com/pliablepixels/zmNinjaNG/tree/zmNinjaNG-1.0.8) (2026-03-15)
 
 [Full Changelog](https://github.com/pliablepixels/zmNinjaNG/compare/zmNinjaNG-1.0.7...zmNinjaNG-1.0.8)
