@@ -25,6 +25,7 @@ import { cn } from '../lib/utils';
 import { useTranslation } from 'react-i18next';
 import { usePinchZoom } from '../hooks/usePinchZoom';
 import { useInsomnia } from '../hooks/useInsomnia';
+import { NotificationBadge } from '../components/NotificationBadge';
 import GridLayout, { WidthProvider } from 'react-grid-layout';
 import type { Layout } from 'react-grid-layout';
 import 'react-grid-layout/css/styles.css';
@@ -289,6 +290,7 @@ export default function Montage() {
                 <Maximize className="h-4 w-4 sm:mr-2" />
                 <span className="hidden sm:inline">{t('montage.fullscreen')}</span>
               </Button>
+              <NotificationBadge />
             </div>
           )}
           {isScreenTooSmall && (

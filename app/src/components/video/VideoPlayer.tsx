@@ -22,6 +22,7 @@ export interface VideoPlayerProps {
   showStatus?: boolean;
   externalMediaRef?: React.RefObject<HTMLImageElement | HTMLVideoElement | null>;
   muted?: boolean;
+  onLoad?: () => void;
 }
 
 export function VideoPlayer({
@@ -32,6 +33,7 @@ export function VideoPlayer({
   showStatus = false,
   externalMediaRef,
   muted = false,
+  onLoad,
 }: VideoPlayerProps) {
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -147,6 +149,13 @@ export function VideoPlayer({
     });
   }, [effectiveStreamingMethod, status.state, status.protocol, monitor.Id]);
 
+  // Notify parent when stream is connected (WebRTC path)
+  useEffect(() => {
+    if (isWebRTC && status.state === 'connected') {
+      onLoad?.();
+    }
+  }, [isWebRTC, status.state, onLoad]);
+
   // Map protocol to display label
   const protocolLabel = {
     webrtc: 'WebRTC',
@@ -175,6 +184,7 @@ export function VideoPlayer({
           data-testid="video-player-mjpeg"
           src={mjpegStream.streamUrl}
           alt={monitor.Name}
+          onLoad={onLoad}
         />
       )}
 

@@ -296,6 +296,7 @@ function MontageMonitorComponent({
           showStatus={false}
           muted={true}
           className="w-full h-full"
+          onLoad={() => setImageLoaded(true)}
         />
       </div>
     </Card>
