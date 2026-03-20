@@ -116,6 +116,7 @@ interface UseMontageGridReturn {
   handleWidthChange: (width: number) => void;
   setGridCols: React.Dispatch<React.SetStateAction<number>>;
   handleDragStop: (layout: Layout[], oldItem: Layout, newItem: Layout) => void;
+  handleFillWidth: () => void;
   togglePinMonitor: (monitorId: string) => void;
   isMonitorPinned: (monitorId: string) => boolean;
 }
@@ -365,6 +366,52 @@ export function useMontageGrid({
     [saveMontageLayout]
   );
 
+  // Scale all items so each row fills the full grid width, preserving relative proportions
+  const handleFillWidth = useCallback(() => {
+    if (!currentProfileRef.current) return;
+
+    setLayout((prev) => {
+      // Group items by row (same y = same row)
+      const rows = new Map<number, Layout[]>();
+      for (const item of prev) {
+        const row = rows.get(item.y) || [];
+        row.push(item);
+        rows.set(item.y, row);
+      }
+
+      const nextLayout = prev.map((item) => {
+        const row = rows.get(item.y)!;
+        const totalW = row.reduce((sum, r) => sum + r.w, 0);
+        if (totalW === 0 || totalW === INTERNAL_COLS) return item;
+
+        // Scale width proportionally to fill INTERNAL_COLS
+        const scale = INTERNAL_COLS / totalW;
+        const newW = Math.max(1, Math.round(item.w * scale));
+
+        // Recalculate x positions: items sorted by x, placed sequentially
+        const sorted = [...row].sort((a, b) => a.x - b.x);
+        let newX = 0;
+        for (const r of sorted) {
+          if (r.i === item.i) break;
+          newX += Math.max(1, Math.round(r.w * scale));
+        }
+
+        return { ...item, w: newW, x: newX };
+      });
+
+      // Recalculate heights for new widths
+      const recalculated = recalcHeights(nextLayout, currentWidthRef.current);
+
+      // Persist
+      saveMontageLayout(currentProfileRef.current!.id, {
+        ...settingsRef.current.montageLayouts,
+        lg: recalculated,
+      });
+
+      return recalculated;
+    });
+  }, [recalcHeights, saveMontageLayout]);
+
   // Pinned monitors: prevents accidental drag/resize of the pinned item.
   // Uses per-item isDraggable/isResizable on the layout — does NOT use `static`.
   const [pinnedIds, setPinnedIds] = useState<Set<string>>(new Set());
@@ -393,6 +440,7 @@ export function useMontageGrid({
     handleLoadSavedLayout,
     handleLayoutChange,
     handleDragStop,
+    handleFillWidth,
     handleResizeStop,
     handleWidthChange,
     setGridCols: setDisplayCols,

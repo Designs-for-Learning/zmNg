@@ -113,6 +113,7 @@ export default function Montage() {
     handleLoadSavedLayout,
     handleLayoutChange,
     handleDragStop,
+    handleFillWidth,
     handleResizeStop,
     handleWidthChange,
     togglePinMonitor,
@@ -283,6 +284,19 @@ export default function Montage() {
                   {isEditMode ? t('montage.done_editing') : t('montage.edit_layout')}
                 </span>
               </Button>
+              {isEditMode && (
+                <Button
+                  onClick={handleFillWidth}
+                  variant="outline"
+                  size="sm"
+                  className="h-8 sm:h-9"
+                  title={t('montage.fill_width', 'Fill Width')}
+                  data-testid="montage-fill-width"
+                >
+                  <Maximize className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">{t('montage.fill_width', 'Fill')}</span>
+                </Button>
+              )}
               <Button
                 onClick={() => handleToggleFullscreen(true)}
                 variant="default"
