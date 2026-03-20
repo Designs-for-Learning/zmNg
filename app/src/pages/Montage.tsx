@@ -363,6 +363,7 @@ export default function Montage() {
               preventCollision={false}
               isResizable={isEditMode}
               isDraggable={isEditMode}
+              resizeHandles={['se', 'sw', 'ne', 'nw']}
               draggableCancel=".pin-locked"
               onLayoutChange={handleLayoutChange}
               onDragStop={handleDragStop}
