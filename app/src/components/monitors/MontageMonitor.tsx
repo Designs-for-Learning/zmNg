@@ -174,12 +174,16 @@ function MontageMonitorComponent({
           ? "border-none shadow-none bg-black m-0 p-0"
           : "border-0 shadow-none bg-card",
       )}
-      style={isEditing && !isFullscreen ? {
-        boxShadow: isPinned
-          ? 'inset 0 0 0 2px rgba(96, 165, 250, 0.7)'
-          : 'inset 0 0 0 2px rgba(250, 204, 21, 0.7)',
-      } : undefined}
     >
+      {/* Edit mode border — rendered as overlay to avoid compact CSS !important overrides */}
+      {isEditing && !isFullscreen && (
+        <div
+          className="absolute inset-0 z-10 pointer-events-none"
+          style={{
+            border: isPinned ? '2px solid rgba(96, 165, 250, 0.7)' : '2px solid rgba(250, 204, 21, 0.7)',
+          }}
+        />
+      )}
       {/* Header / Drag Handle - Toggled via toolbar button in fullscreen mode */}
       <div
         className={cn(

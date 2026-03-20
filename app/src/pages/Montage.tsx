@@ -343,8 +343,8 @@ export default function Montage() {
               rowHeight={GRID_LAYOUT.montageRowHeight}
               margin={[0, 0]}
               containerPadding={[0, 0]}
-              compactType={layout.some((item) => item.static) ? null : "vertical"}
-              preventCollision={layout.some((item) => item.static)}
+              compactType={isEditMode ? null : "vertical"}
+              preventCollision={isEditMode}
               isResizable={isEditMode}
               isDraggable={isEditMode}
               onLayoutChange={handleLayoutChange}
