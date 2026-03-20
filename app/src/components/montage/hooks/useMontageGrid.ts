@@ -366,22 +366,24 @@ export function useMontageGrid({
     [saveMontageLayout]
   );
 
-  // Make every item full width (x:0, w:12), stacked vertically, preserving order
+  // Proportionally scale the entire layout so it fills the full grid width
   const handleFillWidth = useCallback(() => {
     if (!currentProfileRef.current) return;
 
     setLayout((prev) => {
-      // Sort by current position (top-to-bottom, left-to-right)
-      const sorted = [...prev].sort((a, b) => a.y - b.y || a.x - b.x);
+      // Find the rightmost edge of any item
+      const maxRight = Math.max(...prev.map((item) => item.x + item.w));
+      if (maxRight <= 0 || maxRight === INTERNAL_COLS) return prev;
 
-      let currentY = 0;
-      const nextLayout = sorted.map((item) => {
-        const newItem = { ...item, x: 0, w: INTERNAL_COLS, y: currentY };
-        currentY += item.h;
-        return newItem;
-      });
+      const scale = INTERNAL_COLS / maxRight;
 
-      // Recalculate heights for full width
+      const nextLayout = prev.map((item) => ({
+        ...item,
+        x: Math.round(item.x * scale),
+        w: Math.max(1, Math.round(item.w * scale)),
+      }));
+
+      // Recalculate heights for new widths
       const recalculated = recalcHeights(nextLayout, currentWidthRef.current);
 
       saveMontageLayout(currentProfileRef.current!.id, {
