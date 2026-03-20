@@ -213,13 +213,19 @@ export default function Timeline() {
     } else {
       timelineInstance.current.setItems(items);
       timelineInstance.current.setGroups(groups);
+      // Fit the visible window to the new date range so events aren't off-screen
+      timelineInstance.current.setWindow(
+        new Date(startDate),
+        new Date(endDate),
+        { animation: { duration: 300, easingFunction: 'easeInOutQuad' } }
+      );
     }
 
     // Cleanup
     return () => {
       // Don't destroy the instance on every render, only when component unmounts
     };
-  }, [data, enabledMonitors, navigate]);
+  }, [data, enabledMonitors, navigate, startDate, endDate]);
 
   // Cleanup on unmount
   useEffect(() => {
