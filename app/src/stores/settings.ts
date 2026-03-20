@@ -74,6 +74,10 @@ export interface ProfileSettings {
   montageSavedLayouts: Array<{ name: string; layout: Layout[]; displayCols: number }>;
   // Name of the currently active saved layout (null = using a preset column count)
   montageActiveLayoutName: string | null;
+  // Auto-play video when opening event detail
+  eventVideoAutoplay: boolean;
+  // Desktop sidebar width in pixels (60–320, persisted across sessions)
+  sidebarWidth: number;
 }
 
 interface SettingsState {
@@ -165,8 +169,10 @@ export const DEFAULT_SETTINGS: ProfileSettings = {
   trustedCertFingerprint: null,
   // Default sidebar order (empty = use hardcoded order)
   sidebarNavOrder: [],
+  eventVideoAutoplay: true,
   montageSavedLayouts: [],
   montageActiveLayoutName: null,
+  sidebarWidth: 256,
 };
 
 export const useSettingsStore = create<SettingsState>()(

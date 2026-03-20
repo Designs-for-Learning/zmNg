@@ -306,6 +306,8 @@
     "streaming_mode_desc": "Continuous MJPEG streaming (higher bandwidth, best quality)",
     "snapshot_mode_desc": "Periodic JPEG snapshots (lower bandwidth, reduced frame rate)",
     "snapshot_warning": "Snapshot mode may have lower frame rate",
+    "event_autoplay": "Event Video Autoplay",
+    "event_autoplay_desc": "Automatically play video when opening an event",
     "stream_fps": "Stream FPS",
     "stream_fps_desc": "Maximum frames per second for live streams",
     "fps_label": "FPS",

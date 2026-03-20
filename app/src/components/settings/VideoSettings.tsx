@@ -75,6 +75,24 @@ export function VideoSettings() {
             }
         >
             <div className="space-y-6">
+                {/* Event Video Autoplay Toggle */}
+                <div className="flex items-center justify-between p-4 rounded-lg border bg-card">
+                    <div className="flex-1 space-y-1">
+                        <Label htmlFor="event-autoplay" className="text-base font-semibold">
+                            {t('settings.event_autoplay')}
+                        </Label>
+                        <p className="text-sm text-muted-foreground">
+                            {t('settings.event_autoplay_desc')}
+                        </p>
+                    </div>
+                    <Switch
+                        id="event-autoplay"
+                        checked={settings.eventVideoAutoplay}
+                        onCheckedChange={(checked) => update('eventVideoAutoplay', checked)}
+                        data-testid="settings-event-autoplay-switch"
+                    />
+                </div>
+
                 {/* Bandwidth Mode Toggle */}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 rounded-lg border bg-card">
                     <div className="flex-1 space-y-1">

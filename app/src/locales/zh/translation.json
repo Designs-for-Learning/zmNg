@@ -307,6 +307,8 @@
     "streaming_mode_desc": "连续 MJPEG 流传输（高带宽，最佳质量）",
     "snapshot_mode_desc": "周期性 JPEG 快照（低带宽，降低帧率）",
     "snapshot_warning": "快照模式帧率可能较低",
+    "event_autoplay": "事件视频自动播放",
+    "event_autoplay_desc": "打开事件时自动播放视频",
     "stream_fps": "流媒体帧率",
     "stream_fps_desc": "实时流的最大帧数/秒",
     "fps_label": "FPS",

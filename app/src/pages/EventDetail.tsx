@@ -55,7 +55,7 @@ export default function EventDetail() {
     enabled: !!event?.Event.MonitorId,
   });
 
-  const { currentProfile } = useCurrentProfile();
+  const { currentProfile, settings } = useCurrentProfile();
   const accessToken = useAuthStore((state) => state.accessToken);
   const { isFavorited, toggleFavorite } = useEventFavoritesStore();
 
@@ -303,7 +303,7 @@ export default function EventDetail() {
                       type="video/mp4"
                       className="w-full h-full"
                       poster={posterUrl}
-                      autoplay
+                      autoplay={settings.eventVideoAutoplay}
                       markers={videoMarkers}
                       onMarkerClick={handleMarkerClick}
                       onError={() => {

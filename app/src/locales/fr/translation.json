@@ -307,6 +307,8 @@
     "streaming_mode_desc": "Diffusion MJPEG continue (bande passante plus élevée, meilleure qualité)",
     "snapshot_mode_desc": "Instantanés JPEG périodiques (bande passante réduite, fréquence d'images réduite)",
     "snapshot_warning": "Le mode instantané peut avoir une fréquence d'images plus faible",
+    "event_autoplay": "Lecture automatique des vidéos",
+    "event_autoplay_desc": "Lire automatiquement la vidéo à l'ouverture d'un événement",
     "stream_fps": "FPS de diffusion",
     "stream_fps_desc": "Nombre maximal d'images par seconde pour les flux en direct",
     "fps_label": "FPS",

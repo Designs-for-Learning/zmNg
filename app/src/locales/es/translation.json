@@ -307,6 +307,8 @@
     "streaming_mode_desc": "Transmisión MJPEG continua (mayor ancho de banda, mejor calidad)",
     "snapshot_mode_desc": "Instantáneas JPEG periódicas (menor ancho de banda, tasa de fotogramas reducida)",
     "snapshot_warning": "El modo de instantánea puede tener una tasa de fotogramas más baja",
+    "event_autoplay": "Reproducción automática de video",
+    "event_autoplay_desc": "Reproducir video automáticamente al abrir un evento",
     "stream_fps": "FPS de Transmisión",
     "stream_fps_desc": "Fotogramas máximos por segundo para transmisiones en vivo",
     "fps_label": "FPS",
