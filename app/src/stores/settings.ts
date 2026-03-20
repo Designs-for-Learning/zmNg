@@ -74,6 +74,13 @@ export interface ProfileSettings {
   montageSavedLayouts: Array<{ name: string; layout: Layout[]; displayCols: number }>;
   // Name of the currently active saved layout (null = using a preset column count)
   montageActiveLayoutName: string | null;
+  // Timeline page persisted filters
+  timelinePageFilters: {
+    monitorIds: string[];
+    startDateTime: string;
+    endDateTime: string;
+    onlyDetectedObjects: boolean;
+  };
   // Auto-play video when opening event detail
   eventVideoAutoplay: boolean;
   // Desktop sidebar width in pixels (60–320, persisted across sessions)
@@ -169,6 +176,12 @@ export const DEFAULT_SETTINGS: ProfileSettings = {
   trustedCertFingerprint: null,
   // Default sidebar order (empty = use hardcoded order)
   sidebarNavOrder: [],
+  timelinePageFilters: {
+    monitorIds: [],
+    startDateTime: '',
+    endDateTime: '',
+    onlyDetectedObjects: false,
+  },
   eventVideoAutoplay: true,
   montageSavedLayouts: [],
   montageActiveLayoutName: null,

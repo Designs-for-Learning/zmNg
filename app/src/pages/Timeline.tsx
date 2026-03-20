@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useMemo, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { getEvents } from '../api/events';
@@ -7,7 +7,8 @@ import { Card, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import { RefreshCw, Filter, Activity, AlertCircle, Clock } from 'lucide-react';
+import { Switch } from '../components/ui/switch';
+import { RefreshCw, Filter, Activity, AlertCircle, Clock, ScanSearch, X } from 'lucide-react';
 import { format, subDays } from 'date-fns';
 import { filterEnabledMonitors } from '../lib/filters';
 import { TIMELINE } from '../lib/zmninja-ng-constants';
@@ -27,6 +28,7 @@ import { QuickDateRangeButtons } from '../components/ui/quick-date-range-buttons
 import { MonitorFilterPopoverContent } from '../components/filters/MonitorFilterPopover';
 import { EmptyState } from '../components/ui/empty-state';
 import { NotificationBadge } from '../components/NotificationBadge';
+import { useTimelineFilters } from '../hooks/useTimelineFilters';
 
 interface TimelineGroup {
   id: string;
@@ -40,11 +42,15 @@ export default function Timeline() {
   const timelineRef = useRef<HTMLDivElement>(null);
   const timelineInstance = useRef<VisTimeline | null>(null);
 
-  const [startDate, setStartDate] = useState(
-    format(subDays(new Date(), 1), 'yyyy-MM-dd')
-  );
-  const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const [selectedMonitorIds, setSelectedMonitorIds] = useState<string[]>([]);
+  const {
+    selectedMonitorIds, startDateInput, endDateInput, onlyDetectedObjects,
+    setSelectedMonitorIds, setStartDateInput, setEndDateInput, setOnlyDetectedObjects,
+    clearFilters, activeFilterCount,
+  } = useTimelineFilters();
+
+  // Default to last 24h if no persisted dates
+  const startDate = startDateInput || format(subDays(new Date(), 1), "yyyy-MM-dd'T'HH:mm");
+  const endDate = endDateInput || format(new Date(), "yyyy-MM-dd'T'HH:mm");
 
   // Fetch monitors
   const { data: monitorsData } = useQuery({
@@ -67,15 +73,16 @@ export default function Timeline() {
   }, [selectedMonitorIds]);
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['timeline-events', startDate, endDate, monitorFilter],
+    queryKey: ['timeline-events', startDate, endDate, monitorFilter, onlyDetectedObjects],
     queryFn: () =>
       getEvents({
-        startDateTime: formatForServer(new Date(`${startDate} 00:00:00`)),
-        endDateTime: formatForServer(new Date(`${endDate} 23:59:59`)),
+        startDateTime: formatForServer(new Date(startDate)),
+        endDateTime: formatForServer(new Date(endDate)),
         monitorId: monitorFilter,
+        notesRegexp: onlyDetectedObjects ? 'detected:' : undefined,
         sort: 'StartDateTime',
         direction: 'desc',
-        limit: 500, // Reduced from 1000 to minimize API calls (5 instead of 10)
+        limit: 500,
       }),
   });
 
@@ -258,30 +265,30 @@ export default function Timeline() {
 
       {/* Filters */}
       <Card>
-        <CardContent className="pt-6">
+        <CardContent className="pt-6 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <Label htmlFor="startDate">{t('timeline.start_date')}</Label>
+              <Label htmlFor="startDate" className="text-xs">{t('timeline.start_date')}</Label>
               <Input
                 id="startDate"
-                type="date"
+                type="datetime-local"
                 value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
+                onChange={(e) => setStartDateInput(e.target.value)}
                 data-testid="timeline-start-date"
               />
             </div>
             <div>
-              <Label htmlFor="endDate">{t('timeline.end_date')}</Label>
+              <Label htmlFor="endDate" className="text-xs">{t('timeline.end_date')}</Label>
               <Input
                 id="endDate"
-                type="date"
+                type="datetime-local"
                 value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
+                onChange={(e) => setEndDateInput(e.target.value)}
                 data-testid="timeline-end-date"
               />
             </div>
             <div>
-              <Label>{t('timeline.monitors')}</Label>
+              <Label className="text-xs">{t('timeline.monitors')}</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="w-full justify-between" data-testid="timeline-monitor-filter">
@@ -303,15 +310,39 @@ export default function Timeline() {
             </div>
           </div>
 
-          {/* Quick Date Ranges */}
-          <div className="space-y-2 mt-4">
-            <Label className="text-sm text-muted-foreground">{t('events.quick_ranges')}</Label>
-            <QuickDateRangeButtons
-              onRangeSelect={({ start, end }) => {
-                setStartDate(format(start, 'yyyy-MM-dd'));
-                setEndDate(format(end, 'yyyy-MM-dd'));
-              }}
+          {/* Object Detection Filter */}
+          <div className="flex items-center justify-between p-3 rounded-md border bg-card">
+            <div className="flex items-center gap-2">
+              <ScanSearch className="h-4 w-4 text-muted-foreground" />
+              <Label htmlFor="timeline-only-detected" className="cursor-pointer">
+                {t('events.filter.onlyDetectedObjects')}
+              </Label>
+            </div>
+            <Switch
+              id="timeline-only-detected"
+              checked={onlyDetectedObjects}
+              onCheckedChange={setOnlyDetectedObjects}
+              data-testid="timeline-detected-objects-toggle"
             />
+          </div>
+
+          {/* Quick Date Ranges + Clear */}
+          <div className="flex items-center gap-3">
+            <div className="flex-1">
+              <Label className="text-xs text-muted-foreground">{t('events.quick_ranges')}</Label>
+              <QuickDateRangeButtons
+                onRangeSelect={({ start, end }) => {
+                  setStartDateInput(format(start, "yyyy-MM-dd'T'HH:mm"));
+                  setEndDateInput(format(end, "yyyy-MM-dd'T'HH:mm"));
+                }}
+              />
+            </div>
+            {activeFilterCount > 0 && (
+              <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground" data-testid="timeline-clear-filters">
+                <X className="h-4 w-4 mr-1" />
+                {t('common.clear')}
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
