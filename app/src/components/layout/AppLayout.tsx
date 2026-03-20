@@ -117,6 +117,7 @@ function LanguageSwitcher({ collapsed = false }: { collapsed?: boolean }) {
  */
 function SidebarContent({ onMobileClose, isCollapsed }: SidebarContentProps) {
   const location = useLocation();
+  const isCompact = document.documentElement.classList.contains('compact-mode');
   const currentProfile = useProfileStore(
     useShallow((state) => {
       const { profiles, currentProfileId } = state;
@@ -239,9 +240,12 @@ function SidebarContent({ onMobileClose, isCollapsed }: SidebarContentProps) {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className={cn("p-6 transition-all duration-300", isCollapsed && "p-2 flex flex-col items-center")}>
+      <div className={cn(
+        "transition-all duration-300",
+        isCollapsed ? "p-2 flex flex-col items-center" : isCompact ? "px-3 py-2" : "p-6"
+      )}>
         <div className={cn("flex items-center gap-2 mb-1", isCollapsed && "flex-col mb-2")}>
-          <img src="/logo.png" alt={t('app.logo_alt')} className="h-8 w-8 rounded-lg" />
+          <img src="/logo.png" alt={t('app.logo_alt')} className={cn("rounded-lg", isCompact ? "h-6 w-6" : "h-8 w-8")} />
           {!isCollapsed && (
             <>
               <h1 className="text-base font-bold tracking-tight whitespace-nowrap">{t('app.name')}</h1>
@@ -257,7 +261,7 @@ function SidebarContent({ onMobileClose, isCollapsed }: SidebarContentProps) {
         )}
       </div>
 
-      <div className="flex-1 px-3 py-2 overflow-y-auto">
+      <div className={cn("flex-1 overflow-y-auto", isCompact ? "px-2 py-1" : "px-3 py-2")}>
         {/* Reorder toggle — only when expanded */}
         {!isCollapsed && (
           <div className="flex justify-end gap-1 mb-1 px-1">
@@ -324,7 +328,8 @@ function SidebarContent({ onMobileClose, isCollapsed }: SidebarContentProps) {
                 to={item.path}
                 onClick={() => onMobileClose?.()}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group relative",
+                  "flex items-center rounded-lg font-medium transition-all duration-200 group relative",
+                  isCompact ? "gap-2 px-2 py-1 text-xs" : "gap-3 px-3 py-2.5 text-sm",
                   isActive
                     ? "bg-primary text-primary-foreground shadow-md"
                     : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
@@ -396,18 +401,18 @@ function SidebarContent({ onMobileClose, isCollapsed }: SidebarContentProps) {
         </nav>
       </div>
 
-      <div className={cn("border-t bg-card/50 backdrop-blur-sm space-y-3 transition-all duration-300", isCollapsed ? "p-2" : "p-4")}>
+      <div className={cn("border-t bg-card/50 backdrop-blur-sm transition-all duration-300", isCollapsed ? "p-2 space-y-3" : isCompact ? "px-2 py-1.5 space-y-0.5" : "p-4 space-y-3")}>
         {!isCollapsed ? (
           <>
-            <div className="space-y-2">
+            <div className={isCompact ? "space-y-0.5" : "space-y-2"}>
               <span className="text-xs font-medium text-muted-foreground px-1">{t('sidebar.profile')}</span>
               <ProfileSwitcher />
             </div>
-            <div className="flex items-center justify-between pt-2">
+            <div className={cn("flex items-center justify-between", isCompact ? "" : "pt-2")}>
               <span className="text-xs font-medium text-muted-foreground">{t('settings.theme')}</span>
               <ModeToggle />
             </div>
-            <div className="flex items-center justify-between pt-2">
+            <div className={cn("flex items-center justify-between", isCompact ? "" : "pt-2")}>
               <span className="text-xs font-medium text-muted-foreground">{t('monitor_detail.insomnia_label')}</span>
               <Button
                 onClick={handleInsomniaToggle}
@@ -450,12 +455,7 @@ export default function AppLayout() {
   const updateProfileSettings = useSettingsStore((state) => state.updateProfileSettings);
   const location = useLocation();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const [sidebarWidth, setSidebarWidth] = useState(256); // 256px = w-64
-  const [isDragging, setIsDragging] = useState(false);
-  const dragStartX = useRef(0);
-  const dragStartWidth = useRef(0);
-  const MIN_WIDTH = 60;
-  const MAX_WIDTH = 256;
+  const [isCollapsed, setIsCollapsed] = useState(() => (settings.sidebarWidth ?? 256) <= 80);
   const { t } = useTranslation();
 
   // Track route changes and save to settings
@@ -477,35 +477,17 @@ export default function AppLayout() {
   useInsomnia({ enabled: settings.insomnia });
 
 
-  const handleMouseDown = (e: React.MouseEvent) => {
-    setIsDragging(true);
-    dragStartX.current = e.clientX;
-    dragStartWidth.current = sidebarWidth;
-  };
+  const expandedWidth = settings.displayMode === 'compact' ? 180 : 256;
+  const collapsedWidth = 60;
+  const sidebarWidth = isCollapsed ? collapsedWidth : expandedWidth;
 
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isDragging) return;
-
-      const delta = e.clientX - dragStartX.current;
-      const newWidth = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, dragStartWidth.current + delta));
-      setSidebarWidth(newWidth);
-    };
-
-    const handleMouseUp = () => {
-      setIsDragging(false);
-    };
-
-    if (isDragging) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
+  const toggleSidebar = () => {
+    const next = !isCollapsed;
+    setIsCollapsed(next);
+    if (currentProfile) {
+      updateProfileSettings(currentProfile.id, { sidebarWidth: next ? collapsedWidth : expandedWidth });
     }
-
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [isDragging]);
+  };
 
   // Check for profile after all hooks are called to avoid hooks violation
   // Allow /profiles route without a current profile (for profile selection after cancel)
@@ -519,12 +501,6 @@ export default function AppLayout() {
       return <Navigate to={profiles.length > 0 ? "/profiles" : "/profiles/new"} replace />;
     }
   }
-
-  const toggleSidebar = () => {
-    setSidebarWidth(sidebarWidth > MIN_WIDTH + 20 ? MIN_WIDTH : MAX_WIDTH);
-  };
-
-  const isCollapsed = sidebarWidth <= MIN_WIDTH + 20;
 
   // TOFU certificate trust migration dialog
   const [pendingCert, setPendingCert] = useState<PendingCertTrust | null>(null);
@@ -560,17 +536,16 @@ export default function AppLayout() {
 
   return (
     <div className="flex h-[100dvh] bg-background overflow-hidden pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]">
-      {/* Desktop Sidebar - Draggable */}
+      {/* Desktop Sidebar */}
       <aside
         className="hidden md:flex flex-col border-r bg-card/50 backdrop-blur-xl z-20 transition-all duration-300 relative group"
         style={{ width: `${sidebarWidth}px` }}
       >
         <SidebarContent isCollapsed={isCollapsed} />
 
-        {/* Draggable Handle with Toggle Button */}
+        {/* Toggle Button */}
         <div
-          className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-5 h-12 bg-primary hover:bg-primary/90 rounded-full flex items-center justify-center cursor-col-resize shadow-lg z-50 transition-all duration-200 group-hover:w-6"
-          onMouseDown={handleMouseDown}
+          className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-5 h-10 bg-primary hover:bg-primary/90 rounded-full flex items-center justify-center cursor-pointer shadow-lg z-50 transition-all duration-200 opacity-0 group-hover:opacity-100"
           onClick={toggleSidebar}
           title={isCollapsed ? t('sidebar.expand') : t('sidebar.collapse')}
           data-testid="sidebar-toggle"
