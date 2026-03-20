@@ -268,6 +268,8 @@ export default function Profiles() {
     const profile = profiles.find((p) => p.id === profileId);
     if (!profile) return;
 
+    // Dismiss any lingering toasts from a previous switch attempt
+    sonnerToast.dismiss();
     setSwitchingProfileId(profileId);
     const loadingToast = sonnerToast.loading(t('profiles.switching', { name: profile.name }));
 
