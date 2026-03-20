@@ -346,8 +346,8 @@ export default function Montage() {
               rowHeight={GRID_LAYOUT.montageRowHeight}
               margin={[0, 0]}
               containerPadding={[0, 0]}
-              compactType="vertical"
-              preventCollision={false}
+              compactType={pinnedMonitorIds.size > 0 ? null : "vertical"}
+              preventCollision={pinnedMonitorIds.size > 0}
               isResizable={isEditMode}
               isDraggable={isEditMode}
               onLayoutChange={handleLayoutChange}
