@@ -236,15 +236,17 @@ export default function MonitorDetail() {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="text-sm sm:text-base font-semibold">{monitor.Monitor.Name}</h1>
-            <div className="flex items-center gap-1.5 text-[10px] sm:text-xs text-muted-foreground">
+            <div className="flex items-center gap-1.5">
               <span
                 className={cn(
-                  'w-1.5 h-1.5 rounded-full',
+                  'w-1.5 h-1.5 rounded-full shrink-0',
                   monitor.Monitor.Function !== 'None' ? 'bg-green-500' : 'bg-red-500'
                 )}
               />
-              <span className="hidden sm:inline">{monitor.Monitor.Function}</span>
+              <h1 className="text-sm sm:text-base font-semibold">{monitor.Monitor.Name}</h1>
+            </div>
+            <div className="text-[10px] sm:text-xs text-muted-foreground ml-3">
+              {monitor.Monitor.Function}
             </div>
           </div>
         </div>
@@ -259,33 +261,19 @@ export default function MonitorDetail() {
             <Clock className="h-4 w-4 sm:mr-2" />
             <span className="hidden sm:inline">{t('monitor_detail.events')}</span>
           </Button>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground hidden md:inline">
-              {t('monitor_detail.feed_fit')}
-            </span>
-            <Select value={settings.monitorDetailFeedFit} onValueChange={handleFeedFitChange}>
-              <SelectTrigger className="h-8 sm:h-9 w-[170px]" data-testid="monitor-detail-fit-select">
-                <SelectValue placeholder={t('monitor_detail.feed_fit')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="contain" data-testid="monitor-detail-fit-contain">
-                  {t('monitor_detail.fit_contain')}
-                </SelectItem>
-                <SelectItem value="cover" data-testid="monitor-detail-fit-cover">
-                  {t('monitor_detail.fit_cover')}
-                </SelectItem>
-                <SelectItem value="fill" data-testid="monitor-detail-fit-fill">
-                  {t('monitor_detail.fit_fill')}
-                </SelectItem>
-                <SelectItem value="none" data-testid="monitor-detail-fit-none">
-                  {t('monitor_detail.fit_none')}
-                </SelectItem>
-                <SelectItem value="scale-down" data-testid="monitor-detail-fit-scale-down">
-                  {t('monitor_detail.fit_scale_down')}
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <Select value={settings.monitorDetailFeedFit} onValueChange={handleFeedFitChange}>
+            <SelectTrigger className="h-8 sm:h-9 w-[100px]" data-testid="monitor-detail-fit-select">
+              <SelectValue placeholder={t('monitor_detail.feed_fit')} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="contain" data-testid="monitor-detail-fit-contain">
+                {t('montage.fit_fit')}
+              </SelectItem>
+              <SelectItem value="cover" data-testid="monitor-detail-fit-cover">
+                {t('montage.fit_crop')}
+              </SelectItem>
+            </SelectContent>
+          </Select>
           <Button
             variant="ghost"
             size="icon"
