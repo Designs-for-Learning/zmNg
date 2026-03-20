@@ -4,6 +4,8 @@ import { LOGGING } from '../lib/zmninja-ng-constants';
 export interface LogEntry {
     id: string;
     timestamp: string;
+    /** Epoch ms — used to format at display time with user's date/time settings */
+    rawTimestamp?: number;
     level: string;
     message: string;
     context?: Record<string, unknown>;

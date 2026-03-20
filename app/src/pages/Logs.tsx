@@ -197,6 +197,7 @@ export default function Logs() {
     const zmLogsAsDisplay = useMemo(() => {
         return zmLogs.map((zmLog) => ({
             id: zmLog.Id.toString(),
+            rawTimestamp: parseFloat(zmLog.TimeKey) * 1000,
             timestamp: formatAppDateTime(new Date(parseFloat(zmLog.TimeKey) * 1000), settings),
             level: getZMLogLevel(zmLog.Level),
             message: zmLog.Message,
@@ -473,9 +474,9 @@ export default function Logs() {
                                                 {log.level}
                                             </Badge>
                                         </div>
-                                        <div className="min-w-0 flex-1 space-y-1.5">
+                                        <div className="min-w-0 flex-1 space-y-2">
                                             <div className="flex items-center gap-2 text-muted-foreground text-[10px] sm:text-xs">
-                                                <span>{log.timestamp}</span>
+                                                <span>{log.rawTimestamp ? formatAppDateTime(new Date(log.rawTimestamp), settings) : log.timestamp}</span>
                                                 {(() => {
                                                     const component = log.context?.component;
                                                     if (component && typeof component === 'string') {

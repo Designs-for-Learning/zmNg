@@ -89,9 +89,10 @@ class Logger {
 
     console.log(...consoleArgs);
 
-    // Add to store
+    // Add to store (rawTimestamp for display-time formatting)
     useLogStore.getState().addLog({
       timestamp,
+      rawTimestamp: Date.now(),
       level,
       message: sanitizedMessage,
       context: sanitizedContext,
