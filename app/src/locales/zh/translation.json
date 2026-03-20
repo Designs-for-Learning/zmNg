@@ -395,7 +395,7 @@
     "level_warn": "WARN",
     "level_error": "ERROR",
     "component_filter_label": "组件",
-    "component_filter_all": "所有组件",
+    "component_filter_all": "全部",
     "component_filter_selected": "{{count}} 个组件",
     "component_unassigned": "未分配"
   },

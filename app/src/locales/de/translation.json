@@ -395,7 +395,7 @@
     "level_warn": "WARN",
     "level_error": "ERROR",
     "component_filter_label": "Komponenten",
-    "component_filter_all": "Alle Komponenten",
+    "component_filter_all": "Alle",
     "component_filter_selected": "{{count}} Komponenten",
     "component_unassigned": "Nicht zugewiesen"
   },

@@ -20,6 +20,7 @@ import type { LogEntry } from '../stores/logs';
 import { getZMLogs, getZMLogLevel, getUniqueZMComponents } from '../api/logs';
 import type { ZMLog } from '../api/types';
 import { NotificationBadge } from '../components/NotificationBadge';
+import { formatAppDateTime } from '../lib/format-date-time';
 
 function LogCodeBlock({ content }: { content: string }) {
     const [isExpanded, setIsExpanded] = useState(false);
@@ -196,7 +197,7 @@ export default function Logs() {
     const zmLogsAsDisplay = useMemo(() => {
         return zmLogs.map((zmLog) => ({
             id: zmLog.Id.toString(),
-            timestamp: new Date(parseFloat(zmLog.TimeKey) * 1000).toLocaleString(),
+            timestamp: formatAppDateTime(new Date(parseFloat(zmLog.TimeKey) * 1000), settings),
             level: getZMLogLevel(zmLog.Level),
             message: zmLog.Message,
             context: {
@@ -472,7 +473,7 @@ export default function Logs() {
                                                 {log.level}
                                             </Badge>
                                         </div>
-                                        <div className="min-w-0 flex-1 space-y-1">
+                                        <div className="min-w-0 flex-1 space-y-1.5">
                                             <div className="flex items-center gap-2 text-muted-foreground text-[10px] sm:text-xs">
                                                 <span>{log.timestamp}</span>
                                                 {(() => {
