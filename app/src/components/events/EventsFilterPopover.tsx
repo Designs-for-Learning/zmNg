@@ -99,7 +99,7 @@ export function EventsFilterPopover({
       data-testid="events-filter-panel"
     >
       {/* Action buttons at top for mobile accessibility */}
-      <div className="flex gap-2 mb-4 pb-4 border-b sticky top-0 bg-popover z-10">
+      <div className="flex gap-2 mb-2 pb-2 border-b sticky top-0 bg-popover z-10">
         <Button onClick={onApplyFilters} size="sm" className="flex-1" data-testid="events-apply-filters">
           {t('common.filter')}
         </Button>
@@ -120,7 +120,7 @@ export function EventsFilterPopover({
         onSelectionChange={onMonitorSelectionChange}
         idPrefix="events"
       />
-      <div className="grid gap-4 mt-4">
+      <div className="grid gap-2 mt-3">
         {/* Favorites filter */}
         <div className="flex items-center justify-between p-3 rounded-md border bg-card">
           <div className="flex items-center gap-2">
@@ -251,10 +251,10 @@ export function EventsFilterPopover({
           </div>
         )}
       </div>
-      <div className="grid gap-4 mt-4">
+      <div className="grid gap-2 mt-3">
         <div className="grid gap-2">
           <div className="grid gap-2">
-            <Label htmlFor="start-date">
+            <Label htmlFor="start-date" className="text-xs">
               {t('events.date_range')} ({t('events.start')})
             </Label>
             <Input
@@ -267,7 +267,7 @@ export function EventsFilterPopover({
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="end-date">
+            <Label htmlFor="end-date" className="text-xs">
               {t('events.date_range')} ({t('events.end')})
             </Label>
             <Input
