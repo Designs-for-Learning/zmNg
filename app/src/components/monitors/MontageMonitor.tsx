@@ -174,25 +174,6 @@ function MontageMonitorComponent({
         : "border-0 shadow-none bg-card",
       isEditing && !isFullscreen && (isPinned ? "ring-2 ring-blue-400/70" : "ring-2 ring-yellow-400/70")
     )}>
-      {/* Pin button — small, centered, visible only in edit mode */}
-      {isEditing && !isFullscreen && onPinToggle && (
-        <div className="absolute inset-0 z-20 pointer-events-none flex items-center justify-center">
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); onPinToggle(); }}
-            className={cn(
-              "pointer-events-auto rounded-full p-2 transition-all",
-              isPinned
-                ? "bg-blue-500/90 text-white shadow-lg"
-                : "bg-black/40 text-white/60 hover:bg-black/60 hover:text-white"
-            )}
-            title={isPinned ? t('montage.unpin_monitor') : t('montage.pin_monitor')}
-            data-testid={`montage-pin-${monitor.Id}`}
-          >
-            <Pin className={cn("h-5 w-5", isPinned && "fill-current")} />
-          </button>
-        </div>
-      )}
       {/* Header / Drag Handle - Toggled via toolbar button in fullscreen mode */}
       <div
         className={cn(
@@ -222,6 +203,25 @@ function MontageMonitorComponent({
             {monitor.Name}
           </span>
         </div>
+
+        {/* Pin button in header — edit mode only */}
+        {isEditing && !isFullscreen && onPinToggle && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className={cn(
+              "h-6 w-6 shrink-0",
+              isPinned
+                ? "text-blue-400 hover:text-blue-300"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+            onClick={(e) => { e.stopPropagation(); onPinToggle(); }}
+            title={isPinned ? t('montage.unpin_monitor') : t('montage.pin_monitor')}
+            data-testid={`montage-pin-${monitor.Id}`}
+          >
+            <Pin className={cn("h-3.5 w-3.5", isPinned && "fill-current")} />
+          </Button>
+        )}
 
         {/* Action buttons */}
         <div className="flex items-center gap-0.5">
