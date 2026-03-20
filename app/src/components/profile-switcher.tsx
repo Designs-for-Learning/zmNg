@@ -86,7 +86,7 @@ export function ProfileSwitcher() {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
-          variant="outline"
+          variant="ghost"
           className="flex items-center gap-2 w-full justify-between"
         >
           <div className="flex items-center gap-2 min-w-0">
