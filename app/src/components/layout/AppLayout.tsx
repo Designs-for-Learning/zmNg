@@ -410,7 +410,9 @@ function SidebarContent({ onMobileClose, isCollapsed }: SidebarContentProps) {
             </div>
             <div className={cn("flex items-center justify-between", isCompact ? "" : "pt-2")}>
               <span className="text-xs font-medium text-muted-foreground">{t('settings.theme')}</span>
-              <ModeToggle />
+              <div className={isCompact ? "[&_button]:h-7 [&_button]:w-7 [&_button]:min-h-0" : ""}>
+                <ModeToggle />
+              </div>
             </div>
             <div className={cn("flex items-center justify-between", isCompact ? "" : "pt-2")}>
               <span className="text-xs font-medium text-muted-foreground">{t('monitor_detail.insomnia_label')}</span>
@@ -418,7 +420,7 @@ function SidebarContent({ onMobileClose, isCollapsed }: SidebarContentProps) {
                 onClick={handleInsomniaToggle}
                 variant={profileSettings?.insomnia ? "default" : "outline"}
                 size="icon"
-                className="h-8 w-8"
+                className={isCompact ? "h-7 w-7" : "h-8 w-8"}
                 title={profileSettings?.insomnia ? t('montage.insomnia_enabled') : t('montage.insomnia_disabled')}
                 data-testid="sidebar-insomnia-toggle"
               >
