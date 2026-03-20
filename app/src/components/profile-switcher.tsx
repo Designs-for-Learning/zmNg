@@ -87,7 +87,7 @@ export function ProfileSwitcher() {
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
-          className="flex items-center gap-2 w-full justify-between"
+          className="flex items-center gap-2 w-full justify-between focus-visible:ring-0 focus-visible:ring-offset-0"
         >
           <div className="flex items-center gap-2 min-w-0">
             {isLoading ? (
