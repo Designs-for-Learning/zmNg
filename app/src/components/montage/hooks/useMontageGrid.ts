@@ -115,6 +115,7 @@ interface UseMontageGridReturn {
   handleResizeStop: (layout: Layout[], oldItem: Layout, newItem: Layout) => void;
   handleWidthChange: (width: number) => void;
   setGridCols: React.Dispatch<React.SetStateAction<number>>;
+  togglePinMonitor: (monitorId: string) => void;
 }
 
 export function useMontageGrid({
@@ -360,6 +361,14 @@ export function useMontageGrid({
     [saveMontageLayout]
   );
 
+  const togglePinMonitor = useCallback((monitorId: string) => {
+    setLayout((prev) =>
+      prev.map((item) =>
+        item.i === monitorId ? { ...item, static: !item.static } : item
+      )
+    );
+  }, []);
+
   return {
     layout,
     gridCols: displayCols,
@@ -373,5 +382,6 @@ export function useMontageGrid({
     handleResizeStop,
     handleWidthChange,
     setGridCols: setDisplayCols,
+    togglePinMonitor,
   };
 }

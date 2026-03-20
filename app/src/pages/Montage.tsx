@@ -85,7 +85,6 @@ export default function Montage() {
 
   // Edit mode state lifted to page level
   const [isEditMode, setIsEditMode] = useState(false);
-  const [pinnedMonitorIds, setPinnedMonitorIds] = useState<Set<string>>(new Set());
 
   // Active saved layout name (persisted in settings)
   const activeLayoutName = settings.montageActiveLayoutName;
@@ -115,6 +114,7 @@ export default function Montage() {
     handleLayoutChange,
     handleResizeStop,
     handleWidthChange,
+    togglePinMonitor,
   } = useMontageGrid({
     monitors,
     currentProfile,
@@ -338,16 +338,13 @@ export default function Montage() {
             data-testid="montage-grid"
           >
             <WrappedGridLayout
-              layout={layout.map((item) => ({
-                ...item,
-                static: pinnedMonitorIds.has(item.i),
-              }))}
+              layout={layout}
               cols={INTERNAL_COLS}
               rowHeight={GRID_LAYOUT.montageRowHeight}
               margin={[0, 0]}
               containerPadding={[0, 0]}
-              compactType={pinnedMonitorIds.size > 0 ? null : "vertical"}
-              preventCollision={pinnedMonitorIds.size > 0}
+              compactType={layout.some((item) => item.static) ? null : "vertical"}
+              preventCollision={layout.some((item) => item.static)}
               isResizable={isEditMode}
               isDraggable={isEditMode}
               onLayoutChange={handleLayoutChange}
@@ -363,13 +360,8 @@ export default function Montage() {
                     navigate={navigate}
                     isFullscreen={isFullscreen}
                     isEditing={isEditMode}
-                    isPinned={pinnedMonitorIds.has(Monitor.Id)}
-                    onPinToggle={() => setPinnedMonitorIds((prev) => {
-                      const next = new Set(prev);
-                      if (next.has(Monitor.Id)) next.delete(Monitor.Id);
-                      else next.add(Monitor.Id);
-                      return next;
-                    })}
+                    isPinned={layout.find((item) => item.i === Monitor.Id)?.static || false}
+                    onPinToggle={() => togglePinMonitor(Monitor.Id)}
                     objectFit={settings.montageFeedFit}
                     showOverlay={showMonitorLabels}
                   />
