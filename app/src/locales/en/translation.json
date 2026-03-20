@@ -504,6 +504,8 @@
     "fit_scale_down": "Scale down (shrink only)",
     "edit_layout": "Edit",
     "done_editing": "Done",
+    "pin_monitor": "Pin — lock position",
+    "unpin_monitor": "Unpin — allow movement",
     "insomnia_enabled": "Screen will stay awake",
     "insomnia_disabled": "Screen sleep enabled",
     "toggle_labels": "Monitor Labels",

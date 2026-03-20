@@ -85,6 +85,7 @@ export default function Montage() {
 
   // Edit mode state lifted to page level
   const [isEditMode, setIsEditMode] = useState(false);
+  const [pinnedMonitorIds, setPinnedMonitorIds] = useState<Set<string>>(new Set());
 
   // Active saved layout name (persisted in settings)
   const activeLayoutName = settings.montageActiveLayoutName;
@@ -337,7 +338,10 @@ export default function Montage() {
             data-testid="montage-grid"
           >
             <WrappedGridLayout
-              layout={layout}
+              layout={layout.map((item) => ({
+                ...item,
+                static: pinnedMonitorIds.has(item.i),
+              }))}
               cols={INTERNAL_COLS}
               rowHeight={GRID_LAYOUT.montageRowHeight}
               margin={[0, 0]}
@@ -359,6 +363,13 @@ export default function Montage() {
                     navigate={navigate}
                     isFullscreen={isFullscreen}
                     isEditing={isEditMode}
+                    isPinned={pinnedMonitorIds.has(Monitor.Id)}
+                    onPinToggle={() => setPinnedMonitorIds((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(Monitor.Id)) next.delete(Monitor.Id);
+                      else next.add(Monitor.Id);
+                      return next;
+                    })}
                     objectFit={settings.montageFeedFit}
                     showOverlay={showMonitorLabels}
                   />

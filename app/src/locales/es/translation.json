@@ -506,6 +506,8 @@
     "fit_scale_down": "Reducir (solo encoger)",
     "edit_layout": "Editar",
     "done_editing": "Hecho",
+    "pin_monitor": "Fijar — bloquear posición",
+    "unpin_monitor": "Soltar — permitir movimiento",
     "insomnia_enabled": "La pantalla permanecerá activa",
     "insomnia_disabled": "Suspensión de pantalla activada",
     "screen_too_small_for_editing": "La pantalla es demasiado pequeña para editar el diseño. Use una pantalla más grande o gire su dispositivo.",

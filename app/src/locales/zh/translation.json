@@ -506,6 +506,8 @@
     "fit_scale_down": "仅缩小",
     "edit_layout": "编辑",
     "done_editing": "完成",
+    "pin_monitor": "固定 — 锁定位置",
+    "unpin_monitor": "取消固定 — 允许移动",
     "insomnia_enabled": "屏幕将保持唤醒",
     "insomnia_disabled": "屏幕休眠已启用",
     "screen_too_small_for_editing": "屏幕太小,无法编辑布局。请使用更大的屏幕或旋转设备。",

@@ -506,6 +506,8 @@
     "fit_scale_down": "Réduire (rétrécir seulement)",
     "edit_layout": "Éditer",
     "done_editing": "Fini",
+    "pin_monitor": "Épingler — verrouiller la position",
+    "unpin_monitor": "Détacher — autoriser le déplacement",
     "insomnia_enabled": "L'écran restera actif",
     "insomnia_disabled": "Veille d'écran activée",
     "screen_too_small_for_editing": "L'écran est trop petit pour éditer la mise en page. Veuillez utiliser un écran plus grand ou faire pivoter votre appareil.",

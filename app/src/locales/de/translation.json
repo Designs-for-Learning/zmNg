@@ -506,6 +506,8 @@
     "fit_scale_down": "Verkleinern (nur schrumpfen)",
     "edit_layout": "Bearb.",
     "done_editing": "Fertig",
+    "pin_monitor": "Anheften — Position sperren",
+    "unpin_monitor": "Lösen — Bewegung erlauben",
     "insomnia_enabled": "Bildschirm bleibt wach",
     "insomnia_disabled": "Bildschirmschlaf aktiviert",
     "screen_too_small_for_editing": "Bildschirm ist zu klein für Layout-Bearbeitung. Bitte verwenden Sie einen größeren Bildschirm oder drehen Sie Ihr Gerät.",

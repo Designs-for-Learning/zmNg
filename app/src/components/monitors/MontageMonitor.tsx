@@ -25,7 +25,7 @@ import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { VideoPlayer } from '../video/VideoPlayer';
-import { Clock, ChartGantt, Download, Maximize2 } from 'lucide-react';
+import { Clock, ChartGantt, Download, Maximize2, Pin } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { downloadSnapshotFromElement } from '../../lib/download';
 import { toast } from 'sonner';
@@ -40,6 +40,8 @@ interface MontageMonitorProps {
   navigate: NavigateFunction;
   isFullscreen?: boolean;
   isEditing?: boolean;
+  isPinned?: boolean;
+  onPinToggle?: () => void;
   objectFit?: 'contain' | 'cover' | 'fill' | 'none' | 'scale-down';
   showOverlay?: boolean;
 }
@@ -52,6 +54,8 @@ function MontageMonitorComponent({
   navigate,
   isFullscreen = false,
   isEditing = false,
+  isPinned = false,
+  onPinToggle,
   objectFit,
   showOverlay = false,
 }: MontageMonitorProps) {
@@ -168,8 +172,30 @@ function MontageMonitorComponent({
       isFullscreen
         ? "border-none shadow-none bg-black m-0 p-0"
         : "border-0 shadow-none bg-card",
-      isEditing && !isFullscreen && "ring-2 ring-yellow-400/70"
+      isEditing && !isFullscreen && (isPinned ? "ring-2 ring-blue-400/70" : "ring-2 ring-yellow-400/70")
     )}>
+      {/* Pin overlay — centered, visible only in edit mode */}
+      {isEditing && !isFullscreen && onPinToggle && (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onPinToggle(); }}
+          className={cn(
+            "absolute inset-0 z-20 flex items-center justify-center",
+            "bg-black/0 hover:bg-black/30 transition-colors"
+          )}
+          title={isPinned ? t('montage.unpin_monitor') : t('montage.pin_monitor')}
+          data-testid={`montage-pin-${monitor.Id}`}
+        >
+          <div className={cn(
+            "rounded-full p-2 transition-all",
+            isPinned
+              ? "bg-blue-500/90 text-white shadow-lg"
+              : "bg-black/40 text-white/60 hover:bg-black/60 hover:text-white"
+          )}>
+            <Pin className={cn("h-5 w-5", isPinned && "fill-current")} />
+          </div>
+        </button>
+      )}
       {/* Header / Drag Handle - Toggled via toolbar button in fullscreen mode */}
       <div
         className={cn(
