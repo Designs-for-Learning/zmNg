@@ -1,5 +1,24 @@
 # Changelog
 
+## [zmNinjaNG-1.1.0](https://github.com/pliablepixels/zmNinjaNG/tree/zmNinjaNG-1.1.0) (2026-03-20)
+
+[Full Changelog](https://github.com/pliablepixels/zmNinjaNG/compare/zmNinjaNG-1.0.9...zmNinjaNG-1.1.0)
+
+**Implemented enhancements:**
+
+- feat: add pin/lock icon to montage edit mode to prevent individual monitors from being moved [\#72](https://github.com/pliablepixels/zmNinjaNG/issues/72)
+- feat: reorganize Settings page into 3 sections, remove relaxed display mode [\#71](https://github.com/pliablepixels/zmNinjaNG/issues/71)
+- feat: add user-configurable time display format \(12h/24h\) with consistent formatting across all screens [\#70](https://github.com/pliablepixels/zmNinjaNG/issues/70)
+- feat: add favorites, object detection, and tags filters to Timeline page [\#69](https://github.com/pliablepixels/zmNinjaNG/issues/69)
+- feat: add option to disable video autoplay in event detail [\#68](https://github.com/pliablepixels/zmNinjaNG/issues/68)
+- feat: add zoom/pan controls to monitor and event views [\#64](https://github.com/pliablepixels/zmNinjaNG/issues/64)
+
+**Fixed bugs:**
+
+- fix: montage missing notification bell and resolution placeholder flash [\#67](https://github.com/pliablepixels/zmNinjaNG/issues/67)
+- fix: back button goes nowhere on cold start to detail views [\#66](https://github.com/pliablepixels/zmNinjaNG/issues/66)
+- fix: iOS badge count and notification history sync [\#65](https://github.com/pliablepixels/zmNinjaNG/issues/65)
+
 ## [zmNinjaNG-1.0.9](https://github.com/pliablepixels/zmNinjaNG/tree/zmNinjaNG-1.0.9) (2026-03-17)
 
 [Full Changelog](https://github.com/pliablepixels/zmNinjaNG/compare/zmNinjaNG-1.0.8...zmNinjaNG-1.0.9)
