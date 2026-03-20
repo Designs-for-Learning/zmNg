@@ -11,6 +11,8 @@ export type EventsViewMode = 'list' | 'montage';
 export type ThemePreference = 'amber' | 'cream' | 'dark' | 'light' | 'slate' | 'system';
 export type StreamingMethod = 'auto' | 'mjpeg';
 export type WebRTCProtocol = 'webrtc' | 'mse' | 'hls';
+export type DateFormatPreset = 'MMM d, yyyy' | 'MMM d' | 'dd/MM/yyyy' | 'dd/MM' | 'custom';
+export type TimeFormatPreset = '12h' | '24h' | 'custom';
 
 export interface ProfileSettings {
   viewMode: ViewMode;
@@ -81,6 +83,11 @@ export interface ProfileSettings {
     endDateTime: string;
     onlyDetectedObjects: boolean;
   };
+  // Date/time display format
+  dateFormat: DateFormatPreset;
+  timeFormat: TimeFormatPreset;
+  customDateFormat: string; // used when dateFormat === 'custom'
+  customTimeFormat: string; // used when timeFormat === 'custom'
   // Auto-play video when opening event detail
   eventVideoAutoplay: boolean;
   // Desktop sidebar width in pixels (60–320, persisted across sessions)
@@ -182,6 +189,10 @@ export const DEFAULT_SETTINGS: ProfileSettings = {
     endDateTime: '',
     onlyDetectedObjects: false,
   },
+  dateFormat: 'MMM d',
+  timeFormat: '12h',
+  customDateFormat: 'EEE, MMM d yyyy',
+  customTimeFormat: 'h:mm:ss a',
   eventVideoAutoplay: true,
   montageSavedLayouts: [],
   montageActiveLayoutName: null,

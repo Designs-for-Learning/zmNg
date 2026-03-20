@@ -8,7 +8,7 @@
 
 import { memo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { format } from 'date-fns';
+import { useDateTimeFormat } from '../../hooks/useDateTimeFormat';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { SecureImage } from '../ui/secure-image';
@@ -33,6 +33,7 @@ import { TagChipList } from './TagChip';
 function EventCardComponent({ event, monitorName, thumbnailUrl, objectFit = 'contain', thumbnailWidth, thumbnailHeight, tags }: EventCardProps) {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const { fmtDate, fmtTime } = useDateTimeFormat();
   const { currentProfile } = useCurrentProfile();
   const toggleFavorite = useEventFavoritesStore((state) => state.toggleFavorite);
 
@@ -150,12 +151,11 @@ function EventCardComponent({ event, monitorName, thumbnailUrl, objectFit = 'con
               </div>
               <div className="flex items-center gap-1 sm:gap-1.5">
                 <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
-                <span className="hidden sm:inline">{format(startTime, 'MMM d, yyyy')}</span>
-                <span className="sm:hidden">{format(startTime, 'MMM d')}</span>
+                {fmtDate(startTime)}
               </div>
               <div className="flex items-center gap-1 sm:gap-1.5">
                 <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
-                {format(startTime, 'HH:mm:ss')}
+                {fmtTime(startTime)}
               </div>
             </div>
           </div>

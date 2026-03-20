@@ -20,7 +20,7 @@ import { ZmsEventPlayer } from '../components/events/ZmsEventPlayer';
 import { TagChip } from '../components/events/TagChip';
 import { ArrowLeft, Calendar, Clock, HardDrive, AlertTriangle, Download, Archive, Video, Star, Timer, Tag } from 'lucide-react';
 import { getEventCauseIcon } from '../lib/event-icons';
-import { format } from 'date-fns';
+import { useDateTimeFormat } from '../hooks/useDateTimeFormat';
 import { downloadEventVideo } from '../lib/download';
 import { parseMonitorRotation } from '../lib/monitor-rotation';
 import { toast } from 'sonner';
@@ -37,6 +37,7 @@ export default function EventDetail() {
   const navigate = useNavigate();
   const location = useLocation();
   const { t } = useTranslation();
+  const { fmtDate, fmtTime } = useDateTimeFormat();
 
   // Check if user came from another page (navigation state tracking)
   const referrer = location.state?.from as string | undefined;
@@ -367,14 +368,14 @@ export default function EventDetail() {
                   <Calendar className="h-5 w-5 text-primary" />
                   <div>
                     <div className="text-sm font-medium">{t('event_detail.date')}</div>
-                    <div className="text-sm text-muted-foreground">{format(startTime, 'MMMM d, yyyy')}</div>
+                    <div className="text-sm text-muted-foreground">{fmtDate(startTime)}</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <Clock className="h-5 w-5 text-primary" />
                   <div>
                     <div className="text-sm font-medium">{t('event_detail.time')}</div>
-                    <div className="text-sm text-muted-foreground">{format(startTime, 'HH:mm:ss')}</div>
+                    <div className="text-sm text-muted-foreground">{fmtTime(startTime)}</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">

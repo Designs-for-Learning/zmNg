@@ -12,7 +12,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Download, Loader2 } from 'lucide-react';
 import { getEventCauseIcon } from '../../lib/event-icons';
-import { format } from 'date-fns';
+import { useDateTimeFormat } from '../../hooks/useDateTimeFormat';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -56,6 +56,7 @@ export const EventMontageView = ({
 }: EventMontageViewProps) => {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const { fmtDateTimeShort } = useDateTimeFormat();
 
   // Haptic feedback helper
   const triggerHaptic = async () => {
@@ -158,7 +159,7 @@ export const EventMontageView = ({
                   {event.Name}
                 </div>
                 <div className="text-xs text-muted-foreground truncate">{monitorName}</div>
-                <div className="text-xs text-muted-foreground">{format(startTime, 'MMM d, HH:mm:ss')}</div>
+                <div className="text-xs text-muted-foreground">{fmtDateTimeShort(startTime)}</div>
                 {event.Cause && (() => {
                   const CauseIcon = getEventCauseIcon(event.Cause);
                   return (

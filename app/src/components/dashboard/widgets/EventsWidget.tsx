@@ -16,7 +16,7 @@
 import { memo, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getEvents } from '../../../api/events';
-import { format } from 'date-fns';
+import { useDateTimeFormat } from '../../../hooks/useDateTimeFormat';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getEventCauseIcon } from '../../../lib/event-icons';
@@ -46,6 +46,7 @@ export const EventsWidget = memo(function EventsWidget({
     tagIds = [],
 }: EventsWidgetProps) {
     const { t } = useTranslation();
+    const { fmtTime } = useDateTimeFormat();
     const navigate = useNavigate();
     const bandwidth = useBandwidthSettings();
     const monitorIdFilter = monitorIds?.length ? monitorIds.join(',') : undefined;
@@ -117,7 +118,7 @@ export const EventsWidget = memo(function EventsWidget({
                                 <div className="flex items-center justify-between mb-1">
                                     <span className="font-medium text-sm truncate">{event.Event.Name}</span>
                                     <span className="text-[10px] text-muted-foreground whitespace-nowrap">
-                                        {format(new Date(event.Event.StartDateTime), 'HH:mm:ss')}
+                                        {fmtTime(new Date(event.Event.StartDateTime.replace(' ', 'T')))}
                                     </span>
                                 </div>
                                 <div className="flex items-center justify-between text-xs text-muted-foreground">

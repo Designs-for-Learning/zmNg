@@ -18,6 +18,7 @@ import {
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { useTheme } from '../../theme-provider';
 import { useTranslation } from 'react-i18next';
+import { useDateTimeFormat } from '../../../hooks/useDateTimeFormat';
 import { Button } from '../../ui/button';
 import { useBandwidthSettings } from '../../../hooks/useBandwidthSettings';
 
@@ -26,6 +27,7 @@ type TimeRange = '24h' | '48h' | '1w' | '2w' | '1m';
 export const TimelineWidget = memo(function TimelineWidget() {
     const { theme } = useTheme();
     const { t } = useTranslation();
+    const { fmtTimeShort } = useDateTimeFormat();
     const navigate = useNavigate();
     const bandwidth = useBandwidthSettings();
     const [start, setStart] = useState(() => subHours(new Date(), 24));
@@ -116,7 +118,7 @@ export const TimelineWidget = memo(function TimelineWidget() {
                 } else if (hour === 12) {
                     timeLabel = '12pm';
                 } else {
-                    timeLabel = format(interval, 'ha');
+                    timeLabel = fmtTimeShort(interval);
                 }
 
                 return {
@@ -153,7 +155,7 @@ export const TimelineWidget = memo(function TimelineWidget() {
                 } else if (hour === 12) {
                     timeLabel = '12pm';
                 } else {
-                    timeLabel = format(interval, 'ha');
+                    timeLabel = fmtTimeShort(interval);
                 }
 
                 return {
@@ -272,7 +274,7 @@ export const TimelineWidget = memo(function TimelineWidget() {
             return { data: chartData, tickFormatter, tickInterval };
         }
     // Use events?.events (the array) for more stable dependency - only recalc when events actually change
-    }, [start, now, events?.events, containerSize.width]);
+    }, [start, now, events?.events, containerSize.width, fmtTimeShort]);
 
     // Memoize tooltip styles to prevent re-renders
     const tooltipContentStyle = useMemo(() => ({
