@@ -324,7 +324,7 @@ export default function Logs() {
                             data-testid="log-source-zmng"
                         >
                             <Smartphone className="h-3 w-3 mr-1.5" />
-                            zmNinjaNG
+                            App
                         </Button>
                         <Button
                             variant={logSource === 'server' ? 'default' : 'ghost'}
@@ -334,7 +334,7 @@ export default function Logs() {
                             data-testid="log-source-server"
                         >
                             <Server className="h-3 w-3 mr-1.5" />
-                            Server
+                            ZM
                         </Button>
                     </div>
                     <Select value={logLevel.toString()} onValueChange={handleLevelChange}>
