@@ -489,20 +489,7 @@ export default function AppLayout() {
     }
   };
 
-  // Check for profile after all hooks are called to avoid hooks violation
-  // Allow /profiles route without a current profile (for profile selection after cancel)
-  // Otherwise redirect to profile selection or new profile setup
-  if (!currentProfile) {
-    // Don't redirect if already on profiles page
-    if (location.pathname === '/profiles') {
-      // Allow access to profiles page without a current profile
-    } else {
-      const profiles = useProfileStore.getState().profiles;
-      return <Navigate to={profiles.length > 0 ? "/profiles" : "/profiles/new"} replace />;
-    }
-  }
-
-  // TOFU certificate trust migration dialog
+  // TOFU certificate trust migration dialog — hooks must be above any early return
   const [pendingCert, setPendingCert] = useState<PendingCertTrust | null>(null);
 
   useEffect(() => {
@@ -533,6 +520,16 @@ export default function AppLayout() {
     await applySSLTrustSetting(false);
     log.app('Certificate rejected, disabling self-signed cert support', LogLevel.INFO);
   }, [pendingCert, updateProfileSettings]);
+
+  // Check for profile after all hooks are called to avoid hooks violation
+  if (!currentProfile) {
+    if (location.pathname === '/profiles') {
+      // Allow access to profiles page without a current profile
+    } else {
+      const profiles = useProfileStore.getState().profiles;
+      return <Navigate to={profiles.length > 0 ? "/profiles" : "/profiles/new"} replace />;
+    }
+  }
 
   return (
     <div className="flex h-[100dvh] bg-background overflow-hidden pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]">
