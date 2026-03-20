@@ -172,7 +172,7 @@ function MontageMonitorComponent({
       isFullscreen
         ? "border-none shadow-none bg-black m-0 p-0"
         : "border-0 shadow-none bg-card",
-      isEditing && !isFullscreen && (isPinned ? "ring-2 ring-blue-400/70" : "ring-2 ring-yellow-400/70")
+      isEditing && !isFullscreen && (isPinned ? "ring-2 ring-inset ring-blue-400/70" : "ring-2 ring-inset ring-yellow-400/70")
     )}>
       {/* Header / Drag Handle - Toggled via toolbar button in fullscreen mode */}
       <div
