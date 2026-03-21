@@ -166,20 +166,14 @@ export function KioskOverlay({ onUnlock }: KioskOverlayProps) {
         style={{ pointerEvents: 'auto' }}
         data-testid="kiosk-overlay"
       >
-        {/* Unlock button — bottom-right */}
+        {/* Unlock button — bottom-right, theme-aware */}
         <button
           onClick={handleUnlockTap}
-          className="absolute bottom-6 right-6 w-14 h-14 rounded-full flex items-center justify-center transition-all hover:scale-110 active:scale-95"
-          style={{
-            background: 'rgba(255,255,255,0.25)',
-            backdropFilter: 'blur(8px)',
-            border: '2px solid rgba(255,255,255,0.4)',
-            boxShadow: '0 0 20px rgba(255,255,255,0.15)',
-          }}
+          className="absolute bottom-6 right-6 w-14 h-14 rounded-full flex items-center justify-center transition-all hover:scale-110 active:scale-95 bg-primary/80 hover:bg-primary border-2 border-primary-foreground/30 shadow-lg shadow-primary/30"
           title={t('kiosk.unlock_label')}
           data-testid="kiosk-unlock-button"
         >
-          <LockOpen className="h-6 w-6" style={{ color: 'rgba(255,255,255,0.9)' }} />
+          <LockOpen className="h-6 w-6 text-primary-foreground" />
         </button>
       </div>
 
