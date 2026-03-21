@@ -948,6 +948,8 @@
     "pin_cooldown": "Zu viele Versuche. Versuchen Sie es in {{seconds}}s erneut",
     "locked_toast": "Kiosk-Modus aktiv",
     "unlocked_toast": "Kiosk-Modus deaktiviert",
-    "biometric_prompt": "Zum Entsperren authentifizieren"
+    "biometric_prompt": "Zum Entsperren authentifizieren",
+    "change_pin": "PIN ändern",
+    "pin_changed": "Kiosk-PIN aktualisiert"
   }
 }

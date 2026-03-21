@@ -123,7 +123,7 @@ export function KioskOverlay({ onUnlock }: KioskOverlayProps) {
         log.kiosk('Unlocked via biometrics', LogLevel.INFO);
         unlock();
         onUnlock();
-        toast({ description: t('kiosk.unlocked_toast') });
+        toast({ title: t('kiosk.unlocked_toast') });
         return;
       }
       // Biometrics failed/cancelled — fall through to PIN
@@ -143,7 +143,7 @@ export function KioskOverlay({ onUnlock }: KioskOverlayProps) {
       setShowPinPad(false);
       unlock();
       onUnlock();
-      toast({ description: t('kiosk.unlocked_toast') });
+      toast({ title: t('kiosk.unlocked_toast') });
     } else {
       recordFailedAttempt();
       setPinError(t('kiosk.pin_incorrect'));

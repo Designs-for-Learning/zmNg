@@ -1,8 +1,8 @@
 /**
  * Kiosk Lock Hook
  *
- * Shared logic for activating kiosk mode, including the first-time PIN set flow.
- * Used by both the sidebar lock icon and the fullscreen montage lock icon.
+ * Shared logic for activating kiosk mode, including the first-time PIN set flow
+ * and PIN change flow. Used by both the sidebar and fullscreen montage controls.
  */
 
 import { useState, useCallback } from 'react';
@@ -30,19 +30,19 @@ export function useKioskLock(options?: UseKioskLockOptions) {
   const [setPinMode, setSetPinMode] = useState<PinPadMode>('set');
   const [pendingPin, setPendingPin] = useState<string | null>(null);
   const [pinError, setPinError] = useState<string | null>(null);
+  const [isChangingPin, setIsChangingPin] = useState(false);
 
   const activateKioskMode = useCallback(() => {
     if (!currentProfileId) return;
     const settings = getProfileSettings(currentProfileId);
     kioskLock(settings.insomnia);
 
-    // Enable insomnia if off
     if (!settings.insomnia) {
       updateProfileSettings(currentProfileId, { insomnia: true });
     }
 
     options?.onLocked?.();
-    toast({ description: t('kiosk.locked_toast') });
+    toast({ title: t('kiosk.locked_toast') });
     log.kiosk('Kiosk mode activated', LogLevel.INFO);
   }, [currentProfileId, getProfileSettings, kioskLock, updateProfileSettings, options, toast, t]);
 
@@ -51,6 +51,7 @@ export function useKioskLock(options?: UseKioskLockOptions) {
 
     const hasPin = await hasPinStored();
     if (!hasPin) {
+      setIsChangingPin(false);
       setSetPinMode('set');
       setPinError(null);
       setShowSetPin(true);
@@ -58,6 +59,15 @@ export function useKioskLock(options?: UseKioskLockOptions) {
       activateKioskMode();
     }
   }, [isLocked, activateKioskMode]);
+
+  const handleChangePin = useCallback(() => {
+    if (isLocked) return;
+    setIsChangingPin(true);
+    setSetPinMode('set');
+    setPinError(null);
+    setPendingPin(null);
+    setShowSetPin(true);
+  }, [isLocked]);
 
   const handleSetPinSubmit = useCallback(async (pin: string) => {
     if (setPinMode === 'set') {
@@ -70,7 +80,13 @@ export function useKioskLock(options?: UseKioskLockOptions) {
           await storePin(pin);
           setShowSetPin(false);
           setPendingPin(null);
-          activateKioskMode();
+          if (isChangingPin) {
+            setIsChangingPin(false);
+            toast({ title: t('kiosk.pin_changed') });
+            log.kiosk('Kiosk PIN changed', LogLevel.INFO);
+          } else {
+            activateKioskMode();
+          }
         } catch {
           log.kiosk('Failed to store PIN', LogLevel.ERROR);
           setPinError(t('common.unknown_error'));
@@ -81,12 +97,13 @@ export function useKioskLock(options?: UseKioskLockOptions) {
         setPendingPin(null);
       }
     }
-  }, [setPinMode, pendingPin, activateKioskMode, t]);
+  }, [setPinMode, pendingPin, isChangingPin, activateKioskMode, toast, t]);
 
   const handleSetPinCancel = useCallback(() => {
     setShowSetPin(false);
     setPendingPin(null);
     setPinError(null);
+    setIsChangingPin(false);
   }, []);
 
   return {
@@ -95,6 +112,7 @@ export function useKioskLock(options?: UseKioskLockOptions) {
     setPinMode,
     pinError,
     handleLockToggle,
+    handleChangePin,
     handleSetPinSubmit,
     handleSetPinCancel,
   };

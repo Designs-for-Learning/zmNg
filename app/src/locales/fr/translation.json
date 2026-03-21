@@ -948,6 +948,8 @@
     "pin_cooldown": "Trop de tentatives. Réessayez dans {{seconds}}s",
     "locked_toast": "Mode kiosque actif",
     "unlocked_toast": "Mode kiosque désactivé",
-    "biometric_prompt": "Authentifiez-vous pour déverrouiller"
+    "biometric_prompt": "Authentifiez-vous pour déverrouiller",
+    "change_pin": "Changer le PIN",
+    "pin_changed": "PIN kiosque mis à jour"
   }
 }

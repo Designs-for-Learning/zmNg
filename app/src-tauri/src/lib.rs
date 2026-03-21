@@ -1,3 +1,5 @@
+mod biometric;
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   tauri::Builder::default()
@@ -11,6 +13,10 @@ pub fn run() {
         .max_file_size(10 * 1024 * 1024)
         .build(),
     )
+    .invoke_handler(tauri::generate_handler![
+      biometric::check_biometric_available,
+      biometric::authenticate_biometric,
+    ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
 }

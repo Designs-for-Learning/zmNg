@@ -946,6 +946,8 @@
     "pin_cooldown": "Too many attempts. Try again in {{seconds}}s",
     "locked_toast": "Kiosk mode active",
     "unlocked_toast": "Kiosk mode deactivated",
-    "biometric_prompt": "Authenticate to unlock"
+    "biometric_prompt": "Authenticate to unlock",
+    "change_pin": "Change PIN",
+    "pin_changed": "Kiosk PIN updated"
   }
 }

@@ -948,6 +948,8 @@
     "pin_cooldown": "尝试次数过多。请在{{seconds}}秒后重试",
     "locked_toast": "展台模式已激活",
     "unlocked_toast": "展台模式已停用",
-    "biometric_prompt": "验证以解锁"
+    "biometric_prompt": "验证以解锁",
+    "change_pin": "更改PIN",
+    "pin_changed": "展台PIN已更新"
   }
 }
