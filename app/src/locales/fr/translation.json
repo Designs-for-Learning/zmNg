@@ -950,6 +950,9 @@
     "unlocked_toast": "Mode kiosque désactivé",
     "biometric_prompt": "Authentifiez-vous pour déverrouiller",
     "change_pin": "Changer le PIN",
-    "pin_changed": "PIN kiosque mis à jour"
+    "pin_changed": "PIN kiosque mis à jour",
+    "pin_cleared": "PIN kiosque supprimé",
+    "pin_setting_label": "PIN kiosque",
+    "pin_setting_desc": "PIN pour verrouiller et déverrouiller le mode kiosque"
   }
 }

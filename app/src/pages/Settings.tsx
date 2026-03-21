@@ -4,9 +4,12 @@
  * Three-section flat settings layout: Appearance, Streaming & Playback, Advanced.
  */
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Image, Video as VideoIcon, Zap, Gauge, Leaf, RefreshCw, ChevronDown } from 'lucide-react';
+import { Image, Video as VideoIcon, Zap, Gauge, Leaf, RefreshCw, ChevronDown, Lock } from 'lucide-react';
+import { hasPinStored, storePin, clearPin } from '../lib/kioskPin';
+import { PinPad, type PinPadMode } from '../components/kiosk/PinPad';
+import { useToast } from '../hooks/use-toast';
 import { cn } from '../lib/utils';
 import { Switch } from '../components/ui/switch';
 import { Button } from '../components/ui/button';
@@ -118,6 +121,62 @@ export default function Settings() {
   const [certIsChanged, setCertIsChanged] = useState(false);
   const [reverifying, setReverifying] = useState(false);
   const [protocolsExpanded, setProtocolsExpanded] = useState(false);
+
+  // Kiosk PIN state
+  const { toast } = useToast();
+  const [showPinPad, setShowPinPad] = useState(false);
+  const [pinPadMode, setPinPadMode] = useState<PinPadMode>('set');
+  const [pendingPin, setPendingPin] = useState<string | null>(null);
+  const [pinError, setPinError] = useState<string | null>(null);
+  const [hasPin, setHasPin] = useState<boolean | null>(null);
+
+  // Check PIN status on first render
+  useState(() => {
+    hasPinStored().then(setHasPin);
+  });
+
+  const handleSetOrChangePin = useCallback(() => {
+    setPinPadMode('set');
+    setPinError(null);
+    setPendingPin(null);
+    setShowPinPad(true);
+  }, []);
+
+  const handleClearPin = useCallback(async () => {
+    await clearPin();
+    setHasPin(false);
+    toast({ title: t('kiosk.pin_cleared') });
+  }, [toast, t]);
+
+  const handlePinSubmit = useCallback(async (pin: string) => {
+    if (pinPadMode === 'set') {
+      setPendingPin(pin);
+      setPinPadMode('confirm');
+      setPinError(null);
+    } else if (pinPadMode === 'confirm') {
+      if (pin === pendingPin) {
+        try {
+          await storePin(pin);
+          setShowPinPad(false);
+          setPendingPin(null);
+          setHasPin(true);
+          toast({ title: t('kiosk.pin_changed') });
+        } catch {
+          setPinError(t('common.unknown_error'));
+        }
+      } else {
+        setPinError(t('kiosk.pin_mismatch'));
+        setPinPadMode('set');
+        setPendingPin(null);
+      }
+    }
+  }, [pinPadMode, pendingPin, toast, t]);
+
+  const handlePinCancel = useCallback(() => {
+    setShowPinPad(false);
+    setPendingPin(null);
+    setPinError(null);
+  }, []);
 
   const customDatePreview = validateFormatString(customDateDraft);
   const customTimePreview = validateFormatString(customTimeDraft);
@@ -746,6 +805,37 @@ export default function Settings() {
                 data-testid="settings-log-redaction-switch"
               />
             </SettingsRow>
+
+            {/* Kiosk PIN */}
+            <SettingsRow>
+              <RowLabel
+                label={t('kiosk.pin_setting_label')}
+                desc={t('kiosk.pin_setting_desc')}
+              />
+              <div className="flex items-center gap-2">
+                {hasPin && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs text-destructive hover:text-destructive"
+                    onClick={handleClearPin}
+                    data-testid="settings-kiosk-clear-pin"
+                  >
+                    {t('common.clear')}
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs gap-1.5"
+                  onClick={handleSetOrChangePin}
+                  data-testid="settings-kiosk-change-pin"
+                >
+                  <Lock className="h-3 w-3" />
+                  {hasPin ? t('kiosk.change_pin') : t('kiosk.set_pin_title')}
+                </Button>
+              </div>
+            </SettingsRow>
           </SettingsCard>
         </section>
       </div>
@@ -757,6 +847,15 @@ export default function Settings() {
         onTrust={handleTrust}
         onCancel={handleCancelTrust}
       />
+
+      {showPinPad && (
+        <PinPad
+          mode={pinPadMode}
+          onSubmit={handlePinSubmit}
+          onCancel={handlePinCancel}
+          error={pinError}
+        />
+      )}
     </>
   );
 }

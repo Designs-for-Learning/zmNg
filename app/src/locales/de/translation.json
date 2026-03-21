@@ -950,6 +950,9 @@
     "unlocked_toast": "Kiosk-Modus deaktiviert",
     "biometric_prompt": "Zum Entsperren authentifizieren",
     "change_pin": "PIN ändern",
-    "pin_changed": "Kiosk-PIN aktualisiert"
+    "pin_changed": "Kiosk-PIN aktualisiert",
+    "pin_cleared": "Kiosk-PIN entfernt",
+    "pin_setting_label": "Kiosk-PIN",
+    "pin_setting_desc": "PIN zum Sperren und Entsperren des Kiosk-Modus"
   }
 }

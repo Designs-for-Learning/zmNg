@@ -948,6 +948,9 @@
     "unlocked_toast": "Kiosk mode deactivated",
     "biometric_prompt": "Authenticate to unlock",
     "change_pin": "Change PIN",
-    "pin_changed": "Kiosk PIN updated"
+    "pin_changed": "Kiosk PIN updated",
+    "pin_cleared": "Kiosk PIN removed",
+    "pin_setting_label": "Kiosk PIN",
+    "pin_setting_desc": "PIN used to lock and unlock kiosk mode"
   }
 }

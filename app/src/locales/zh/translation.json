@@ -950,6 +950,9 @@
     "unlocked_toast": "展台模式已停用",
     "biometric_prompt": "验证以解锁",
     "change_pin": "更改PIN",
-    "pin_changed": "展台PIN已更新"
+    "pin_changed": "展台PIN已更新",
+    "pin_cleared": "展台PIN已移除",
+    "pin_setting_label": "展台PIN",
+    "pin_setting_desc": "用于锁定和解锁展台模式的PIN"
   }
 }

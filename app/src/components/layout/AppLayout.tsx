@@ -162,7 +162,7 @@ function SidebarContent({ onMobileClose, isCollapsed }: SidebarContentProps) {
 
   const {
     isLocked: kioskIsLocked, showSetPin, setPinMode, pinError,
-    handleLockToggle, handleChangePin, handleSetPinSubmit, handleSetPinCancel,
+    handleLockToggle, handleSetPinSubmit, handleSetPinCancel,
   } = useKioskLock({ onLocked: () => onMobileClose?.() });
   const requestUnlock = useKioskStore((s) => s.requestUnlock);
 
@@ -451,15 +451,6 @@ function SidebarContent({ onMobileClose, isCollapsed }: SidebarContentProps) {
                 {kioskIsLocked ? <LockOpen className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
               </Button>
             </div>
-            {!kioskIsLocked && (
-              <button
-                onClick={handleChangePin}
-                className="text-[10px] text-muted-foreground/60 hover:text-muted-foreground px-1 text-left"
-                data-testid="sidebar-change-pin"
-              >
-                {t('kiosk.change_pin')}
-              </button>
-            )}
           </>
         ) : (
           <>
