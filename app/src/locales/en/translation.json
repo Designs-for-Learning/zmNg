@@ -933,5 +933,24 @@
       "invalid_api_url": "Invalid QR code. API URL is not valid.",
       "invalid_cgi_url": "Invalid QR code. CGI URL is not valid."
     }
+  },
+  "kiosk": {
+    "lock_label": "Lock",
+    "unlock_label": "Unlock",
+    "set_pin_title": "Set Kiosk PIN",
+    "confirm_pin_title": "Confirm PIN",
+    "enter_pin_title": "Enter PIN to Unlock",
+    "pin_placeholder": "4-digit PIN",
+    "pin_mismatch": "PINs do not match",
+    "pin_incorrect": "Incorrect PIN",
+    "pin_cooldown": "Too many attempts. Try again in {{seconds}}s",
+    "locked_toast": "Kiosk mode active",
+    "unlocked_toast": "Kiosk mode deactivated",
+    "biometric_prompt": "Authenticate to unlock",
+    "change_pin": "Change PIN",
+    "pin_changed": "Kiosk PIN updated",
+    "pin_cleared": "Kiosk PIN removed",
+    "pin_setting_label": "Kiosk PIN",
+    "pin_setting_desc": "PIN used to lock and unlock kiosk mode"
   }
 }

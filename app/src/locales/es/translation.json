@@ -935,5 +935,24 @@
       "invalid_api_url": "Código QR inválido. La URL de API no es válida.",
       "invalid_cgi_url": "Código QR inválido. La URL de CGI no es válida."
     }
+  },
+  "kiosk": {
+    "lock_label": "Bloquear",
+    "unlock_label": "Desbloquear",
+    "set_pin_title": "Establecer PIN de kiosco",
+    "confirm_pin_title": "Confirmar PIN",
+    "enter_pin_title": "Ingrese PIN para desbloquear",
+    "pin_placeholder": "PIN de 4 dígitos",
+    "pin_mismatch": "Los PIN no coinciden",
+    "pin_incorrect": "PIN incorrecto",
+    "pin_cooldown": "Demasiados intentos. Intente de nuevo en {{seconds}}s",
+    "locked_toast": "Modo kiosco activo",
+    "unlocked_toast": "Modo kiosco desactivado",
+    "biometric_prompt": "Autentíquese para desbloquear",
+    "change_pin": "Cambiar PIN",
+    "pin_changed": "PIN de kiosco actualizado",
+    "pin_cleared": "PIN de kiosco eliminado",
+    "pin_setting_label": "PIN de kiosco",
+    "pin_setting_desc": "PIN para bloquear y desbloquear el modo kiosco"
   }
 }

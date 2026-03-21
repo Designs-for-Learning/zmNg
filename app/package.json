@@ -41,6 +41,7 @@
     "icons": "npm run icons:tauri && npm run icons:mobile"
   },
   "dependencies": {
+    "@aparajita/capacitor-biometric-auth": "^7.2.0",
     "@aparajita/capacitor-secure-storage": "^7.1.6",
     "@capacitor-community/media": "^8.0.1",
     "@capacitor-firebase/messaging": "^7.5.0",

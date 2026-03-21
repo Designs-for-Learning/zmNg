@@ -935,5 +935,24 @@
       "invalid_api_url": "无效的二维码。API URL无效。",
       "invalid_cgi_url": "无效的二维码。CGI URL无效。"
     }
+  },
+  "kiosk": {
+    "lock_label": "锁定",
+    "unlock_label": "解锁",
+    "set_pin_title": "设置展台PIN",
+    "confirm_pin_title": "确认PIN",
+    "enter_pin_title": "输入PIN解锁",
+    "pin_placeholder": "4位PIN",
+    "pin_mismatch": "PIN不匹配",
+    "pin_incorrect": "PIN不正确",
+    "pin_cooldown": "尝试次数过多。请在{{seconds}}秒后重试",
+    "locked_toast": "展台模式已激活",
+    "unlocked_toast": "展台模式已停用",
+    "biometric_prompt": "验证以解锁",
+    "change_pin": "更改PIN",
+    "pin_changed": "展台PIN已更新",
+    "pin_cleared": "展台PIN已移除",
+    "pin_setting_label": "展台PIN",
+    "pin_setting_desc": "用于锁定和解锁展台模式的PIN"
   }
 }

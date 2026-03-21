@@ -935,5 +935,24 @@
       "invalid_api_url": "Code QR invalide. L'URL de l'API n'est pas valide.",
       "invalid_cgi_url": "Code QR invalide. L'URL CGI n'est pas valide."
     }
+  },
+  "kiosk": {
+    "lock_label": "Verrouiller",
+    "unlock_label": "Déverrouiller",
+    "set_pin_title": "Définir le PIN kiosque",
+    "confirm_pin_title": "Confirmer le PIN",
+    "enter_pin_title": "Entrez le PIN pour déverrouiller",
+    "pin_placeholder": "PIN à 4 chiffres",
+    "pin_mismatch": "Les PIN ne correspondent pas",
+    "pin_incorrect": "PIN incorrect",
+    "pin_cooldown": "Trop de tentatives. Réessayez dans {{seconds}}s",
+    "locked_toast": "Mode kiosque actif",
+    "unlocked_toast": "Mode kiosque désactivé",
+    "biometric_prompt": "Authentifiez-vous pour déverrouiller",
+    "change_pin": "Changer le PIN",
+    "pin_changed": "PIN kiosque mis à jour",
+    "pin_cleared": "PIN kiosque supprimé",
+    "pin_setting_label": "PIN kiosque",
+    "pin_setting_desc": "PIN pour verrouiller et déverrouiller le mode kiosque"
   }
 }

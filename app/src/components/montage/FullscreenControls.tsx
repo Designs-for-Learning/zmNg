@@ -8,8 +8,10 @@
 
 import { useTranslation } from 'react-i18next';
 import { Button } from '../ui/button';
-import { RefreshCw, Minimize, Menu } from 'lucide-react';
+import { RefreshCw, Minimize, Menu, Lock } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { useKioskLock } from '../../hooks/useKioskLock';
+import { PinPad } from '../kiosk/PinPad';
 
 interface FullscreenControlsProps {
   onRefetch: () => void;
@@ -25,8 +27,13 @@ export function FullscreenControls({
   onToggleLabels,
 }: FullscreenControlsProps) {
   const { t } = useTranslation();
+  const {
+    isLocked, showSetPin, setPinMode, pinError,
+    handleLockToggle, handleSetPinSubmit, handleSetPinCancel,
+  } = useKioskLock();
 
   return (
+    <>
     <div
       className="fixed top-0 left-0 right-0 z-50 bg-black/50 backdrop-blur-sm pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] pt-[env(safe-area-inset-top)]"
       data-testid="montage-fullscreen-toolbar"
@@ -60,17 +67,38 @@ export function FullscreenControls({
             <RefreshCw className="h-3.5 w-3.5" />
           </Button>
           <Button
-            onClick={onExitFullscreen}
+            onClick={handleLockToggle}
             variant="ghost"
-            size="sm"
-            className="bg-red-600/80 hover:bg-red-600 text-white h-7 px-2 text-xs"
-            data-testid="montage-exit-fullscreen"
+            size="icon"
+            className="text-white/70 hover:text-white hover:bg-white/10 h-7 w-7"
+            title={t('kiosk.lock_label')}
+            data-testid="fullscreen-kiosk-lock"
           >
-            <Minimize className="h-3.5 w-3.5 mr-1" />
-            {t('montage.exit')}
+            <Lock className="h-3.5 w-3.5" />
           </Button>
+          {!isLocked && (
+            <Button
+              onClick={onExitFullscreen}
+              variant="ghost"
+              size="sm"
+              className="bg-red-600/80 hover:bg-red-600 text-white h-7 px-2 text-xs"
+              data-testid="montage-exit-fullscreen"
+            >
+              <Minimize className="h-3.5 w-3.5 mr-1" />
+              {t('montage.exit')}
+            </Button>
+          )}
         </div>
       </div>
     </div>
+    {showSetPin && (
+      <PinPad
+        mode={setPinMode}
+        onSubmit={handleSetPinSubmit}
+        onCancel={handleSetPinCancel}
+        error={pinError}
+      />
+    )}
+    </>
   );
 }

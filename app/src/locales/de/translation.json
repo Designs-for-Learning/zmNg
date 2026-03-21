@@ -935,5 +935,24 @@
       "invalid_api_url": "Ungültiger QR-Code. API-URL ist ungültig.",
       "invalid_cgi_url": "Ungültiger QR-Code. CGI-URL ist ungültig."
     }
+  },
+  "kiosk": {
+    "lock_label": "Sperren",
+    "unlock_label": "Entsperren",
+    "set_pin_title": "Kiosk-PIN festlegen",
+    "confirm_pin_title": "PIN bestätigen",
+    "enter_pin_title": "PIN zum Entsperren eingeben",
+    "pin_placeholder": "4-stellige PIN",
+    "pin_mismatch": "PINs stimmen nicht überein",
+    "pin_incorrect": "Falsche PIN",
+    "pin_cooldown": "Zu viele Versuche. Versuchen Sie es in {{seconds}}s erneut",
+    "locked_toast": "Kiosk-Modus aktiv",
+    "unlocked_toast": "Kiosk-Modus deaktiviert",
+    "biometric_prompt": "Zum Entsperren authentifizieren",
+    "change_pin": "PIN ändern",
+    "pin_changed": "Kiosk-PIN aktualisiert",
+    "pin_cleared": "Kiosk-PIN entfernt",
+    "pin_setting_label": "Kiosk-PIN",
+    "pin_setting_desc": "PIN zum Sperren und Entsperren des Kiosk-Modus"
   }
 }

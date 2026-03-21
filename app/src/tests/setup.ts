@@ -184,3 +184,23 @@ vi.mock('capacitor-barcode-scanner', () => ({
     multiScan: vi.fn().mockResolvedValue({ result: false, count: 0, codes: [] }),
   },
 }));
+
+// Mock @aparajita/capacitor-biometric-auth
+vi.mock('@aparajita/capacitor-biometric-auth', () => ({
+  BiometricAuth: {
+    checkBiometry: vi.fn().mockResolvedValue({
+      isAvailable: false,
+      biometryType: 0,
+      reason: 'Not available in test environment',
+    }),
+    authenticate: vi.fn().mockResolvedValue(undefined),
+  },
+  BiometryType: {
+    none: 0,
+    touchId: 1,
+    faceId: 2,
+    fingerprintAuthentication: 3,
+    faceAuthentication: 4,
+    irisAuthentication: 5,
+  },
+}));

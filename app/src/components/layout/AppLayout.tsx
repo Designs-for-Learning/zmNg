@@ -39,6 +39,8 @@ import {
   EyeOff,
   ArrowUpDown,
   Check,
+  Lock,
+  LockOpen,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
@@ -54,6 +56,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu';
+import { useKioskStore } from '../../stores/kioskStore';
+import { KioskOverlay } from '../kiosk/KioskOverlay';
+import { PinPad } from '../kiosk/PinPad';
+import { useKioskLock } from '../../hooks/useKioskLock';
 
 
 interface SidebarContentProps {
@@ -153,6 +159,12 @@ function SidebarContent({ onMobileClose, isCollapsed }: SidebarContentProps) {
       });
     }
   };
+
+  const {
+    isLocked: kioskIsLocked, showSetPin, setPinMode, pinError,
+    handleLockToggle, handleSetPinSubmit, handleSetPinCancel,
+  } = useKioskLock({ onLocked: () => onMobileClose?.() });
+  const requestUnlock = useKioskStore((s) => s.requestUnlock);
 
 
   const defaultNavItems = [
@@ -424,24 +436,59 @@ function SidebarContent({ onMobileClose, isCollapsed }: SidebarContentProps) {
                 {profileSettings?.insomnia ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
               </Button>
             </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-muted-foreground">
+                {kioskIsLocked ? t('kiosk.unlock_label') : t('kiosk.lock_label')}
+              </span>
+              <Button
+                onClick={kioskIsLocked ? requestUnlock : handleLockToggle}
+                variant={kioskIsLocked ? "default" : "outline"}
+                size="icon"
+                className={isCompact ? "h-7 w-7" : "h-8 w-8"}
+                title={kioskIsLocked ? t('kiosk.unlock_label') : t('kiosk.lock_label')}
+                data-testid="sidebar-kiosk-lock"
+              >
+                {kioskIsLocked ? <LockOpen className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+              </Button>
+            </div>
           </>
         ) : (
-          <Button
-            onClick={handleInsomniaToggle}
-            variant={profileSettings?.insomnia ? "default" : "outline"}
-            size="icon"
-            className="h-8 w-8"
-            title={profileSettings?.insomnia ? t('montage.insomnia_enabled') : t('montage.insomnia_disabled')}
-            data-testid="sidebar-insomnia-toggle-collapsed"
-          >
-            {profileSettings?.insomnia ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-          </Button>
+          <>
+            <Button
+              onClick={handleInsomniaToggle}
+              variant={profileSettings?.insomnia ? "default" : "outline"}
+              size="icon"
+              className="h-8 w-8"
+              title={profileSettings?.insomnia ? t('montage.insomnia_enabled') : t('montage.insomnia_disabled')}
+              data-testid="sidebar-insomnia-toggle-collapsed"
+            >
+              {profileSettings?.insomnia ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+            </Button>
+            <Button
+              onClick={kioskIsLocked ? requestUnlock : handleLockToggle}
+              variant={kioskIsLocked ? "default" : "outline"}
+              size="icon"
+              className="h-8 w-8"
+              title={kioskIsLocked ? t('kiosk.unlock_label') : t('kiosk.lock_label')}
+              data-testid="sidebar-kiosk-lock-collapsed"
+            >
+              {kioskIsLocked ? <LockOpen className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+            </Button>
+          </>
         )}
         <span className={cn("block text-[10px] pt-1 opacity-40", isCollapsed ? "text-center" : "px-1")} style={{ fontSize: '10px' }}>
           v{getAppVersion()}
         </span>
       </div>
       </div>
+      {showSetPin && (
+        <PinPad
+          mode={setPinMode}
+          onSubmit={handleSetPinSubmit}
+          onCancel={handleSetPinCancel}
+          error={pinError}
+        />
+      )}
     </div>
   );
 }
@@ -475,6 +522,20 @@ export default function AppLayout() {
 
   // Apply global insomnia setting
   useInsomnia({ enabled: settings.insomnia });
+
+  const { isLocked, previousInsomniaState } = useKioskStore();
+
+  useEffect(() => {
+    if (isLocked && !isCollapsed) {
+      setIsCollapsed(true);
+    }
+  }, [isLocked]);
+
+  const handleKioskUnlock = useCallback(() => {
+    if (currentProfile) {
+      updateProfileSettings(currentProfile.id, { insomnia: previousInsomniaState });
+    }
+  }, [currentProfile, previousInsomniaState, updateProfileSettings]);
 
 
   const expandedWidth = 180;
@@ -556,6 +617,7 @@ export default function AppLayout() {
       </aside>
 
       {/* Mobile Header */}
+      {!isLocked && (
       <div className="md:hidden fixed top-0 left-0 right-0 h-[calc(3rem+env(safe-area-inset-top))] pt-[env(safe-area-inset-top)] border-b bg-background z-30 flex items-center px-3 justify-between">
         <div className="flex items-center gap-2">
           <img src="/logo.png" alt={t('app.logo_alt')} className="h-8 w-8 rounded-lg" />
@@ -596,6 +658,7 @@ export default function AppLayout() {
           </Sheet>
         </div>
       </div>
+      )}
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto overflow-x-hidden relative w-full pt-[calc(3rem+env(safe-area-inset-top))] md:pt-0 pb-[env(safe-area-inset-bottom)]">
@@ -617,6 +680,8 @@ export default function AppLayout() {
         onTrust={handleCertTrust}
         onCancel={handleCertCancel}
       />
+
+      <KioskOverlay onUnlock={handleKioskUnlock} />
     </div>
   );
 }
