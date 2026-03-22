@@ -42,8 +42,8 @@ Watch a video of the demo [HERE](https://youtu.be/ces_2ap-htc)
 
 Agentic AI and me: I built the very first version of zmNinja over several months and built in more features over multiple years. I built the first version of zmNinjaNG over 2.5 days with almost as many features as the last version of zmNinja. Thanks to Claude.
 
-Agentic AI and you: I don't plan to support zmNinjaNG at all. Please don't ping me and expect quick answers. 
-Instead, treat this as "personal software" - i.e. download the code and fix it yourself. If you don't code, or do code, but aren't familiar with the environment of zmNinjaNG, I'd encourage you to use an agentic AI tool to help you along the way. Pick one you prefer. Remember, for mobile support, you'll need to generate your own FCM tokens. See mobile guides later for more.
+Agentic AI and you: I don't plan to support zmNinjaNG with any urgency. Please don't ping me and expect quick answers. 
+Instead, treat this as "personal software" - i.e. download the code and fix it yourself. If you don't code, or do code, but aren't familiar with the environment of zmNinjaNG, I'd encourage you to use an agentic AI tool to help you along the way. Pick one you prefer. Personally, I'd recommend [Claude Code](https://claude.com/product/claude-code). In my experience, as of Mar 2026, its significantly ahead of others.
 
 
 #### Pull Requests
@@ -173,8 +173,5 @@ pip install -r docs/requirements.txt sphinx-autobuild && cd docs && make clean &
 ### Making releases
 - See `scripts/make_release.sh` [here](scripts/make_release.sh). This automatically tags the current state and triggers release builds
 - `app/package.json` is the source of truth for the version number. `scripts/sync-version.js` propagates it to `app/src-tauri/tauri.conf.json` and `app/src-tauri/Cargo.toml` during builds and releases
-
-### New vs Old
-[View Comparison with zmNinja](notes/COMPARISON.md)
 
 
