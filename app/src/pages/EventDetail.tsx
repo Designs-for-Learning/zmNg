@@ -325,7 +325,7 @@ export default function EventDetail() {
                   onPanDown={zoomPan.panDown}
                   isZoomed={zoomPan.isZoomed}
                   scale={zoomPan.scale}
-                  className="bottom-2 left-2"
+                  className="bottom-12 left-2"
                 />
               </Card>
             )
