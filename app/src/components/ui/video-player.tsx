@@ -181,6 +181,9 @@ export function VideoPlayer({
         aspectRatio,
         poster,
         disablePictureInPicture: isAndroid,
+        controlBar: {
+          pictureInPictureToggle: !isAndroid,
+        },
         sources: [{
           src,
           type
