@@ -18,7 +18,7 @@ import { Badge } from '../components/ui/badge';
 import { VideoPlayer } from '../components/ui/video-player';
 import { ZmsEventPlayer } from '../components/events/ZmsEventPlayer';
 import { TagChip } from '../components/events/TagChip';
-import { ArrowLeft, Calendar, Clock, HardDrive, AlertTriangle, Download, Archive, Video, Star, Timer, Tag } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, HardDrive, AlertTriangle, Download, Archive, Video, Star, Timer, Tag, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { getEventCauseIcon } from '../lib/event-icons';
 import { useDateTimeFormat } from '../hooks/useDateTimeFormat';
 import { downloadEventVideo } from '../lib/download';
@@ -31,6 +31,8 @@ import { generateEventMarkers, type VideoMarker } from '../lib/video-markers';
 import { useEventFavoritesStore } from '../stores/eventFavorites';
 import { useZoomPan } from '../hooks/useZoomPan';
 import { ZoomControls } from '../components/ui/ZoomControls';
+import { useEventNavigation } from '../hooks/useEventNavigation';
+import { cn } from '../lib/utils';
 
 export default function EventDetail() {
   const { id } = useParams<{ id: string }>();
@@ -59,6 +61,15 @@ export default function EventDetail() {
   const { currentProfile, settings } = useCurrentProfile();
   const accessToken = useAuthStore((state) => state.accessToken);
   const { isFavorited, toggleFavorite } = useEventFavoritesStore();
+  const {
+    goToPrevEvent,
+    goToNextEvent,
+    isLoadingPrev,
+    isLoadingNext,
+  } = useEventNavigation({
+    currentEventId: id,
+    currentStartDateTime: event?.Event.StartDateTime,
+  });
 
   const isFav = currentProfile && event ? isFavorited(currentProfile.id, event.Event.Id) : false;
 
@@ -183,6 +194,7 @@ export default function EventDetail() {
     : undefined;
 
   const startTime = new Date(event.Event.StartDateTime.replace(' ', 'T'));
+  const incomingSlide = location.state?.slideDirection as 'left' | 'right' | undefined;
 
   return (
     <div className="flex flex-col h-full bg-background">
@@ -197,6 +209,21 @@ export default function EventDetail() {
             className="h-8 w-8"
           >
             <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={goToPrevEvent}
+            disabled={isLoadingPrev}
+            aria-label={t('common.previous')}
+            className="h-7 w-7"
+            data-testid="event-detail-prev"
+          >
+            {isLoadingPrev ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <ChevronLeft className="h-4 w-4" />
+            )}
           </Button>
           <div>
             <h1 className="text-sm sm:text-base font-semibold truncate max-w-[200px] sm:max-w-none">{event.Event.Name}</h1>
@@ -218,6 +245,21 @@ export default function EventDetail() {
               )}
             </div>
           </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={goToNextEvent}
+            disabled={isLoadingNext}
+            aria-label={t('common.next')}
+            className="h-7 w-7"
+            data-testid="event-detail-next"
+          >
+            {isLoadingNext ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <ChevronRight className="h-4 w-4" />
+            )}
+          </Button>
         </div>
         <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
           <Button
@@ -270,7 +312,14 @@ export default function EventDetail() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 p-2 sm:p-3 md:p-4 flex flex-col items-center bg-muted/10 overflow-y-auto">
+      <div
+        key={id}
+        className={cn(
+          'flex-1 p-2 sm:p-3 md:p-4 flex flex-col items-center bg-muted/10 overflow-y-auto',
+          incomingSlide === 'left' && 'event-slide-left',
+          incomingSlide === 'right' && 'event-slide-right',
+        )}
+      >
         <div className="w-full max-w-5xl space-y-3 sm:space-y-4 md:space-y-6">
           {/* Video Player or ZMS Playback */}
           {hasVideo ? (
