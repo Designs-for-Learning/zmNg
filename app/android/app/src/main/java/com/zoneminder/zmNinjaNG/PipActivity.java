@@ -10,73 +10,85 @@ import android.util.Rational;
 import android.app.Activity;
 import android.util.Log;
 import androidx.annotation.NonNull;
+import androidx.media3.common.C;
 import androidx.media3.common.MediaItem;
+import androidx.media3.common.MimeTypes;
 import androidx.media3.common.Player;
+import androidx.media3.common.VideoSize;
 import androidx.media3.exoplayer.ExoPlayer;
 import androidx.media3.ui.PlayerView;
 
 public class PipActivity extends Activity {
 
+    private static final String TAG = "PipActivity";
     private ExoPlayer player;
     private PlayerView playerView;
+    private boolean pipEntered = false;
+    private Rational aspectRatio;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         playerView = new PlayerView(this);
+        playerView.setBackgroundColor(0xFF000000); // Black background while loading
         setContentView(playerView);
 
         String url = getIntent().getStringExtra("url");
         long position = getIntent().getLongExtra("position", 0);
         String aspectRatioStr = getIntent().getStringExtra("aspectRatio");
 
-        Log.d("PipActivity", "onCreate url=" + url + " position=" + position);
+        Log.d(TAG, "onCreate url=" + url + " position=" + position);
 
         if (url == null) {
-            Log.e("PipActivity", "No URL provided");
+            Log.e(TAG, "No URL provided");
             setResult(RESULT_CANCELED);
             finish();
             return;
         }
 
+        aspectRatio = parseAspectRatio(aspectRatioStr);
+
         player = new ExoPlayer.Builder(this).build();
         playerView.setPlayer(player);
 
-        MediaItem mediaItem = MediaItem.fromUri(url);
+        // Build MediaItem with explicit MIME type so ExoPlayer doesn't
+        // have to guess from ZoneMinder's PHP endpoint URL
+        MediaItem mediaItem = new MediaItem.Builder()
+                .setUri(url)
+                .setMimeType(MimeTypes.VIDEO_MP4)
+                .build();
         player.setMediaItem(mediaItem);
         player.prepare();
         player.seekTo(position);
         player.setPlayWhenReady(true);
 
-        // Build PiP params
-        final Rational ratio = parseAspectRatio(aspectRatioStr);
-
         player.addListener(new Player.Listener() {
             @Override
             public void onPlaybackStateChanged(int playbackState) {
-                Log.d("PipActivity", "playbackState=" + playbackState);
+                Log.d(TAG, "playbackState=" + playbackState);
                 if (playbackState == Player.STATE_ENDED) {
                     finishWithPosition();
-                } else if (playbackState == Player.STATE_READY) {
-                    enterPipMode(ratio);
                 }
             }
 
             @Override
+            public void onRenderedFirstFrame() {
+                Log.d(TAG, "First frame rendered, entering PiP");
+                enterPipMode();
+            }
+
+            @Override
             public void onPlayerError(@NonNull androidx.media3.common.PlaybackException error) {
-                Log.e("PipActivity", "Player error: " + error.getMessage(), error);
+                Log.e(TAG, "Player error: " + error.getMessage(), error);
                 finishWithPosition();
             }
         });
 
-        // Set PiP params early for auto-enter support (Android 12+)
+        // Set PiP params (but do NOT auto-enter — we enter manually after first frame)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             PictureInPictureParams.Builder pipBuilder = new PictureInPictureParams.Builder()
-                    .setAspectRatio(ratio);
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                pipBuilder.setAutoEnterEnabled(true);
-            }
+                    .setAspectRatio(aspectRatio);
             setPictureInPictureParams(pipBuilder.build());
         }
     }
@@ -91,14 +103,13 @@ public class PipActivity extends Activity {
         }
     }
 
-    private boolean pipEntered = false;
-
-    private void enterPipMode(Rational ratio) {
+    private void enterPipMode() {
         if (pipEntered) return;
         pipEntered = true;
+        Log.d(TAG, "enterPipMode");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             PictureInPictureParams.Builder pipBuilder = new PictureInPictureParams.Builder()
-                    .setAspectRatio(ratio);
+                    .setAspectRatio(aspectRatio);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 pipBuilder.setAutoEnterEnabled(true);
             }
@@ -108,6 +119,7 @@ public class PipActivity extends Activity {
 
     private void finishWithPosition() {
         long pos = player != null ? player.getCurrentPosition() : 0;
+        Log.d(TAG, "finishWithPosition pos=" + pos);
         Intent resultIntent = new Intent();
         resultIntent.putExtra("position", pos);
         setResult(RESULT_OK, resultIntent);
