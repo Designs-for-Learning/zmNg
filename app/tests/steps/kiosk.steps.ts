@@ -5,6 +5,19 @@ import { log } from '../../src/lib/logger';
 
 const { Given, When, Then } = createBdd();
 
+// Helper: enter PIN digits via numpad buttons
+async function enterPinDigits(page: import('@playwright/test').Page, pin: string) {
+  for (const digit of pin) {
+    const digitBtn = page.getByTestId(`kiosk-pin-digit-${digit}`);
+    await expect(digitBtn).toBeVisible({ timeout: testConfig.timeouts.element });
+    await digitBtn.click();
+    // Small delay between taps for auto-submit debouncing
+    await page.waitForTimeout(100);
+  }
+  // PIN auto-submits after 4 digits; wait for mode transition
+  await page.waitForTimeout(300);
+}
+
 // Kiosk / PIN Steps
 
 Given('I am logged in and on the monitors page', async ({ page }) => {
@@ -22,13 +35,14 @@ Given('I am logged in and on the monitors page', async ({ page }) => {
   ]);
 
   // Check if on setup page
-  const isSetupPage = await page.locator('text=/Initial Configuration/i').isVisible();
+  const isSetupPage = await page.getByRole('button', { name: /connect/i }).isVisible().catch(() => false)
+    || await page.getByLabel(/server url/i).isVisible().catch(() => false);
   if (isSetupPage) {
     const { host, username, password } = testConfig.server;
     await page.getByLabel(/server url/i).fill(host);
     if (username) await page.getByLabel(/username/i).fill(username);
     if (password) await page.getByLabel(/password/i).fill(password);
-    const connectBtn = page.getByRole('button', { name: /(connect|save|login)/i });
+    const connectBtn = page.getByRole('button', { name: /connect/i });
     await connectBtn.click();
     await page.waitForURL((url) => !url.pathname.includes('/profiles/new') && !url.pathname.includes('/setup'), {
       timeout: testConfig.timeouts.transition * 2,
@@ -51,93 +65,81 @@ Given('I am logged in and on the monitors page', async ({ page }) => {
 });
 
 When('I click the sidebar kiosk lock button', async ({ page }) => {
-  // TODO: implement - find and click the kiosk lock button in the sidebar
-  const lockBtn = page.getByTestId('kiosk-lock-button')
-    .or(page.getByRole('button', { name: /lock|kiosk/i }));
+  // The lock button in the sidebar has data-testid="sidebar-kiosk-lock"
+  const lockBtn = page.getByTestId('sidebar-kiosk-lock')
+    .or(page.getByTestId('sidebar-kiosk-lock-collapsed'));
   await lockBtn.first().click();
-  await page.waitForTimeout(300);
+  // Wait for PinPad to appear
+  await expect(page.getByTestId('kiosk-pin-pad')).toBeVisible({ timeout: testConfig.timeouts.element });
 });
 
 When('I set a 4-digit PIN {string}', async ({ page }, pin: string) => {
-  // TODO: implement - enter the PIN in the setup dialog
-  const pinInput = page.getByTestId('kiosk-pin-input')
-    .or(page.getByPlaceholder(/pin/i))
-    .or(page.locator('input[type="password"]').first());
-  await pinInput.fill(pin);
+  // PinPad is in 'set' mode - tap digits on the numpad
+  await expect(page.getByText(/Set Kiosk PIN/i)).toBeVisible({ timeout: testConfig.timeouts.element });
+  await enterPinDigits(page, pin);
 });
 
 When('I confirm the PIN {string}', async ({ page }, pin: string) => {
-  // TODO: implement - enter the PIN in the confirm field and submit
-  const confirmInput = page.getByTestId('kiosk-pin-confirm')
-    .or(page.getByPlaceholder(/confirm/i))
-    .or(page.locator('input[type="password"]').nth(1));
-  await confirmInput.fill(pin);
-
-  const submitBtn = page.getByRole('button', { name: /set|lock|confirm/i });
-  await submitBtn.click();
-  await page.waitForTimeout(300);
+  // PinPad is now in 'confirm' mode after set
+  await expect(page.getByText(/Confirm PIN/i)).toBeVisible({ timeout: testConfig.timeouts.element });
+  await enterPinDigits(page, pin);
 });
 
 Then('the kiosk overlay should be visible', async ({ page }) => {
-  const overlay = page.getByTestId('kiosk-overlay')
-    .or(page.locator('[data-testid*="kiosk"]'));
-  await expect(overlay.first()).toBeVisible({ timeout: testConfig.timeouts.element });
+  await expect(page.getByTestId('kiosk-overlay')).toBeVisible({ timeout: testConfig.timeouts.element });
 });
 
 Then('the sidebar should not be visible', async ({ page }) => {
-  const sidebar = page.getByTestId('sidebar')
-    .or(page.locator('nav[data-testid="sidebar"]'));
-  const isVisible = await sidebar.isVisible({ timeout: 1000 }).catch(() => false);
-  // Sidebar should be hidden or covered by overlay
-  log.info('E2E: Sidebar visibility during kiosk', { component: 'e2e', isVisible });
+  // When kiosk overlay is active, it covers everything. The sidebar may still exist in DOM
+  // but should not be interactable. Just verify the overlay is blocking.
+  const overlay = page.getByTestId('kiosk-overlay');
+  await expect(overlay).toBeVisible();
+  log.info('E2E: Kiosk overlay is blocking sidebar', { component: 'e2e' });
 });
 
 Given('kiosk mode is active with PIN {string}', async ({ page }, pin: string) => {
-  // Activate kiosk mode first
-  const lockBtn = page.getByTestId('kiosk-lock-button')
-    .or(page.getByRole('button', { name: /lock|kiosk/i }));
+  // First, ensure we're on a page with the sidebar visible
+  const lockBtn = page.getByTestId('sidebar-kiosk-lock')
+    .or(page.getByTestId('sidebar-kiosk-lock-collapsed'));
 
   if (await lockBtn.first().isVisible({ timeout: 2000 }).catch(() => false)) {
     await lockBtn.first().click();
     await page.waitForTimeout(300);
 
-    const pinInput = page.getByTestId('kiosk-pin-input')
-      .or(page.getByPlaceholder(/pin/i))
-      .or(page.locator('input[type="password"]').first());
-    await pinInput.fill(pin);
-
-    const confirmInput = page.getByTestId('kiosk-pin-confirm')
-      .or(page.getByPlaceholder(/confirm/i))
-      .or(page.locator('input[type="password"]').nth(1));
-    await confirmInput.fill(pin);
-
-    const submitBtn = page.getByRole('button', { name: /set|lock|confirm/i });
-    await submitBtn.click();
+    // Check if PinPad appeared (first time setup)
+    const pinPad = page.getByTestId('kiosk-pin-pad');
+    if (await pinPad.isVisible({ timeout: 1000 }).catch(() => false)) {
+      // Set PIN
+      await enterPinDigits(page, pin);
+      // Wait for confirm mode
+      await page.waitForTimeout(300);
+      // Confirm PIN
+      const confirmTitle = page.getByText(/Confirm PIN/i);
+      if (await confirmTitle.isVisible({ timeout: 1000 }).catch(() => false)) {
+        await enterPinDigits(page, pin);
+      }
+    }
+    // Wait for overlay to appear
     await page.waitForTimeout(500);
   }
 });
 
 When('I click the kiosk unlock button', async ({ page }) => {
-  const unlockBtn = page.getByTestId('kiosk-unlock-button')
-    .or(page.getByRole('button', { name: /unlock/i }));
-  await unlockBtn.first().click();
-  await page.waitForTimeout(300);
+  const unlockBtn = page.getByTestId('kiosk-unlock-button');
+  await expect(unlockBtn).toBeVisible({ timeout: testConfig.timeouts.element });
+  await unlockBtn.click();
+  // Wait for PIN pad to appear
+  await expect(page.getByTestId('kiosk-pin-pad')).toBeVisible({ timeout: testConfig.timeouts.element });
 });
 
 When('I enter the PIN {string}', async ({ page }, pin: string) => {
-  const pinInput = page.getByTestId('kiosk-unlock-pin-input')
-    .or(page.getByPlaceholder(/pin/i))
-    .or(page.locator('input[type="password"]').first());
-  await pinInput.fill(pin);
-
-  const submitBtn = page.getByRole('button', { name: /unlock|submit/i });
-  await submitBtn.click();
-  await page.waitForTimeout(300);
+  // PinPad is in 'unlock' mode
+  await expect(page.getByText(/Enter PIN to Unlock/i)).toBeVisible({ timeout: testConfig.timeouts.element });
+  await enterPinDigits(page, pin);
 });
 
 Then('the kiosk overlay should not be visible', async ({ page }) => {
-  const overlay = page.getByTestId('kiosk-overlay');
-  await expect(overlay).toBeHidden({ timeout: testConfig.timeouts.element });
+  await expect(page.getByTestId('kiosk-overlay')).toBeHidden({ timeout: testConfig.timeouts.element });
 });
 
 Then('I should see {string}', async ({ page }, text: string) => {
@@ -156,9 +158,7 @@ When('I try to click a navigation link', async ({ page }) => {
 });
 
 Then('the kiosk overlay should still be visible', async ({ page }) => {
-  const overlay = page.getByTestId('kiosk-overlay')
-    .or(page.locator('[data-testid*="kiosk"]'));
-  await expect(overlay.first()).toBeVisible();
+  await expect(page.getByTestId('kiosk-overlay')).toBeVisible();
 });
 
 Then('the page should not have changed', async ({ page }) => {

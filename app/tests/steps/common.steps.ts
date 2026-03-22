@@ -21,18 +21,26 @@ Given('I am logged into zmNinjaNG', async ({ page }) => {
     page.waitForSelector('[data-testid="nav-item-dashboard"]', { timeout: testConfig.timeouts.transition })
   ]);
 
-  // Check if on setup page by looking for setup form
-  const isSetupPage = await page.locator('text=/Initial Configuration/i').isVisible();
+  // Check if on setup page by looking for the Connect button or Server URL field
+  const isSetupPage = await page.getByRole('button', { name: /connect/i }).isVisible().catch(() => false)
+    || await page.getByLabel(/server url/i).isVisible().catch(() => false);
 
   if (isSetupPage) {
     log.info('E2E setup page detected; proceeding with login', { component: 'e2e', action: 'login' });
     const { host, username, password } = testConfig.server;
 
+    await page.getByLabel(/server url/i).clear();
     await page.getByLabel(/server url/i).fill(host);
-    if (username) await page.getByLabel(/username/i).fill(username);
-    if (password) await page.getByLabel(/password/i).fill(password);
+    if (username) {
+      await page.getByLabel(/username/i).clear();
+      await page.getByLabel(/username/i).fill(username);
+    }
+    if (password) {
+      await page.getByLabel(/password/i).clear();
+      await page.getByLabel(/password/i).fill(password);
+    }
 
-    const connectBtn = page.getByRole('button', { name: /(connect|save|login)/i });
+    const connectBtn = page.getByRole('button', { name: /connect/i });
     await expect(connectBtn).toBeEnabled();
     await connectBtn.click();
 
@@ -95,8 +103,9 @@ When('I navigate to the {string} page', async ({ page }, pageName: string) => {
     const clickableNav = page.locator(navItemSelector).locator('visible=true').first();
     await clickableNav.click({ timeout: testConfig.timeouts.transition });
   } catch {
-    // Fallback: try clicking any matching nav item
-    await page.locator(navItemSelector).first().click({ timeout: 2000 });
+    // Fallback: navigate directly via URL hash (some nav items may be scrolled
+    // off-screen in the sidebar, e.g. the Logs link at the bottom)
+    await page.evaluate((r) => { window.location.hash = `#/${r}`; }, route);
   }
 
   await page.waitForURL(new RegExp(`.*${route}`), { timeout: testConfig.timeouts.transition });

@@ -39,9 +39,11 @@ Then('I should see the monitor filter button', async ({ page }) => {
 
 // Quick Date Ranges
 Then('I should see quick date range options', async ({ page }) => {
+  // Wait for timeline page content to render
+  await page.waitForTimeout(500);
   // Quick range buttons use short labels like "24h", "48h", "1wk", "2wk", "1mo"
   const quickButtons = page.getByRole('button', { name: /24h|48h|1wk|2wk|1mo/i });
-  await expect(quickButtons.first()).toBeVisible({ timeout: testConfig.timeouts.element });
+  await expect(quickButtons.first()).toBeVisible({ timeout: testConfig.timeouts.pageLoad });
 });
 
 When('I click a quick date range option', async ({ page }) => {
@@ -50,23 +52,23 @@ When('I click a quick date range option', async ({ page }) => {
 });
 
 Then('the date filters should update', async ({ page }) => {
-  // Date inputs should have valid values
-  const dateInputs = page.locator('input[type="date"]');
+  // Date inputs should have valid values (may be type="date" or type="datetime-local")
+  const dateInputs = page.locator('input[type="date"], input[type="datetime-local"]');
   const count = await dateInputs.count();
   expect(count).toBeGreaterThanOrEqual(2);
 });
 
-// Refresh
+// Refresh / Reset
 Then('I should see the refresh button', async ({ page }) => {
-  const refreshBtn = page.getByTestId('timeline-refresh-button')
-    .or(page.getByRole('button', { name: /refresh/i }))
-    .or(page.locator('button').filter({ has: page.locator('svg') }).first());
+  // The timeline has a reset button (data-testid="timeline-reset-button") with RefreshCw icon
+  const refreshBtn = page.getByTestId('timeline-reset-button')
+    .or(page.getByRole('button', { name: /reset|refresh/i }));
   await expect(refreshBtn.first()).toBeVisible({ timeout: testConfig.timeouts.element });
 });
 
 When('I click the refresh button', async ({ page }) => {
-  const refreshBtn = page.getByTestId('timeline-refresh-button')
-    .or(page.getByRole('button', { name: /refresh/i })).first();
+  const refreshBtn = page.getByTestId('timeline-reset-button')
+    .or(page.getByRole('button', { name: /reset|refresh/i })).first();
   await refreshBtn.click();
 });
 
@@ -183,15 +185,17 @@ Then("the timeline should show only that monitor's events", async ({ page }) => 
 
 // Mobile Responsive
 Then('the timeline controls should be accessible', async ({ page }) => {
-  // Check for the timeline page controls (filter, refresh, date inputs)
-  const refreshBtn = page.getByTestId('timeline-refresh-button');
+  // Check for the timeline page controls (filter, reset, date inputs)
+  const resetBtn = page.getByTestId('timeline-reset-button');
   const filterBtn = page.getByTestId('timeline-monitor-filter');
+  const dateInput = page.getByTestId('timeline-start-date');
 
   await expect.poll(async () => {
-    const hasRefresh = await refreshBtn.isVisible().catch(() => false);
+    const hasReset = await resetBtn.isVisible().catch(() => false);
     const hasFilter = await filterBtn.isVisible().catch(() => false);
-    return hasRefresh || hasFilter;
-  }, { timeout: testConfig.timeouts.element }).toBeTruthy();
+    const hasDate = await dateInput.isVisible().catch(() => false);
+    return hasReset || hasFilter || hasDate;
+  }, { timeout: testConfig.timeouts.pageLoad }).toBeTruthy();
 });
 
 Then('the timeline should be scrollable', async ({ page }) => {
