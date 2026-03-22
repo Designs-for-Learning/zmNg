@@ -8,6 +8,7 @@ import android.os.Bundle;
 import android.util.Rational;
 
 import android.app.Activity;
+import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.media3.common.MediaItem;
 import androidx.media3.common.Player;
@@ -30,7 +31,10 @@ public class PipActivity extends Activity {
         long position = getIntent().getLongExtra("position", 0);
         String aspectRatioStr = getIntent().getStringExtra("aspectRatio");
 
+        Log.d("PipActivity", "onCreate url=" + url + " position=" + position);
+
         if (url == null) {
+            Log.e("PipActivity", "No URL provided");
             setResult(RESULT_CANCELED);
             finish();
             return;
@@ -45,26 +49,35 @@ public class PipActivity extends Activity {
         player.seekTo(position);
         player.setPlayWhenReady(true);
 
+        // Build PiP params
+        final Rational ratio = parseAspectRatio(aspectRatioStr);
+
         player.addListener(new Player.Listener() {
             @Override
             public void onPlaybackStateChanged(int playbackState) {
+                Log.d("PipActivity", "playbackState=" + playbackState);
                 if (playbackState == Player.STATE_ENDED) {
                     finishWithPosition();
+                } else if (playbackState == Player.STATE_READY) {
+                    enterPipMode(ratio);
                 }
+            }
+
+            @Override
+            public void onPlayerError(@NonNull androidx.media3.common.PlaybackException error) {
+                Log.e("PipActivity", "Player error: " + error.getMessage(), error);
+                finishWithPosition();
             }
         });
 
+        // Set PiP params early for auto-enter support (Android 12+)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            Rational ratio = parseAspectRatio(aspectRatioStr);
             PictureInPictureParams.Builder pipBuilder = new PictureInPictureParams.Builder()
                     .setAspectRatio(ratio);
-
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 pipBuilder.setAutoEnterEnabled(true);
             }
-
             setPictureInPictureParams(pipBuilder.build());
-            enterPictureInPictureMode(pipBuilder.build());
         }
     }
 
@@ -75,6 +88,21 @@ public class PipActivity extends Activity {
 
         if (!isInPictureInPictureMode) {
             finishWithPosition();
+        }
+    }
+
+    private boolean pipEntered = false;
+
+    private void enterPipMode(Rational ratio) {
+        if (pipEntered) return;
+        pipEntered = true;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            PictureInPictureParams.Builder pipBuilder = new PictureInPictureParams.Builder()
+                    .setAspectRatio(ratio);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                pipBuilder.setAutoEnterEnabled(true);
+            }
+            enterPictureInPictureMode(pipBuilder.build());
         }
     }
 
