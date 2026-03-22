@@ -356,6 +356,7 @@ export function ZmsEventPlayer({
           totalFrames={totalFrames}
           alarmFrames={alarmFramePositions}
           onSeek={goToFrame}
+          duration={eventLength}
         />
 
         {/* Speed Controls */}

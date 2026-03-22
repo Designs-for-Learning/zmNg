@@ -237,11 +237,8 @@ export default function EventDetail() {
                   </Badge>
                 );
               })()}
-              <span className="hidden sm:inline">{t('event_detail.camera')} {event.Event.MonitorId}</span>
-              {event.Event.Notes && (
-                <span className="text-[10px] sm:text-xs truncate max-w-[200px]" title={event.Event.Notes}>
-                  {event.Event.Notes.split('|')[0].trim()}
-                </span>
+              {monitorData && (
+                <span className="hidden sm:inline">{monitorData.Monitor.Name}</span>
               )}
             </div>
           </div>
