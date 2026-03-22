@@ -123,7 +123,7 @@ function LanguageSwitcher({ collapsed = false }: { collapsed?: boolean }) {
  */
 function SidebarContent({ onMobileClose, isCollapsed }: SidebarContentProps) {
   const location = useLocation();
-  const isCompact = true;
+  const isMobileDrawer = !!onMobileClose;
   const currentProfile = useProfileStore(
     useShallow((state) => {
       const { profiles, currentProfileId } = state;
@@ -254,10 +254,10 @@ function SidebarContent({ onMobileClose, isCollapsed }: SidebarContentProps) {
     <div className="flex flex-col h-full overflow-hidden">
       <div className={cn(
         "transition-all duration-300",
-        isCollapsed ? "p-2 flex flex-col items-center" : isCompact ? "px-3 py-2" : "p-6"
+        isCollapsed ? "p-2 flex flex-col items-center" : isMobileDrawer ? "px-3 py-2" : "p-6"
       )}>
         <div className={cn("flex items-center gap-2 mb-1", isCollapsed && "flex-col mb-2")}>
-          <img src="/logo.png" alt={t('app.logo_alt')} className={cn("rounded-lg", isCompact ? "h-6 w-6" : "h-8 w-8")} />
+          <img src="/logo.png" alt={t('app.logo_alt')} className={cn("rounded-lg", isMobileDrawer ? "h-6 w-6" : "h-8 w-8")} />
           {!isCollapsed && (
             <>
               <h1 className="text-base font-bold tracking-tight whitespace-nowrap">{t('app.name')}</h1>
@@ -273,7 +273,7 @@ function SidebarContent({ onMobileClose, isCollapsed }: SidebarContentProps) {
         )}
       </div>
 
-      <div className={cn("flex-1 overflow-y-auto overflow-x-hidden", isCompact ? "px-2 py-1" : "px-3 py-2")}>
+      <div className={cn("flex-1 overflow-y-auto overflow-x-hidden", isMobileDrawer ? "px-2 py-1" : "px-3 py-2")}>
         {/* Reorder toggle — only when expanded */}
         {!isCollapsed && (
           <div className="flex justify-end gap-1 mb-1 px-1">
@@ -303,7 +303,7 @@ function SidebarContent({ onMobileClose, isCollapsed }: SidebarContentProps) {
         )}
         <nav
           ref={navListRef}
-          className="space-y-1"
+          className={isMobileDrawer ? "space-y-1" : "space-y-1.5"}
           onPointerMove={isReordering ? handlePointerMove : undefined}
           onPointerUp={isReordering ? handlePointerUp : undefined}
         >
@@ -341,7 +341,7 @@ function SidebarContent({ onMobileClose, isCollapsed }: SidebarContentProps) {
                 onClick={() => onMobileClose?.()}
                 className={cn(
                   "flex items-center rounded-lg font-medium transition-all duration-200 group relative",
-                  isCompact ? "gap-2 px-2 py-2 text-sm" : "gap-3 px-3 py-2.5 text-sm",
+                  isMobileDrawer ? "gap-2 px-2 py-2 text-sm" : "gap-3 px-3 py-2.5 text-sm",
                   isActive
                     ? "bg-primary text-primary-foreground shadow-md"
                     : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
@@ -412,16 +412,16 @@ function SidebarContent({ onMobileClose, isCollapsed }: SidebarContentProps) {
           })}
         </nav>
 
-      <div className={cn("border-t bg-card/50 backdrop-blur-sm transition-all duration-300 mt-4", isCollapsed ? "p-2 space-y-3" : isCompact ? "px-2 py-2 space-y-1" : "px-3 py-2 space-y-1.5")}>
+      <div className={cn("border-t bg-card/50 backdrop-blur-sm transition-all duration-300 mt-4", isCollapsed ? "p-2 space-y-3" : isMobileDrawer ? "px-2 py-2 space-y-1" : "px-3 py-2 space-y-1.5")}>
         {!isCollapsed ? (
           <>
-            <div className={isCompact ? "space-y-0.5" : "space-y-1"}>
+            <div className={isMobileDrawer ? "space-y-0.5" : "space-y-1"}>
               <span className="text-xs font-medium text-muted-foreground px-1">{t('sidebar.profile')}</span>
               <ProfileSwitcher />
             </div>
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium text-muted-foreground">{t('settings.theme')}</span>
-              <ModeToggle className={isCompact ? "h-7 w-7" : "h-8 w-8"} />
+              <ModeToggle className={isMobileDrawer ? "h-7 w-7" : "h-8 w-8"} />
             </div>
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium text-muted-foreground">{t('monitor_detail.insomnia_label')}</span>
@@ -429,7 +429,7 @@ function SidebarContent({ onMobileClose, isCollapsed }: SidebarContentProps) {
                 onClick={handleInsomniaToggle}
                 variant={profileSettings?.insomnia ? "default" : "outline"}
                 size="icon"
-                className={isCompact ? "h-7 w-7" : "h-8 w-8"}
+                className={isMobileDrawer ? "h-7 w-7" : "h-8 w-8"}
                 title={profileSettings?.insomnia ? t('montage.insomnia_enabled') : t('montage.insomnia_disabled')}
                 data-testid="sidebar-insomnia-toggle"
               >
@@ -444,7 +444,7 @@ function SidebarContent({ onMobileClose, isCollapsed }: SidebarContentProps) {
                 onClick={kioskIsLocked ? requestUnlock : handleLockToggle}
                 variant={kioskIsLocked ? "default" : "outline"}
                 size="icon"
-                className={isCompact ? "h-7 w-7" : "h-8 w-8"}
+                className={isMobileDrawer ? "h-7 w-7" : "h-8 w-8"}
                 title={kioskIsLocked ? t('kiosk.unlock_label') : t('kiosk.lock_label')}
                 data-testid="sidebar-kiosk-lock"
               >
@@ -596,7 +596,7 @@ export default function AppLayout() {
     <div className="flex h-[100dvh] bg-background overflow-hidden pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]">
       {/* Desktop Sidebar */}
       <aside
-        className="hidden md:flex flex-col border-r bg-card/50 backdrop-blur-xl z-20 transition-all duration-300 relative group"
+        className="hidden md:flex flex-col border-r bg-card/50 backdrop-blur-xl z-20 transition-all duration-300 relative group pt-[env(safe-area-inset-top)]"
         style={{ width: `${sidebarWidth}px` }}
       >
         <SidebarContent isCollapsed={isCollapsed} />
@@ -661,7 +661,7 @@ export default function AppLayout() {
       )}
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto overflow-x-hidden relative w-full pt-[calc(3rem+env(safe-area-inset-top))] md:pt-0 pb-[env(safe-area-inset-bottom)]">
+      <main className="flex-1 overflow-y-auto overflow-x-hidden relative w-full pt-[calc(3rem+env(safe-area-inset-top))] md:pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
         {/* Background gradient blob for visual interest */}
         <div className="absolute top-0 left-0 w-full h-96 bg-gradient-to-b from-primary/5 to-transparent -z-10 pointer-events-none" />
 
