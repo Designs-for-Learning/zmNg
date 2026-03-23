@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { Move, Bell, Wifi, Link, Hand, Video, Circle } from 'lucide-react';
+import { Move, Bell, Wifi, Link, Hand, Video, Circle, Car, PersonStanding, Truck } from 'lucide-react';
 import { getEventCauseIcon, hasSpecificCauseIcon } from '../event-icons';
 
 describe('getEventCauseIcon', () => {
@@ -35,6 +35,22 @@ describe('getEventCauseIcon', () => {
   it('returns Video icon for Continuous cause', () => {
     const icon = getEventCauseIcon('Continuous');
     expect(icon).toBe(Video);
+  });
+
+  it('returns Car icon for detected:car', () => {
+    expect(getEventCauseIcon('detected:car')).toBe(Car);
+  });
+
+  it('returns PersonStanding icon for detected:person', () => {
+    expect(getEventCauseIcon('detected:person')).toBe(PersonStanding);
+  });
+
+  it('returns icon for first class in detected:car,person', () => {
+    expect(getEventCauseIcon('detected:car,person')).toBe(Car);
+  });
+
+  it('returns Truck icon for detected:truck,person', () => {
+    expect(getEventCauseIcon('detected:truck,person')).toBe(Truck);
   });
 
   it('returns Circle icon for unknown causes', () => {
