@@ -110,7 +110,7 @@ Then('the updated profile name should appear in the list', async () => {
       }
       return false;
     },
-    { timeout: testConfig.timeouts.element },
+    { timeout: 15000, timeoutMsg: `Profile "${updatedProfileName}" not found in list` },
   );
 });
 

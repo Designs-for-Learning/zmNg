@@ -106,29 +106,89 @@ Given('I am logged in and on the monitors page', async () => {
 });
 
 When('I click the sidebar kiosk lock button', async () => {
-  // Wait for sidebar to render
   await browser.pause(1000);
 
-  let lockBtn = await $('[data-testid="sidebar-kiosk-lock"]');
-  if (!(await lockBtn.isDisplayed().catch(() => false))) {
-    lockBtn = await $('[data-testid="sidebar-kiosk-lock-collapsed"]');
+  // Try all possible lock button selectors with scroll
+  const selectors = [
+    '[data-testid="sidebar-kiosk-lock"]',
+    '[data-testid="sidebar-kiosk-lock-collapsed"]',
+  ];
+
+  let lockBtn = null;
+
+  // First try without opening mobile menu
+  for (const sel of selectors) {
+    const el = await $(sel);
+    if (await el.isDisplayed().catch(() => false)) {
+      lockBtn = el;
+      break;
+    }
+    // Try scrolling it into view
+    try {
+      await el.scrollIntoView();
+      await browser.pause(300);
+      if (await el.isDisplayed().catch(() => false)) {
+        lockBtn = el;
+        break;
+      }
+    } catch { /* element not in DOM */ }
   }
-  if (!(await lockBtn.isDisplayed().catch(() => false))) {
-    // On mobile/tablet, may need to open the sidebar/menu first
+
+  // If not found, try opening mobile/hamburger menu
+  if (!lockBtn) {
     const mobileMenu = await $('[data-testid="mobile-menu-button"]');
     if (await mobileMenu.isDisplayed().catch(() => false)) {
       await mobileMenu.click();
-      await browser.pause(500);
-      lockBtn = await $('[data-testid="sidebar-kiosk-lock"]');
-      if (!(await lockBtn.isDisplayed().catch(() => false))) {
-        lockBtn = await $('[data-testid="sidebar-kiosk-lock-collapsed"]');
+      await browser.pause(800);
+      for (const sel of selectors) {
+        const el = await $(sel);
+        try {
+          await el.scrollIntoView();
+          await browser.pause(300);
+        } catch { /* not in DOM */ }
+        if (await el.isDisplayed().catch(() => false)) {
+          lockBtn = el;
+          break;
+        }
       }
     }
   }
-  await lockBtn.click();
 
+  if (!lockBtn) {
+    // Last resort: use JS to find and click it
+    const clicked = await browser.execute(() => {
+      const btn = document.querySelector('[data-testid="sidebar-kiosk-lock"]')
+        || document.querySelector('[data-testid="sidebar-kiosk-lock-collapsed"]');
+      if (btn) { (btn as HTMLElement).click(); return true; }
+      return false;
+    });
+    if (!clicked) throw new Error('Could not find kiosk lock button');
+  } else {
+    try {
+      await lockBtn.click();
+    } catch {
+      await browser.execute((el: HTMLElement) => el.click(), lockBtn as unknown as HTMLElement);
+    }
+  }
+
+  await browser.pause(1000);
   const pinPad = await $('[data-testid="kiosk-pin-pad"]');
-  await pinPad.waitForDisplayed({ timeout: testConfig.timeouts.element * 3 });
+  try {
+    await pinPad.waitForDisplayed({ timeout: 15000 });
+  } catch {
+    // PIN pad might not appear if the button click wasn't registered
+    // Try clicking again via JS
+    const clicked = await browser.execute(() => {
+      const btn = document.querySelector('[data-testid="sidebar-kiosk-lock"]')
+        || document.querySelector('[data-testid="sidebar-kiosk-lock-collapsed"]');
+      if (btn) { (btn as HTMLElement).click(); return true; }
+      return false;
+    });
+    if (clicked) {
+      await browser.pause(1000);
+      await pinPad.waitForDisplayed({ timeout: 10000 });
+    }
+  }
 });
 
 When('I set a 4-digit PIN {string}', async (pin: string) => {

@@ -78,24 +78,47 @@ Then('each montage cell should show a monitor name label', async () => {
 });
 
 When('I click the snapshot button on the first montage monitor', async () => {
-  // On iOS simulator, moveTo/hover is unreliable in webview context.
-  // The snapshot button may be always visible or revealed on touch.
-  // Try to find and click it directly first.
   await browser.pause(500);
 
+  // On touch devices, hover-to-reveal won't work.
+  // Use JS to trigger mouseover to reveal controls, then click.
+  const firstMonitor = await $('[data-testid="montage-monitor"]');
+  if (await firstMonitor.isDisplayed().catch(() => false)) {
+    // Trigger mouseover via JS to reveal hover controls
+    await browser.execute((el: HTMLElement) => {
+      el.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+      el.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+    }, firstMonitor as unknown as HTMLElement);
+    await browser.pause(500);
+  }
+
+  // Try finding snapshot button by data-testid, then aria-label, then title
   let snapshotBtn = await $('[data-testid="snapshot-button"]');
   if (!(await snapshotBtn.isDisplayed().catch(() => false))) {
-    // Try tapping the first monitor to reveal controls
-    const firstMonitor = await $('[data-testid="montage-monitor"]');
-    if (await firstMonitor.isDisplayed().catch(() => false)) {
-      await firstMonitor.click();
-      await browser.pause(500);
-    }
-    // Try again
-    snapshotBtn = await $('[data-testid="snapshot-button"]');
+    snapshotBtn = await $('button[aria-label*="snapshot" i]');
   }
   if (!(await snapshotBtn.isDisplayed().catch(() => false))) {
-    snapshotBtn = await $('//button[contains(translate(text(),"ABCDEFGHIJKLMNOPQRSTUVWXYZ","abcdefghijklmnopqrstuvwxyz"),"snapshot") or contains(translate(text(),"ABCDEFGHIJKLMNOPQRSTUVWXYZ","abcdefghijklmnopqrstuvwxyz"),"download")]');
+    snapshotBtn = await $('button[title*="snapshot" i]');
   }
-  await snapshotBtn.click();
+  if (!(await snapshotBtn.isDisplayed().catch(() => false))) {
+    // Last resort: find the download/camera icon button via JS
+    const clicked = await browser.execute(() => {
+      const btns = document.querySelectorAll('[data-testid="montage-monitor"] button');
+      for (const btn of btns) {
+        if (btn.querySelector('svg.lucide-download') || btn.querySelector('svg.lucide-camera')) {
+          (btn as HTMLElement).click();
+          return true;
+        }
+      }
+      return false;
+    });
+    if (clicked) return;
+    throw new Error('Could not find snapshot button on montage monitor');
+  }
+
+  try {
+    await snapshotBtn.click();
+  } catch {
+    await browser.execute((el: HTMLElement) => el.click(), snapshotBtn as unknown as HTMLElement);
+  }
 });

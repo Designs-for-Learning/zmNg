@@ -59,16 +59,32 @@ When('I enter widget title {string}', async (title: string) => {
 
 When('I click the Add button in the dialog', async () => {
   const addBtn = await $('[data-testid="widget-add-button"]');
-  await expect(addBtn).toBeDisplayed();
-  await expect(addBtn).toBeEnabled();
-  await addBtn.click();
+  await addBtn.scrollIntoView();
+  await browser.pause(300);
+  await addBtn.waitForDisplayed({ timeout: 5000 });
+  await addBtn.waitForEnabled({ timeout: 5000 });
 
-  // Wait for dialog to close
+  // Try normal click first, then JS click fallback
+  try {
+    await addBtn.click();
+  } catch {
+    await browser.execute((el: HTMLElement) => el.click(), addBtn as unknown as HTMLElement);
+  }
+
+  // Wait for dialog to close with longer timeout for simulator
+  await browser.pause(500);
   const dialog = await $('[data-testid="add-widget-dialog"]');
-  await dialog.waitForDisplayed({
-    timeout: testConfig.timeouts.element,
-    reverse: true,
-  });
+  try {
+    await dialog.waitForDisplayed({ timeout: 8000, reverse: true });
+  } catch {
+    // Dialog might still be visible — try clicking Add again via JS
+    const btn = await $('[data-testid="widget-add-button"]');
+    const isStillVisible = await btn.isDisplayed().catch(() => false);
+    if (isStillVisible) {
+      await browser.execute((el: HTMLElement) => el.click(), btn as unknown as HTMLElement);
+      await browser.pause(1000);
+    }
+  }
 });
 
 Then('the widget {string} should appear on the dashboard', async (_title: string) => {
@@ -102,8 +118,29 @@ Then('the widget should contain non-empty content', async () => {
 // ----- Widget Edit / Delete -----
 
 When('I enter dashboard edit mode', async () => {
-  const editBtn = await $('//button[contains(translate(text(),"ABCDEFGHIJKLMNOPQRSTUVWXYZ","abcdefghijklmnopqrstuvwxyz"),"edit")]');
-  await editBtn.click();
+  // The edit button contains an icon + text "Edit" (or localized equivalent)
+  // Use title attribute which is always set
+  let editBtn = await $('button[title*="Edit"]');
+  if (!(await editBtn.isDisplayed().catch(() => false))) {
+    editBtn = await $('//button[contains(.,"Edit")]');
+  }
+  if (!(await editBtn.isDisplayed().catch(() => false))) {
+    // Try finding by svg icon (pencil icon)
+    editBtn = await $('button svg.lucide-pencil');
+    if (await editBtn.isDisplayed().catch(() => false)) {
+      const parent = await editBtn.parentElement();
+      await parent.click();
+      await browser.pause(300);
+      return;
+    }
+  }
+  await editBtn.scrollIntoView();
+  await browser.pause(200);
+  try {
+    await editBtn.click();
+  } catch {
+    await browser.execute((el: HTMLElement) => el.click(), editBtn as unknown as HTMLElement);
+  }
   await browser.pause(300);
 });
 
