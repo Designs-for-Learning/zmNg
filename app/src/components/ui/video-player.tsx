@@ -5,7 +5,7 @@
  * Handles HLS streams, authenticated requests (via hooks), and cleanup.
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import videojs from 'video.js';
 import 'video.js/dist/video-js.css';
 import 'videojs-markers';
@@ -13,6 +13,7 @@ import 'videojs-markers';
 // Define Player type from the videojs function return type
 // This avoids deep imports which can be problematic with some bundlers
 type Player = ReturnType<typeof videojs>;
+import { Capacitor } from '@capacitor/core';
 import { cn } from '../../lib/utils';
 import { log, LogLevel } from '../../lib/logger';
 import type { VideoMarker } from '../../lib/video-markers';
@@ -210,6 +211,36 @@ export function VideoPlayer({
 
         onReady && onReady(player);
       });
+
+      // On native mobile, override fullscreen to use CSS instead of the
+      // native Fullscreen API, which shows an ugly capacitor:// URL banner on iOS.
+      if (Capacitor.isNativePlatform()) {
+        const containerEl = videoRef.current;
+        player.requestFullscreen = function () {
+          if (containerEl) {
+            containerEl.style.position = 'fixed';
+            containerEl.style.inset = '0';
+            containerEl.style.zIndex = '9999';
+            containerEl.style.backgroundColor = '#000';
+            player.addClass('vjs-fullscreen');
+            player.isFullscreen(true);
+            player.trigger('fullscreenchange');
+          }
+          return Promise.resolve();
+        };
+        player.exitFullscreen = function () {
+          if (containerEl) {
+            containerEl.style.position = '';
+            containerEl.style.inset = '';
+            containerEl.style.zIndex = '';
+            containerEl.style.backgroundColor = '';
+            player.removeClass('vjs-fullscreen');
+            player.isFullscreen(false);
+            player.trigger('fullscreenchange');
+          }
+          return Promise.resolve();
+        };
+      }
 
       // Handle errors
       player.on('error', () => {
