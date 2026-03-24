@@ -15,6 +15,7 @@ const config: CapacitorConfig = {
   ios: {
     contentInset: 'never',
     backgroundColor: '#020817',
+    allowsInlineMediaPlayback: true,
   },
   plugins: {
     SplashScreen: {

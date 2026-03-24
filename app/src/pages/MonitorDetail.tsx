@@ -344,7 +344,6 @@ export default function MonitorDetail() {
       )}>
         <Card
           ref={zoomPan.ref}
-          {...zoomPan.bind()}
           className={cn(
             'relative bg-black overflow-hidden border-0 touch-none transition-shadow',
             isFullscreen

@@ -340,7 +340,6 @@ export default function EventDetail() {
               // MP4 video playback
               <Card
                 ref={zoomPan.ref}
-                {...zoomPan.bind()}
                 className="overflow-hidden shadow-2xl border-0 ring-1 ring-border/20 bg-black touch-none relative"
               >
                 <div className="aspect-video relative">

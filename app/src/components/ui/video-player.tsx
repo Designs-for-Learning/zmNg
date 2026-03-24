@@ -167,6 +167,8 @@ export function VideoPlayer({
       const videoElement = document.createElement("video-js");
 
       videoElement.classList.add('vjs-big-play-centered');
+      videoElement.setAttribute('playsinline', '');
+      videoElement.setAttribute('webkit-playsinline', '');
 
       if (videoRef.current) {
         videoRef.current.appendChild(videoElement);
@@ -177,6 +179,7 @@ export function VideoPlayer({
         controls,
         responsive: true,
         fluid: true,
+        playsinline: true,
         muted,
         aspectRatio,
         poster,

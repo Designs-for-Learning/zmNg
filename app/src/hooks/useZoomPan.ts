@@ -48,6 +48,7 @@ export function useZoomPan({
       el.style.willChange = 'transform';
       el.style.width = '100%';
       el.style.height = '100%';
+      el.style.touchAction = 'none';
     }
   }, []);
 
@@ -148,7 +149,7 @@ export function useZoomPan({
   }, [applyTransform, syncState]);
 
   // Pinch-to-zoom only (touch devices) + swipe navigation
-  const bind = useGesture(
+  useGesture(
     {
       onPinch: ({ offset: [newScale], origin: [ox, oy], first, last, memo }) => {
         const container = containerRef.current;
@@ -212,23 +213,28 @@ export function useZoomPan({
       },
     },
     {
+      target: containerRef,
+      eventOptions: { passive: false },
       pinch: { scaleBounds: { min: minScale, max: maxScale }, rubberband: true },
       drag: { filterTaps: true, pointer: { touch: true } },
     },
   );
 
-  // Remove CSS class on unmount
+  // Apply touch/drag styles to container
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
     el.classList.add('no-native-drag');
-    return () => el.classList.remove('no-native-drag');
+    el.style.touchAction = 'none';
+    return () => {
+      el.classList.remove('no-native-drag');
+      el.style.touchAction = '';
+    };
   }, []);
 
   return {
     ref: containerRef,
     innerRef,
-    bind,
     scale: displayScale,
     isZoomed,
     reset,
