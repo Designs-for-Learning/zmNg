@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Badge } from '../ui/badge';
 import { Switch } from '../ui/switch';
+import { Input } from '../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import type { Monitor } from '../../api/types';
 import type { MonitorFunction } from '../../pages/hooks/useModeControl';
@@ -29,15 +30,15 @@ interface MonitorSettingsDialogProps {
   onFunctionChange?: (value: MonitorFunction) => void;
   isModeUpdating?: boolean;
   // Enabled toggle
-  onEnabledChange: (enabled: boolean) => void;
-  isEnabledUpdating: boolean;
-  // Cycle settings
-  cycleSeconds: number;
-  onCycleSecondsChange: (value: string) => void;
-  // Read-only display
-  feedFit: string;
-  orientedResolution: string;
-  rotationStatus: string;
+  onEnabledChange?: (enabled: boolean) => void;
+  isEnabledUpdating?: boolean;
+  // Cycle settings (MonitorDetail only)
+  cycleSeconds?: number;
+  onCycleSecondsChange?: (value: string) => void;
+  // Read-only display (MonitorDetail only)
+  feedFit?: string;
+  orientedResolution?: string;
+  rotationStatus?: string;
 }
 
 /** Shared row layout for label + value/control pairs. */
@@ -73,12 +74,13 @@ export function MonitorSettingsDialog({
   onFunctionChange,
   isModeUpdating = false,
   onEnabledChange,
-  isEnabledUpdating,
+  isEnabledUpdating = false,
   cycleSeconds,
   onCycleSecondsChange,
   feedFit,
   orientedResolution,
   rotationStatus,
+
 }: MonitorSettingsDialogProps) {
   const { t } = useTranslation();
   const isEnabled = monitor.Enabled === '1' || monitor.Enabled === 'true';
@@ -185,36 +187,51 @@ export function MonitorSettingsDialog({
               </SettingsRow>
             )}
 
-            <SettingsRow label={t('monitor_detail.enabled_label')} testId="settings-enabled-row">
-              <Switch
-                checked={isEnabled}
-                onCheckedChange={onEnabledChange}
-                disabled={isEnabledUpdating}
-                data-testid="settings-enabled-toggle"
-              />
-            </SettingsRow>
+            {onEnabledChange && (
+              <SettingsRow label={t('monitor_detail.enabled_label')} testId="settings-enabled-row">
+                <Switch
+                  checked={isEnabled}
+                  onCheckedChange={onEnabledChange}
+                  disabled={isEnabledUpdating}
+                  data-testid="settings-enabled-toggle"
+                />
+              </SettingsRow>
+            )}
 
-            <SettingsRow label={t('monitor_detail.cycle_label')} testId="settings-cycle-row">
-              <Select value={String(cycleSeconds)} onValueChange={onCycleSecondsChange}>
-                <SelectTrigger className="w-32 h-8" data-testid="monitor-detail-cycle-select">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="0">{t('monitor_detail.cycle_off')}</SelectItem>
-                  <SelectItem value="5">{t('monitor_detail.cycle_seconds', { seconds: 5 })}</SelectItem>
-                  <SelectItem value="10">{t('monitor_detail.cycle_seconds', { seconds: 10 })}</SelectItem>
-                  <SelectItem value="15">{t('monitor_detail.cycle_seconds', { seconds: 15 })}</SelectItem>
-                  <SelectItem value="30">{t('monitor_detail.cycle_seconds', { seconds: 30 })}</SelectItem>
-                  <SelectItem value="60">{t('monitor_detail.cycle_seconds', { seconds: 60 })}</SelectItem>
-                </SelectContent>
-              </Select>
-            </SettingsRow>
+            {onCycleSecondsChange && cycleSeconds !== undefined && (
+              <SettingsRow label={t('monitor_detail.cycle_label')} testId="settings-cycle-row">
+                <Select value={String(cycleSeconds)} onValueChange={onCycleSecondsChange}>
+                  <SelectTrigger className="w-32 h-8" data-testid="monitor-detail-cycle-select">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">{t('monitor_detail.cycle_off')}</SelectItem>
+                    <SelectItem value="5">{t('monitor_detail.cycle_seconds', { seconds: 5 })}</SelectItem>
+                    <SelectItem value="10">{t('monitor_detail.cycle_seconds', { seconds: 10 })}</SelectItem>
+                    <SelectItem value="15">{t('monitor_detail.cycle_seconds', { seconds: 15 })}</SelectItem>
+                    <SelectItem value="30">{t('monitor_detail.cycle_seconds', { seconds: 30 })}</SelectItem>
+                    <SelectItem value="60">{t('monitor_detail.cycle_seconds', { seconds: 60 })}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </SettingsRow>
+            )}
           </TabsContent>
 
           {/* Tab 2: Video (read-only) */}
           <TabsContent value="video" className="mt-4 space-y-0">
+            {monitor.Path && (
+              <div className="py-2.5 border-b border-border/40" data-testid="settings-source-row">
+                <span className="text-sm text-muted-foreground">{t('monitor_detail.source_title')}</span>
+                <Input
+                  value={monitor.Path}
+                  readOnly
+                  className="mt-1.5 text-xs h-8 bg-muted/50 font-mono"
+                  data-testid="settings-source-input"
+                />
+              </div>
+            )}
             <SettingsRow label={t('monitors.resolution')}>
-              {orientedResolution}
+              {orientedResolution ?? `${monitor.Width}x${monitor.Height}`}
             </SettingsRow>
             <SettingsRow label={t('monitors.colours')}>
               {monitor.Colours}
@@ -234,12 +251,16 @@ export function MonitorSettingsDialog({
 
           {/* Tab 3: Display (read-only) */}
           <TabsContent value="display" className="mt-4 space-y-0">
-            <SettingsRow label={t('monitor_detail.rotation_label')} testId="monitor-rotation">
-              {rotationStatus}
-            </SettingsRow>
-            <SettingsRow label={t('monitor_detail.feed_fit')}>
-              {t(`monitor_detail.fit_${feedFit.replace('-', '_')}`)}
-            </SettingsRow>
+            {rotationStatus && (
+              <SettingsRow label={t('monitor_detail.rotation_label')} testId="monitor-rotation">
+                {rotationStatus}
+              </SettingsRow>
+            )}
+            {feedFit && (
+              <SettingsRow label={t('monitor_detail.feed_fit')}>
+                {t(`monitor_detail.fit_${feedFit.replace('-', '_')}`)}
+              </SettingsRow>
+            )}
           </TabsContent>
         </Tabs>
       </DialogContent>

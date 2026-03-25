@@ -15,17 +15,12 @@ import { useCurrentProfile } from '../hooks/useCurrentProfile';
 import { useBandwidthSettings } from '../hooks/useBandwidthSettings';
 import { useAuthStore } from '../stores/auth';
 import { useSettingsStore } from '../stores/settings';
+import { isZmVersionAtLeast } from '../lib/zm-version';
 import { Button } from '../components/ui/button';
-import { RefreshCw, AlertCircle, Settings, Video } from 'lucide-react';
+import { RefreshCw, AlertCircle } from 'lucide-react';
 import { MonitorCard } from '../components/monitors/MonitorCard';
+import { MonitorSettingsDialog } from '../components/monitor-detail/MonitorSettingsDialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '../components/ui/dialog';
 import { filterEnabledMonitors, filterMonitorsByGroup } from '../lib/filters';
 import { useGroupFilter } from '../hooks/useGroupFilter';
 import { GroupFilterSelect } from '../components/filters/GroupFilterSelect';
@@ -41,6 +36,8 @@ export default function Monitors() {
   const bandwidth = useBandwidthSettings();
   const updateSettings = useSettingsStore((state) => state.updateProfileSettings);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const zmVersion = useAuthStore((s) => s.version);
+  const hasNewApi = isZmVersionAtLeast(zmVersion, '1.38.0');
   const { isFilterActive, filteredMonitorIds } = useGroupFilter();
 
   const { data, isLoading, error, refetch } = useQuery({
@@ -177,132 +174,15 @@ export default function Monitors() {
         )}
       </div>
 
-      {/* Monitor Properties Dialog */}
-      <Dialog open={showPropertiesDialog} onOpenChange={setShowPropertiesDialog}>
-        <DialogContent
-          className="max-w-3xl max-h-[80vh] overflow-y-auto"
-          data-testid="monitor-properties-dialog"
-        >
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Settings className="h-5 w-5" />
-              {t('monitors.properties_title', { name: selectedMonitor?.Name })}
-            </DialogTitle>
-            <DialogDescription>
-              {t('monitors.properties_description', { id: selectedMonitor?.Id })}
-            </DialogDescription>
-          </DialogHeader>
-
-          {selectedMonitor && (
-            <div className="space-y-6 mt-4">
-              {/* Basic Information */}
-              <div>
-                <h3 className="text-sm font-semibold mb-3 text-primary">{t('monitors.basic_info')}</h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-muted-foreground">{t('monitors.id')}:</span>
-                    <div className="font-medium">{selectedMonitor.Id}</div>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">{t('monitors.name')}:</span>
-                    <div className="font-medium">{selectedMonitor.Name}</div>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">{t('monitors.type')}:</span>
-                    <div className="font-medium">{selectedMonitor.Type}</div>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">{t('monitors.function')}:</span>
-                    <div className="font-medium">{selectedMonitor.Function}</div>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">{t('common.enabled')}:</span>
-                    <div className="font-medium">
-                      {selectedMonitor.Enabled === '1' || selectedMonitor.Enabled === 'true' ? t('common.yes') : t('common.no')}
-                    </div>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">{t('monitors.controllable')}:</span>
-                    <div className="font-medium">
-                      {selectedMonitor.Controllable === '1' ? t('common.yes') : t('common.no')}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Source Configuration */}
-              <div>
-                <h3 className="text-sm font-semibold mb-3 text-primary">{t('monitors.source_config')}</h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-muted-foreground">{t('monitors.protocol')}:</span>
-                    <div className="font-medium">{selectedMonitor.Protocol || 'N/A'}</div>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">{t('monitors.method')}:</span>
-                    <div className="font-medium">{selectedMonitor.Method || 'N/A'}</div>
-                  </div>
-                  <div className="col-span-2">
-                    <span className="text-muted-foreground">{t('monitors.host')}:</span>
-                    <div className="font-medium break-all">{selectedMonitor.Host || 'N/A'}</div>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">{t('monitors.port')}:</span>
-                    <div className="font-medium">{selectedMonitor.Port || 'N/A'}</div>
-                  </div>
-                  <div className="col-span-2">
-                    <span className="text-muted-foreground">{t('monitors.path')}:</span>
-                    <div className="font-medium break-all">{selectedMonitor.Path || 'N/A'}</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Video Settings */}
-              <div>
-                <h3 className="text-sm font-semibold mb-3 text-primary">{t('monitors.video_settings')}</h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-muted-foreground">{t('monitors.resolution')}:</span>
-                    <div className="font-medium">
-                      {selectedMonitor.Width}x{selectedMonitor.Height}
-                    </div>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">{t('monitors.colours')}:</span>
-                    <div className="font-medium">{selectedMonitor.Colours}</div>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">{t('monitors.max_fps')}:</span>
-                    <div className="font-medium">{selectedMonitor.MaxFPS || t('monitors.unlimited')}</div>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">{t('monitors.alarm_max_fps')}:</span>
-                    <div className="font-medium">
-                      {selectedMonitor.AlarmMaxFPS || t('monitors.same_as_max_fps')}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div className="flex justify-end gap-2 pt-4 border-t">
-                <Button variant="outline" onClick={() => setShowPropertiesDialog(false)}>
-                  {t('common.close')}
-                </Button>
-                <Button
-                  onClick={() => {
-                    setShowPropertiesDialog(false);
-                    navigate(`/monitors/${selectedMonitor.Id}`);
-                  }}
-                >
-                  <Video className="h-4 w-4 mr-2" />
-                  {t('monitors.view_live')}
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* Monitor Settings Dialog (read-only from list context) */}
+      {selectedMonitor && (
+        <MonitorSettingsDialog
+          open={showPropertiesDialog}
+          onOpenChange={setShowPropertiesDialog}
+          monitor={selectedMonitor}
+          hasNewApi={hasNewApi}
+        />
+      )}
     </div>
   );
 }
