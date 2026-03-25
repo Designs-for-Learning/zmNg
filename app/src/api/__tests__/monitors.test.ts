@@ -77,14 +77,13 @@ describe('Monitors API', () => {
   });
 
   it('updates monitor data', async () => {
-    mockPost.mockResolvedValue({ data: { monitor: { Monitor: { Id: '2', Name: 'Updated' } } } });
+    mockPost.mockResolvedValue({ data: { message: 'Saved' } });
 
-    const updated = await updateMonitor('2', { 'Monitor[Name]': 'Updated' });
+    await updateMonitor('2', { 'Monitor[Name]': 'Updated' });
 
     expect(mockPost).toHaveBeenCalledWith('/monitors/2.json', expect.any(URLSearchParams), expect.any(Object));
     const body = mockPost.mock.calls[0][1] as URLSearchParams;
     expect(body.get('Monitor[Name]')).toBe('Updated');
-    expect(updated.Monitor.Id).toBe('2');
   });
 
   it('changes monitor function', async () => {

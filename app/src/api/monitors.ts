@@ -7,7 +7,7 @@
 
 import { getApiClient } from './client';
 import type { MonitorsResponse, MonitorData, ControlData, AlarmStatusResponse, DaemonStatusResponse } from './types';
-import { MonitorsResponseSchema, MonitorDataSchema, ControlDataSchema, MonitorUpdateResponseSchema, AlarmStatusResponseSchema, DaemonStatusResponseSchema } from './types';
+import { MonitorsResponseSchema, MonitorDataSchema, ControlDataSchema, AlarmStatusResponseSchema, DaemonStatusResponseSchema } from './types';
 import { validateApiResponse } from '../lib/api-validator';
 import {
   getMonitorStreamUrl as buildMonitorStreamUrl,
@@ -90,7 +90,7 @@ export async function getControl(controlId: string): Promise<ControlData> {
 export async function updateMonitor(
   monitorId: string,
   updates: Record<string, unknown>
-): Promise<MonitorData> {
+): Promise<void> {
   log.api('Updating monitor settings', LogLevel.INFO, { monitorId, updates });
 
   const client = getApiClient();
@@ -99,19 +99,12 @@ export async function updateMonitor(
     if (value === undefined || value === null) return;
     body.set(key, String(value));
   });
-  const response = await client.post(`/monitors/${monitorId}.json`, body, {
+  await client.post(`/monitors/${monitorId}.json`, body, {
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
     },
   });
-
-  // Validate response with Zod
-  const validated = validateApiResponse(MonitorUpdateResponseSchema, response.data, {
-    endpoint: `/monitors/${monitorId}.json`,
-    method: 'POST',
-  });
-
-  return validated.monitor;
+  // ZM returns {"message":"Saved"} — callers refetch monitor data separately
 }
 
 /**
@@ -126,10 +119,10 @@ export async function updateMonitor(
 export async function changeMonitorFunction(
   monitorId: string,
   func: 'None' | 'Monitor' | 'Modect' | 'Record' | 'Mocord' | 'Nodect'
-): Promise<MonitorData> {
+): Promise<void> {
   log.api('Changing monitor function', LogLevel.INFO, { monitorId, function: func });
 
-  return updateMonitor(monitorId, {
+  await updateMonitor(monitorId, {
     'Monitor[Function]': func,
   });
 }
@@ -151,14 +144,14 @@ export async function updateMonitorCapture(
     Analysing?: 'None' | 'Always';
     Recording?: 'None' | 'OnMotion' | 'Always';
   }
-): Promise<MonitorData> {
+): Promise<void> {
   log.api('Updating monitor capture settings', LogLevel.INFO, { monitorId, settings });
 
   const params: Record<string, string> = {};
   if (settings.Capturing !== undefined) params['Monitor[Capturing]'] = settings.Capturing;
   if (settings.Analysing !== undefined) params['Monitor[Analysing]'] = settings.Analysing;
   if (settings.Recording !== undefined) params['Monitor[Recording]'] = settings.Recording;
-  return updateMonitor(monitorId, params);
+  await updateMonitor(monitorId, params);
 }
 
 /**
@@ -170,10 +163,10 @@ export async function updateMonitorCapture(
  * @param enabled - True to enable, false to disable
  * @returns Promise resolving to updated MonitorData
  */
-export async function setMonitorEnabled(monitorId: string, enabled: boolean): Promise<MonitorData> {
+export async function setMonitorEnabled(monitorId: string, enabled: boolean): Promise<void> {
   log.api('Setting monitor enabled state', LogLevel.INFO, { monitorId, enabled });
 
-  return updateMonitor(monitorId, {
+  await updateMonitor(monitorId, {
     'Monitor[Enabled]': enabled ? '1' : '0',
   });
 }
