@@ -135,10 +135,37 @@ export async function changeMonitorFunction(
 }
 
 /**
+ * Update monitor capture settings (ZM 1.38+).
+ *
+ * Sets Capturing, Analysing, and/or Recording fields independently.
+ * Only sends fields that are provided.
+ *
+ * @param monitorId - The ID of the monitor
+ * @param settings - Object with optional Capturing, Analysing, Recording values
+ * @returns Promise resolving to updated MonitorData
+ */
+export async function updateMonitorCapture(
+  monitorId: string,
+  settings: {
+    Capturing?: 'None' | 'Ondemand' | 'Always';
+    Analysing?: 'None' | 'Always';
+    Recording?: 'None' | 'OnMotion' | 'Always';
+  }
+): Promise<MonitorData> {
+  log.api('Updating monitor capture settings', LogLevel.INFO, { monitorId, settings });
+
+  const params: Record<string, string> = {};
+  if (settings.Capturing) params['Monitor[Capturing]'] = settings.Capturing;
+  if (settings.Analysing) params['Monitor[Analysing]'] = settings.Analysing;
+  if (settings.Recording) params['Monitor[Recording]'] = settings.Recording;
+  return updateMonitor(monitorId, params);
+}
+
+/**
  * Enable or disable a monitor.
- * 
+ *
  * Helper wrapper around updateMonitor for toggling enabled state.
- * 
+ *
  * @param monitorId - The ID of the monitor
  * @param enabled - True to enable, false to disable
  * @returns Promise resolving to updated MonitorData

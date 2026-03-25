@@ -83,6 +83,10 @@ export const MonitorSchema = z.object({
   StorageId: z.coerce.string().nullable(),
   Type: z.string(),
   Function: z.enum(['None', 'Monitor', 'Modect', 'Record', 'Mocord', 'Nodect']),
+  // ZM 1.38+ fields (replace Function with independent controls)
+  Capturing: z.enum(['None', 'Ondemand', 'Always']).optional(),
+  Analysing: z.enum(['None', 'Always']).optional(),
+  Recording: z.enum(['None', 'OnMotion', 'Always']).optional(),
   Enabled: z.coerce.string(),
   LinkedMonitors: z.string().nullable(),
   Triggers: z.string().nullable(),
