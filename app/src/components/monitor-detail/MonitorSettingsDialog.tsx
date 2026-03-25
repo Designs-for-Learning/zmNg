@@ -1,32 +1,79 @@
 /**
  * Monitor Settings Dialog
  *
- * Displays monitor information and cycle settings in a dialog.
+ * Tabbed settings panel for monitor configuration.
+ * Shows Capturing/Analysing/Recording on ZM 1.38+, legacy Function on older servers.
  */
 
 import { useTranslation } from 'react-i18next';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Badge } from '../ui/badge';
-import { Label } from '../ui/label';
+import { Switch } from '../ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import type { Monitor } from '../../api/types';
+import type { MonitorFunction } from '../../pages/hooks/useModeControl';
 
 interface MonitorSettingsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   monitor: Monitor;
+  // Version detection
+  hasNewApi: boolean;
+  // Capture settings (ZM 1.38+)
+  onCapturingChange?: (value: 'None' | 'Ondemand' | 'Always') => void;
+  onAnalysingChange?: (value: 'None' | 'Always') => void;
+  onRecordingChange?: (value: 'None' | 'OnMotion' | 'Always') => void;
+  isCaptureUpdating?: boolean;
+  // Legacy mode (ZM < 1.38)
+  onFunctionChange?: (value: MonitorFunction) => void;
+  isModeUpdating?: boolean;
+  // Enabled toggle
+  onEnabledChange: (enabled: boolean) => void;
+  isEnabledUpdating: boolean;
+  // Cycle settings
   cycleSeconds: number;
   onCycleSecondsChange: (value: string) => void;
+  // Read-only display
   feedFit: string;
   orientedResolution: string;
   rotationStatus: string;
+}
+
+/** Shared row layout for label + value/control pairs. */
+function SettingsRow({
+  label,
+  children,
+  testId,
+}: {
+  label: string;
+  children: React.ReactNode;
+  testId?: string;
+}) {
+  return (
+    <div
+      className="flex items-center justify-between py-2.5 border-b border-border/40 last:border-b-0"
+      data-testid={testId}
+    >
+      <span className="text-sm text-muted-foreground">{label}</span>
+      <div className="text-sm font-medium">{children}</div>
+    </div>
+  );
 }
 
 export function MonitorSettingsDialog({
   open,
   onOpenChange,
   monitor,
+  hasNewApi,
+  onCapturingChange,
+  onAnalysingChange,
+  onRecordingChange,
+  isCaptureUpdating = false,
+  onFunctionChange,
+  isModeUpdating = false,
+  onEnabledChange,
+  isEnabledUpdating,
   cycleSeconds,
   onCycleSecondsChange,
   feedFit,
@@ -34,135 +81,167 @@ export function MonitorSettingsDialog({
   rotationStatus,
 }: MonitorSettingsDialogProps) {
   const { t } = useTranslation();
+  const isEnabled = monitor.Enabled === '1';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="max-w-3xl w-[calc(100%-1.5rem)] max-h-[90vh] overflow-y-auto"
+        className="max-w-lg w-[calc(100%-1.5rem)] max-h-[90vh] overflow-y-auto"
         data-testid="monitor-settings-dialog"
       >
         <DialogHeader>
-          <DialogTitle>{t('monitor_detail.settings_title')}</DialogTitle>
-          <DialogDescription>{t('monitor_detail.settings_desc')}</DialogDescription>
+          <DialogTitle>{monitor.Name}</DialogTitle>
+          <DialogDescription>
+            Monitor #{monitor.Id} · {monitor.Type}
+          </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Card className="border-muted/60 shadow-sm sm:col-span-2">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold">{t('monitor_detail.cycle_title')}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm">
-              <div className="space-y-2" data-testid="monitor-detail-cycle-setting">
-                <Label htmlFor="monitor-cycle-select" className="text-sm">
-                  {t('monitor_detail.cycle_label')}
-                </Label>
-                <Select value={String(cycleSeconds)} onValueChange={onCycleSecondsChange}>
-                  <SelectTrigger
-                    id="monitor-cycle-select"
-                    className="h-8"
-                    data-testid="monitor-detail-cycle-select"
+
+        <Tabs defaultValue="capture" className="mt-2">
+          <TabsList className="w-full">
+            <TabsTrigger value="capture" className="flex-1" data-testid="settings-tab-capture">
+              {t('monitor_detail.tab_capture')}
+            </TabsTrigger>
+            <TabsTrigger value="video" className="flex-1" data-testid="settings-tab-video">
+              {t('monitor_detail.tab_video')}
+            </TabsTrigger>
+            <TabsTrigger value="display" className="flex-1" data-testid="settings-tab-display">
+              {t('monitor_detail.tab_display')}
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Tab 1: Capture & Recording */}
+          <TabsContent value="capture" className="mt-4 space-y-0">
+            {hasNewApi ? (
+              <>
+                <SettingsRow label={t('monitor_detail.capturing_label')} testId="settings-capturing-row">
+                  <Select
+                    value={monitor.Capturing ?? 'Always'}
+                    onValueChange={(v) => onCapturingChange?.(v as 'None' | 'Ondemand' | 'Always')}
+                    disabled={isCaptureUpdating}
                   >
+                    <SelectTrigger className="w-32 h-8" data-testid="settings-capturing-select">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="None">{t('monitor_detail.capturing_none')}</SelectItem>
+                      <SelectItem value="Ondemand">{t('monitor_detail.capturing_ondemand')}</SelectItem>
+                      <SelectItem value="Always">{t('monitor_detail.capturing_always')}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </SettingsRow>
+
+                <SettingsRow label={t('monitor_detail.analysing_label')} testId="settings-analysing-row">
+                  <Select
+                    value={monitor.Analysing ?? 'None'}
+                    onValueChange={(v) => onAnalysingChange?.(v as 'None' | 'Always')}
+                    disabled={isCaptureUpdating}
+                  >
+                    <SelectTrigger className="w-32 h-8" data-testid="settings-analysing-select">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="None">{t('monitor_detail.analysing_none')}</SelectItem>
+                      <SelectItem value="Always">{t('monitor_detail.analysing_always')}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </SettingsRow>
+
+                <SettingsRow label={t('monitor_detail.recording_label')} testId="settings-recording-row">
+                  <Select
+                    value={monitor.Recording ?? 'None'}
+                    onValueChange={(v) => onRecordingChange?.(v as 'None' | 'OnMotion' | 'Always')}
+                    disabled={isCaptureUpdating}
+                  >
+                    <SelectTrigger className="w-32 h-8" data-testid="settings-recording-select">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="None">{t('monitor_detail.recording_none')}</SelectItem>
+                      <SelectItem value="OnMotion">{t('monitor_detail.recording_onmotion')}</SelectItem>
+                      <SelectItem value="Always">{t('monitor_detail.recording_always')}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </SettingsRow>
+              </>
+            ) : (
+              <SettingsRow label={t('monitor_detail.function_label')} testId="settings-function-row">
+                <Select
+                  value={monitor.Function}
+                  onValueChange={(v) => onFunctionChange?.(v as MonitorFunction)}
+                  disabled={isModeUpdating}
+                >
+                  <SelectTrigger className="w-32 h-8" data-testid="settings-function-select">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="0" data-testid="monitor-detail-cycle-option-off">
-                      {t('monitor_detail.cycle_off')}
-                    </SelectItem>
-                    <SelectItem value="5" data-testid="monitor-detail-cycle-option-5">
-                      {t('monitor_detail.cycle_seconds', { seconds: 5 })}
-                    </SelectItem>
-                    <SelectItem value="10" data-testid="monitor-detail-cycle-option-10">
-                      {t('monitor_detail.cycle_seconds', { seconds: 10 })}
-                    </SelectItem>
-                    <SelectItem value="15" data-testid="monitor-detail-cycle-option-15">
-                      {t('monitor_detail.cycle_seconds', { seconds: 15 })}
-                    </SelectItem>
-                    <SelectItem value="30" data-testid="monitor-detail-cycle-option-30">
-                      {t('monitor_detail.cycle_seconds', { seconds: 30 })}
-                    </SelectItem>
-                    <SelectItem value="60" data-testid="monitor-detail-cycle-option-60">
-                      {t('monitor_detail.cycle_seconds', { seconds: 60 })}
-                    </SelectItem>
+                    <SelectItem value="Monitor">{t('monitor_detail.mode_monitor')}</SelectItem>
+                    <SelectItem value="Modect">{t('monitor_detail.mode_modect')}</SelectItem>
+                    <SelectItem value="Record">{t('monitor_detail.mode_record')}</SelectItem>
+                    <SelectItem value="Mocord">{t('monitor_detail.mode_mocord')}</SelectItem>
+                    <SelectItem value="Nodect">{t('monitor_detail.mode_nodect')}</SelectItem>
+                    <SelectItem value="None">{t('monitor_detail.mode_none')}</SelectItem>
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-muted-foreground">{t('monitor_detail.cycle_help')}</p>
-              </div>
-            </CardContent>
-          </Card>
+              </SettingsRow>
+            )}
 
-          <Card className="border-muted/60 shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold">{t('monitor_detail.overview_title')}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm">
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">{t('monitors.id')}</span>
-                <span className="font-medium">{monitor.Id}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">{t('monitors.type')}</span>
-                <span className="font-medium">{monitor.Type}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">{t('monitors.function')}</span>
-                <span className="font-medium">{monitor.Function}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">{t('common.enabled')}</span>
-                <Badge variant={monitor.Enabled === '1' ? 'secondary' : 'outline'}>
-                  {monitor.Enabled === '1' ? t('common.enabled') : t('common.disabled')}
-                </Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">{t('monitors.controllable')}</span>
-                <Badge variant={monitor.Controllable === '1' ? 'secondary' : 'outline'}>
-                  {monitor.Controllable === '1' ? t('common.yes') : t('common.no')}
-                </Badge>
-              </div>
-            </CardContent>
-          </Card>
+            <SettingsRow label={t('monitor_detail.enabled_label')} testId="settings-enabled-row">
+              <Switch
+                checked={isEnabled}
+                onCheckedChange={onEnabledChange}
+                disabled={isEnabledUpdating}
+                data-testid="settings-enabled-toggle"
+              />
+            </SettingsRow>
 
-          <Card className="border-muted/60 shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold">{t('monitor_detail.video_title')}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm">
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">{t('monitors.resolution')}</span>
-                <span className="font-medium">{orientedResolution}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">{t('monitors.colours')}</span>
-                <span className="font-medium">{monitor.Colours}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">{t('monitors.max_fps')}</span>
-                <span className="font-medium">{monitor.MaxFPS || t('monitors.unlimited')}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">{t('monitors.alarm_max_fps')}</span>
-                <span className="font-medium">{monitor.AlarmMaxFPS || t('monitors.same_as_max_fps')}</span>
-              </div>
-            </CardContent>
-          </Card>
+            <SettingsRow label={t('monitor_detail.cycle_label')} testId="settings-cycle-row">
+              <Select value={String(cycleSeconds)} onValueChange={onCycleSecondsChange}>
+                <SelectTrigger className="w-32 h-8" data-testid="monitor-detail-cycle-select">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">{t('monitor_detail.cycle_off')}</SelectItem>
+                  <SelectItem value="5">{t('monitor_detail.cycle_seconds', { seconds: 5 })}</SelectItem>
+                  <SelectItem value="10">{t('monitor_detail.cycle_seconds', { seconds: 10 })}</SelectItem>
+                  <SelectItem value="15">{t('monitor_detail.cycle_seconds', { seconds: 15 })}</SelectItem>
+                  <SelectItem value="30">{t('monitor_detail.cycle_seconds', { seconds: 30 })}</SelectItem>
+                  <SelectItem value="60">{t('monitor_detail.cycle_seconds', { seconds: 60 })}</SelectItem>
+                </SelectContent>
+              </Select>
+            </SettingsRow>
+          </TabsContent>
 
-          <Card className="border-muted/60 shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold">{t('monitor_detail.rotation_label')}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm">
-              <div className="flex items-center justify-between" data-testid="monitor-rotation">
-                <span className="text-muted-foreground">{t('monitor_detail.rotation_label')}</span>
-                <span className="font-medium">{rotationStatus}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">{t('monitor_detail.feed_fit')}</span>
-                <span className="font-medium">
-                  {t(`monitor_detail.fit_${feedFit.replace('-', '_')}`)}
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+          {/* Tab 2: Video (read-only) */}
+          <TabsContent value="video" className="mt-4 space-y-0">
+            <SettingsRow label={t('monitors.resolution')}>
+              {orientedResolution}
+            </SettingsRow>
+            <SettingsRow label={t('monitors.colours')}>
+              {monitor.Colours}
+            </SettingsRow>
+            <SettingsRow label={t('monitors.max_fps')}>
+              {monitor.MaxFPS || t('monitors.unlimited')}
+            </SettingsRow>
+            <SettingsRow label={t('monitors.alarm_max_fps')}>
+              {monitor.AlarmMaxFPS || t('monitors.same_as_max_fps')}
+            </SettingsRow>
+            <SettingsRow label={t('monitors.controllable')}>
+              <Badge variant={monitor.Controllable === '1' ? 'secondary' : 'outline'}>
+                {monitor.Controllable === '1' ? t('common.yes') : t('common.no')}
+              </Badge>
+            </SettingsRow>
+          </TabsContent>
+
+          {/* Tab 3: Display (read-only) */}
+          <TabsContent value="display" className="mt-4 space-y-0">
+            <SettingsRow label={t('monitor_detail.rotation_label')} testId="monitor-rotation">
+              {rotationStatus}
+            </SettingsRow>
+            <SettingsRow label={t('monitor_detail.feed_fit')}>
+              {t(`monitor_detail.fit_${feedFit.replace('-', '_')}`)}
+            </SettingsRow>
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );
