@@ -3,12 +3,15 @@
  *
  * Tabbed settings panel for monitor configuration.
  * Shows Capturing/Analysing/Recording on ZM 1.38+, legacy Function on older servers.
+ * Editable fields use local state — changes are only sent when Save is pressed.
  */
 
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Badge } from '../ui/badge';
+import { Button } from '../ui/button';
 import { Switch } from '../ui/switch';
 import { Input } from '../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
@@ -28,28 +31,29 @@ function formatOrientation(orientation: string | null | undefined): string {
   return map[orientation] ?? orientation;
 }
 
+/** Fields that can be changed and sent on Save. */
+export interface MonitorSettingsChanges {
+  // ZM 1.38+
+  Capturing?: string;
+  Analysing?: string;
+  Recording?: string;
+  // Legacy
+  Function?: string;
+  // Both versions
+  Enabled?: string;
+  SaveJPEGs?: string;
+  VideoWriter?: string;
+}
+
 interface MonitorSettingsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   monitor: Monitor;
-  // Version detection
   hasNewApi: boolean;
-  // Capture settings (ZM 1.38+)
-  onCapturingChange?: (value: 'None' | 'Ondemand' | 'Always') => void;
-  onAnalysingChange?: (value: 'None' | 'Always') => void;
-  onRecordingChange?: (value: 'None' | 'OnMotion' | 'Always') => void;
-  isCaptureUpdating?: boolean;
-  // Legacy mode (ZM < 1.38)
-  onFunctionChange?: (value: MonitorFunction) => void;
-  isModeUpdating?: boolean;
-  // Storage settings (both versions)
-  onSaveJPEGsChange?: (value: string) => void;
-  onVideoWriterChange?: (value: string) => void;
-  isStorageUpdating?: boolean;
-  // Enabled toggle
-  onEnabledChange?: (enabled: boolean) => void;
-  isEnabledUpdating?: boolean;
-  // Cycle settings (MonitorDetail only)
+  /** Called with only the fields that changed when Save is pressed. */
+  onSave?: (changes: MonitorSettingsChanges) => Promise<void>;
+  isSaving?: boolean;
+  // Cycle settings (MonitorDetail only — local setting, not a ZM API field)
   cycleSeconds?: number;
   onCycleSecondsChange?: (value: string) => void;
   // Read-only display (MonitorDetail only)
@@ -84,26 +88,68 @@ export function MonitorSettingsDialog({
   onOpenChange,
   monitor,
   hasNewApi,
-  onCapturingChange,
-  onAnalysingChange,
-  onRecordingChange,
-  isCaptureUpdating = false,
-  onFunctionChange,
-  isModeUpdating = false,
-  onSaveJPEGsChange,
-  onVideoWriterChange,
-  isStorageUpdating = false,
-  onEnabledChange,
-  isEnabledUpdating = false,
+  onSave,
+  isSaving = false,
   cycleSeconds,
   onCycleSecondsChange,
   feedFit,
   orientedResolution,
   rotationStatus,
-
 }: MonitorSettingsDialogProps) {
   const { t } = useTranslation();
-  const isEnabled = monitor.Enabled === '1' || monitor.Enabled === 'true';
+  const editable = !!onSave;
+
+  // Local state for editable fields — reset when monitor changes or dialog opens
+  const [localCapturing, setLocalCapturing] = useState(monitor.Capturing ?? 'Always');
+  const [localAnalysing, setLocalAnalysing] = useState(monitor.Analysing ?? 'None');
+  const [localRecording, setLocalRecording] = useState(monitor.Recording ?? 'None');
+  const [localFunction, setLocalFunction] = useState(monitor.Function);
+  const [localEnabled, setLocalEnabled] = useState(monitor.Enabled === '1' || monitor.Enabled === 'true');
+  const [localSaveJPEGs, setLocalSaveJPEGs] = useState(monitor.SaveJPEGs ?? '0');
+  const [localVideoWriter, setLocalVideoWriter] = useState(monitor.VideoWriter ?? '0');
+
+  // Reset local state when monitor data changes (e.g. after refetch)
+  useEffect(() => {
+    setLocalCapturing(monitor.Capturing ?? 'Always');
+    setLocalAnalysing(monitor.Analysing ?? 'None');
+    setLocalRecording(monitor.Recording ?? 'None');
+    setLocalFunction(monitor.Function);
+    setLocalEnabled(monitor.Enabled === '1' || monitor.Enabled === 'true');
+    setLocalSaveJPEGs(monitor.SaveJPEGs ?? '0');
+    setLocalVideoWriter(monitor.VideoWriter ?? '0');
+  }, [monitor]);
+
+  // Check if anything changed from server state
+  const serverEnabled = monitor.Enabled === '1' || monitor.Enabled === 'true';
+  const hasChanges = hasNewApi
+    ? (localCapturing !== (monitor.Capturing ?? 'Always') ||
+       localAnalysing !== (monitor.Analysing ?? 'None') ||
+       localRecording !== (monitor.Recording ?? 'None') ||
+       localEnabled !== serverEnabled ||
+       localSaveJPEGs !== (monitor.SaveJPEGs ?? '0') ||
+       localVideoWriter !== (monitor.VideoWriter ?? '0'))
+    : (localFunction !== monitor.Function ||
+       localEnabled !== serverEnabled ||
+       localSaveJPEGs !== (monitor.SaveJPEGs ?? '0') ||
+       localVideoWriter !== (monitor.VideoWriter ?? '0'));
+
+  const handleSave = async () => {
+    if (!onSave) return;
+    const changes: MonitorSettingsChanges = {};
+
+    if (hasNewApi) {
+      if (localCapturing !== (monitor.Capturing ?? 'Always')) changes.Capturing = localCapturing;
+      if (localAnalysing !== (monitor.Analysing ?? 'None')) changes.Analysing = localAnalysing;
+      if (localRecording !== (monitor.Recording ?? 'None')) changes.Recording = localRecording;
+    } else {
+      if (localFunction !== monitor.Function) changes.Function = localFunction;
+    }
+    if (localEnabled !== serverEnabled) changes.Enabled = localEnabled ? '1' : '0';
+    if (localSaveJPEGs !== (monitor.SaveJPEGs ?? '0')) changes.SaveJPEGs = localSaveJPEGs;
+    if (localVideoWriter !== (monitor.VideoWriter ?? '0')) changes.VideoWriter = localVideoWriter;
+
+    await onSave(changes);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -131,15 +177,15 @@ export function MonitorSettingsDialog({
             </TabsTrigger>
           </TabsList>
 
-          {/* Tab 1: Capture & Recording */}
+          {/* Tab: Capture & Recording */}
           <TabsContent value="capture" className="mt-4 space-y-0">
             {hasNewApi ? (
               <>
                 <SettingsRow label={t('monitor_detail.capturing_label')} testId="settings-capturing-row">
                   <Select
-                    value={monitor.Capturing ?? 'Always'}
-                    onValueChange={(v) => onCapturingChange?.(v as 'None' | 'Ondemand' | 'Always')}
-                    disabled={isCaptureUpdating || !onCapturingChange}
+                    value={localCapturing}
+                    onValueChange={setLocalCapturing}
+                    disabled={!editable || isSaving}
                   >
                     <SelectTrigger className="w-32 h-8" data-testid="settings-capturing-select">
                       <SelectValue />
@@ -154,9 +200,9 @@ export function MonitorSettingsDialog({
 
                 <SettingsRow label={t('monitor_detail.analysing_label')} testId="settings-analysing-row">
                   <Select
-                    value={monitor.Analysing ?? 'None'}
-                    onValueChange={(v) => onAnalysingChange?.(v as 'None' | 'Always')}
-                    disabled={isCaptureUpdating || !onAnalysingChange}
+                    value={localAnalysing}
+                    onValueChange={setLocalAnalysing}
+                    disabled={!editable || isSaving}
                   >
                     <SelectTrigger className="w-32 h-8" data-testid="settings-analysing-select">
                       <SelectValue />
@@ -170,9 +216,9 @@ export function MonitorSettingsDialog({
 
                 <SettingsRow label={t('monitor_detail.recording_label')} testId="settings-recording-row">
                   <Select
-                    value={monitor.Recording ?? 'None'}
-                    onValueChange={(v) => onRecordingChange?.(v as 'None' | 'OnMotion' | 'Always')}
-                    disabled={isCaptureUpdating || !onRecordingChange}
+                    value={localRecording}
+                    onValueChange={setLocalRecording}
+                    disabled={!editable || isSaving}
                   >
                     <SelectTrigger className="w-32 h-8" data-testid="settings-recording-select">
                       <SelectValue />
@@ -188,9 +234,9 @@ export function MonitorSettingsDialog({
             ) : (
               <SettingsRow label={t('monitor_detail.function_label')} testId="settings-function-row">
                 <Select
-                  value={monitor.Function}
-                  onValueChange={(v) => onFunctionChange?.(v as MonitorFunction)}
-                  disabled={isModeUpdating || !onFunctionChange}
+                  value={localFunction}
+                  onValueChange={(v) => setLocalFunction(v as MonitorFunction)}
+                  disabled={!editable || isSaving}
                 >
                   <SelectTrigger className="w-32 h-8" data-testid="settings-function-select">
                     <SelectValue />
@@ -207,55 +253,49 @@ export function MonitorSettingsDialog({
               </SettingsRow>
             )}
 
-            {onEnabledChange && (
-              <SettingsRow label={t('monitor_detail.enabled_label')} testId="settings-enabled-row">
-                <Switch
-                  checked={isEnabled}
-                  onCheckedChange={onEnabledChange}
-                  disabled={isEnabledUpdating}
-                  data-testid="settings-enabled-toggle"
-                />
-              </SettingsRow>
-            )}
+            <SettingsRow label={t('monitor_detail.enabled_label')} testId="settings-enabled-row">
+              <Switch
+                checked={localEnabled}
+                onCheckedChange={setLocalEnabled}
+                disabled={!editable || isSaving}
+                data-testid="settings-enabled-toggle"
+              />
+            </SettingsRow>
 
-            {onSaveJPEGsChange && (
-              <SettingsRow label={t('monitor_detail.save_jpegs_label')} testId="settings-savejpegs-row">
-                <Select
-                  value={monitor.SaveJPEGs ?? '0'}
-                  onValueChange={onSaveJPEGsChange}
-                  disabled={isStorageUpdating}
-                >
-                  <SelectTrigger className="w-40 h-8" data-testid="settings-savejpegs-select">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="0">{t('monitor_detail.save_jpegs_disabled')}</SelectItem>
-                    <SelectItem value="1">{t('monitor_detail.save_jpegs_frames')}</SelectItem>
-                    <SelectItem value="2">{t('monitor_detail.save_jpegs_analysis')}</SelectItem>
-                    <SelectItem value="3">{t('monitor_detail.save_jpegs_both')}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </SettingsRow>
-            )}
+            <SettingsRow label={t('monitor_detail.save_jpegs_label')} testId="settings-savejpegs-row">
+              <Select
+                value={localSaveJPEGs}
+                onValueChange={setLocalSaveJPEGs}
+                disabled={!editable || isSaving}
+              >
+                <SelectTrigger className="w-40 h-8" data-testid="settings-savejpegs-select">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">{t('monitor_detail.save_jpegs_disabled')}</SelectItem>
+                  <SelectItem value="1">{t('monitor_detail.save_jpegs_frames')}</SelectItem>
+                  <SelectItem value="2">{t('monitor_detail.save_jpegs_analysis')}</SelectItem>
+                  <SelectItem value="3">{t('monitor_detail.save_jpegs_both')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </SettingsRow>
 
-            {onVideoWriterChange && (
-              <SettingsRow label={t('monitor_detail.video_writer_label')} testId="settings-videowriter-row">
-                <Select
-                  value={monitor.VideoWriter ?? '0'}
-                  onValueChange={onVideoWriterChange}
-                  disabled={isStorageUpdating}
-                >
-                  <SelectTrigger className="w-40 h-8" data-testid="settings-videowriter-select">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="0">{t('monitor_detail.video_writer_disabled')}</SelectItem>
-                    <SelectItem value="1">{t('monitor_detail.video_writer_encode')}</SelectItem>
-                    <SelectItem value="2">{t('monitor_detail.video_writer_passthrough')}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </SettingsRow>
-            )}
+            <SettingsRow label={t('monitor_detail.video_writer_label')} testId="settings-videowriter-row">
+              <Select
+                value={localVideoWriter}
+                onValueChange={setLocalVideoWriter}
+                disabled={!editable || isSaving}
+              >
+                <SelectTrigger className="w-40 h-8" data-testid="settings-videowriter-select">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">{t('monitor_detail.video_writer_disabled')}</SelectItem>
+                  <SelectItem value="1">{t('monitor_detail.video_writer_encode')}</SelectItem>
+                  <SelectItem value="2">{t('monitor_detail.video_writer_passthrough')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </SettingsRow>
 
             {onCycleSecondsChange && cycleSeconds !== undefined && (
               <SettingsRow label={t('monitor_detail.cycle_label')} testId="settings-cycle-row">
@@ -274,9 +314,22 @@ export function MonitorSettingsDialog({
                 </Select>
               </SettingsRow>
             )}
+
+            {editable && (
+              <div className="pt-4">
+                <Button
+                  onClick={handleSave}
+                  disabled={!hasChanges || isSaving}
+                  className="w-full"
+                  data-testid="settings-save-button"
+                >
+                  {isSaving ? t('common.saving') : t('common.save')}
+                </Button>
+              </div>
+            )}
           </TabsContent>
 
-          {/* Tab 2: Video (read-only) */}
+          {/* Tab: Video (read-only) */}
           <TabsContent value="video" className="mt-4 space-y-0">
             {monitor.Path && (
               <div className="py-2.5 border-b border-border/40" data-testid="settings-source-row">
@@ -313,7 +366,7 @@ export function MonitorSettingsDialog({
             )}
           </TabsContent>
 
-          {/* Tab 3: Display (read-only) */}
+          {/* Tab: Display (read-only) */}
           <TabsContent value="display" className="mt-4 space-y-0">
             <SettingsRow label={t('monitor_detail.rotation_label')} testId="monitor-rotation">
               {rotationStatus || formatOrientation(monitor.Orientation)}

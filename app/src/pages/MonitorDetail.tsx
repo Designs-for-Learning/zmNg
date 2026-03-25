@@ -7,7 +7,7 @@
 
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { getMonitor, getControl, updateMonitor, updateMonitorCapture, setMonitorEnabled } from '../api/monitors';
+import { getMonitor, getControl, updateMonitor } from '../api/monitors';
 import { getZones } from '../api/zones';
 import { useCurrentProfile } from '../hooks/useCurrentProfile';
 import { useAuthStore } from '../stores/auth';
@@ -130,102 +130,27 @@ export default function MonitorDetail() {
   const zmVersion = useAuthStore((s) => s.version);
   const hasNewApi = isZmVersionAtLeast(zmVersion, '1.38.0');
 
-  // Capture settings mutation (ZM 1.38+)
-  const [isCaptureUpdating, setIsCaptureUpdating] = useState(false);
+  // Settings dialog save handler — batches all changes into one or more API calls
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
 
-  const handleCapturingChange = useCallback(async (value: 'None' | 'Ondemand' | 'Always') => {
+  const handleSaveSettings = useCallback(async (changes: Record<string, string | undefined>) => {
     if (!monitor?.Monitor.Id) return;
-    setIsCaptureUpdating(true);
+    setIsSavingSettings(true);
     try {
-      await updateMonitorCapture(monitor.Monitor.Id, { Capturing: value });
+      const params: Record<string, string> = {};
+      for (const [key, value] of Object.entries(changes)) {
+        if (value !== undefined) params[`Monitor[${key}]`] = value;
+      }
+      if (Object.keys(params).length > 0) {
+        await updateMonitor(monitor.Monitor.Id, params);
+      }
       await refetch();
       toast.success(t('monitor_detail.capture_updated'));
     } catch (error) {
-      log.monitorDetail('Capturing update failed', LogLevel.ERROR, { error });
+      log.monitorDetail('Settings save failed', LogLevel.ERROR, { error });
       toast.error(t('monitor_detail.capture_failed'));
     } finally {
-      setIsCaptureUpdating(false);
-    }
-  }, [monitor?.Monitor.Id, refetch, t]);
-
-  const handleAnalysingChange = useCallback(async (value: 'None' | 'Always') => {
-    if (!monitor?.Monitor.Id) return;
-    setIsCaptureUpdating(true);
-    try {
-      await updateMonitorCapture(monitor.Monitor.Id, { Analysing: value });
-      await refetch();
-      toast.success(t('monitor_detail.capture_updated'));
-    } catch (error) {
-      log.monitorDetail('Analysing update failed', LogLevel.ERROR, { error });
-      toast.error(t('monitor_detail.capture_failed'));
-    } finally {
-      setIsCaptureUpdating(false);
-    }
-  }, [monitor?.Monitor.Id, refetch, t]);
-
-  const handleRecordingChange = useCallback(async (value: 'None' | 'OnMotion' | 'Always') => {
-    if (!monitor?.Monitor.Id) return;
-    setIsCaptureUpdating(true);
-    try {
-      await updateMonitorCapture(monitor.Monitor.Id, { Recording: value });
-      await refetch();
-      toast.success(t('monitor_detail.capture_updated'));
-    } catch (error) {
-      log.monitorDetail('Recording update failed', LogLevel.ERROR, { error });
-      toast.error(t('monitor_detail.capture_failed'));
-    } finally {
-      setIsCaptureUpdating(false);
-    }
-  }, [monitor?.Monitor.Id, refetch, t]);
-
-  // Enabled toggle mutation
-  const [isEnabledUpdating, setIsEnabledUpdating] = useState(false);
-
-  const handleEnabledChange = useCallback(async (enabled: boolean) => {
-    if (!monitor?.Monitor.Id) return;
-    setIsEnabledUpdating(true);
-    try {
-      await setMonitorEnabled(monitor.Monitor.Id, enabled);
-      await refetch();
-      toast.success(t('monitor_detail.enabled_updated'));
-    } catch (error) {
-      log.monitorDetail('Enabled toggle failed', LogLevel.ERROR, { error });
-      toast.error(t('monitor_detail.enabled_failed'));
-    } finally {
-      setIsEnabledUpdating(false);
-    }
-  }, [monitor?.Monitor.Id, refetch, t]);
-
-  // Storage settings mutation (SaveJPEGs, VideoWriter)
-  const [isStorageUpdating, setIsStorageUpdating] = useState(false);
-
-  const handleSaveJPEGsChange = useCallback(async (value: string) => {
-    if (!monitor?.Monitor.Id) return;
-    setIsStorageUpdating(true);
-    try {
-      await updateMonitor(monitor.Monitor.Id, { 'Monitor[SaveJPEGs]': value });
-      await refetch();
-      toast.success(t('monitor_detail.storage_updated'));
-    } catch (error) {
-      log.monitorDetail('SaveJPEGs update failed', LogLevel.ERROR, { error });
-      toast.error(t('monitor_detail.storage_failed'));
-    } finally {
-      setIsStorageUpdating(false);
-    }
-  }, [monitor?.Monitor.Id, refetch, t]);
-
-  const handleVideoWriterChange = useCallback(async (value: string) => {
-    if (!monitor?.Monitor.Id) return;
-    setIsStorageUpdating(true);
-    try {
-      await updateMonitor(monitor.Monitor.Id, { 'Monitor[VideoWriter]': value });
-      await refetch();
-      toast.success(t('monitor_detail.storage_updated'));
-    } catch (error) {
-      log.monitorDetail('VideoWriter update failed', LogLevel.ERROR, { error });
-      toast.error(t('monitor_detail.storage_failed'));
-    } finally {
-      setIsStorageUpdating(false);
+      setIsSavingSettings(false);
     }
   }, [monitor?.Monitor.Id, refetch, t]);
 
@@ -608,17 +533,8 @@ export default function MonitorDetail() {
         onOpenChange={setShowSettingsDialog}
         monitor={monitor.Monitor}
         hasNewApi={hasNewApi}
-        onCapturingChange={handleCapturingChange}
-        onAnalysingChange={handleAnalysingChange}
-        onRecordingChange={handleRecordingChange}
-        isCaptureUpdating={isCaptureUpdating}
-        onFunctionChange={handleModeChange}
-        isModeUpdating={isModeUpdating}
-        onSaveJPEGsChange={handleSaveJPEGsChange}
-        onVideoWriterChange={handleVideoWriterChange}
-        isStorageUpdating={isStorageUpdating}
-        onEnabledChange={handleEnabledChange}
-        isEnabledUpdating={isEnabledUpdating}
+        onSave={handleSaveSettings}
+        isSaving={isSavingSettings}
         cycleSeconds={settings.monitorDetailCycleSeconds}
         onCycleSecondsChange={handleCycleSecondsChange}
         feedFit={settings.monitorDetailFeedFit}

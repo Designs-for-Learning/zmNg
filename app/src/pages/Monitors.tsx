@@ -9,7 +9,7 @@ import { useState, useMemo, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { getMonitors, updateMonitor, updateMonitorCapture, changeMonitorFunction, setMonitorEnabled } from '../api/monitors';
+import { getMonitors, updateMonitor } from '../api/monitors';
 import { getConsoleEvents } from '../api/events';
 import { useCurrentProfile } from '../hooks/useCurrentProfile';
 import { useBandwidthSettings } from '../hooks/useBandwidthSettings';
@@ -28,7 +28,6 @@ import type { Monitor } from '../api/types';
 import { NotificationBadge } from '../components/NotificationBadge';
 import { toast } from 'sonner';
 import { log, LogLevel } from '../lib/logger';
-import type { MonitorFunction } from './hooks/useModeControl';
 export default function Monitors() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -84,114 +83,27 @@ export default function Monitors() {
     setShowPropertiesDialog(true);
   };
 
-  // --- Monitor settings mutation handlers ---
-  const [isCaptureUpdating, setIsCaptureUpdating] = useState(false);
-  const [isModeUpdating, setIsModeUpdating] = useState(false);
-  const [isEnabledUpdating, setIsEnabledUpdating] = useState(false);
-  const [isStorageUpdating, setIsStorageUpdating] = useState(false);
+  // Settings dialog save handler
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
 
-  const handleCapturingChange = useCallback(async (value: 'None' | 'Ondemand' | 'Always') => {
+  const handleSaveSettings = useCallback(async (changes: Record<string, string | undefined>) => {
     if (!selectedMonitor) return;
-    setIsCaptureUpdating(true);
+    setIsSavingSettings(true);
     try {
-      await updateMonitorCapture(selectedMonitor.Id, { Capturing: value });
+      const params: Record<string, string> = {};
+      for (const [key, value] of Object.entries(changes)) {
+        if (value !== undefined) params[`Monitor[${key}]`] = value;
+      }
+      if (Object.keys(params).length > 0) {
+        await updateMonitor(selectedMonitor.Id, params);
+      }
       await refetch();
       toast.success(t('monitor_detail.capture_updated'));
     } catch (error) {
-      log.monitor('Capturing update failed', LogLevel.ERROR, { error });
+      log.monitor('Settings save failed', LogLevel.ERROR, { error });
       toast.error(t('monitor_detail.capture_failed'));
     } finally {
-      setIsCaptureUpdating(false);
-    }
-  }, [selectedMonitor, refetch, t]);
-
-  const handleAnalysingChange = useCallback(async (value: 'None' | 'Always') => {
-    if (!selectedMonitor) return;
-    setIsCaptureUpdating(true);
-    try {
-      await updateMonitorCapture(selectedMonitor.Id, { Analysing: value });
-      await refetch();
-      toast.success(t('monitor_detail.capture_updated'));
-    } catch (error) {
-      log.monitor('Analysing update failed', LogLevel.ERROR, { error });
-      toast.error(t('monitor_detail.capture_failed'));
-    } finally {
-      setIsCaptureUpdating(false);
-    }
-  }, [selectedMonitor, refetch, t]);
-
-  const handleRecordingChange = useCallback(async (value: 'None' | 'OnMotion' | 'Always') => {
-    if (!selectedMonitor) return;
-    setIsCaptureUpdating(true);
-    try {
-      await updateMonitorCapture(selectedMonitor.Id, { Recording: value });
-      await refetch();
-      toast.success(t('monitor_detail.capture_updated'));
-    } catch (error) {
-      log.monitor('Recording update failed', LogLevel.ERROR, { error });
-      toast.error(t('monitor_detail.capture_failed'));
-    } finally {
-      setIsCaptureUpdating(false);
-    }
-  }, [selectedMonitor, refetch, t]);
-
-  const handleFunctionChange = useCallback(async (value: MonitorFunction) => {
-    if (!selectedMonitor) return;
-    setIsModeUpdating(true);
-    try {
-      await changeMonitorFunction(selectedMonitor.Id, value);
-      await refetch();
-      toast.success(t('monitor_detail.mode_updated'));
-    } catch (error) {
-      log.monitor('Function update failed', LogLevel.ERROR, { error });
-      toast.error(t('monitor_detail.mode_failed'));
-    } finally {
-      setIsModeUpdating(false);
-    }
-  }, [selectedMonitor, refetch, t]);
-
-  const handleEnabledChange = useCallback(async (enabled: boolean) => {
-    if (!selectedMonitor) return;
-    setIsEnabledUpdating(true);
-    try {
-      await setMonitorEnabled(selectedMonitor.Id, enabled);
-      await refetch();
-      toast.success(t('monitor_detail.enabled_updated'));
-    } catch (error) {
-      log.monitor('Enabled toggle failed', LogLevel.ERROR, { error });
-      toast.error(t('monitor_detail.enabled_failed'));
-    } finally {
-      setIsEnabledUpdating(false);
-    }
-  }, [selectedMonitor, refetch, t]);
-
-  const handleSaveJPEGsChange = useCallback(async (value: string) => {
-    if (!selectedMonitor) return;
-    setIsStorageUpdating(true);
-    try {
-      await updateMonitor(selectedMonitor.Id, { 'Monitor[SaveJPEGs]': value });
-      await refetch();
-      toast.success(t('monitor_detail.storage_updated'));
-    } catch (error) {
-      log.monitor('SaveJPEGs update failed', LogLevel.ERROR, { error });
-      toast.error(t('monitor_detail.storage_failed'));
-    } finally {
-      setIsStorageUpdating(false);
-    }
-  }, [selectedMonitor, refetch, t]);
-
-  const handleVideoWriterChange = useCallback(async (value: string) => {
-    if (!selectedMonitor) return;
-    setIsStorageUpdating(true);
-    try {
-      await updateMonitor(selectedMonitor.Id, { 'Monitor[VideoWriter]': value });
-      await refetch();
-      toast.success(t('monitor_detail.storage_updated'));
-    } catch (error) {
-      log.monitor('VideoWriter update failed', LogLevel.ERROR, { error });
-      toast.error(t('monitor_detail.storage_failed'));
-    } finally {
-      setIsStorageUpdating(false);
+      setIsSavingSettings(false);
     }
   }, [selectedMonitor, refetch, t]);
 
@@ -295,17 +207,8 @@ export default function Monitors() {
           onOpenChange={setShowPropertiesDialog}
           monitor={selectedMonitor}
           hasNewApi={hasNewApi}
-          onCapturingChange={handleCapturingChange}
-          onAnalysingChange={handleAnalysingChange}
-          onRecordingChange={handleRecordingChange}
-          isCaptureUpdating={isCaptureUpdating}
-          onFunctionChange={handleFunctionChange}
-          isModeUpdating={isModeUpdating}
-          onEnabledChange={handleEnabledChange}
-          isEnabledUpdating={isEnabledUpdating}
-          onSaveJPEGsChange={handleSaveJPEGsChange}
-          onVideoWriterChange={handleVideoWriterChange}
-          isStorageUpdating={isStorageUpdating}
+          onSave={handleSaveSettings}
+          isSaving={isSavingSettings}
         />
       )}
     </div>
