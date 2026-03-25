@@ -505,7 +505,8 @@
     "video_writer_encode": "Encoder",
     "video_writer_passthrough": "Passage direct caméra",
     "storage_updated": "Paramètres de stockage mis à jour",
-    "storage_failed": "Échec de la mise à jour des paramètres de stockage"
+    "storage_failed": "Échec de la mise à jour des paramètres de stockage",
+    "control_address": "Adresse de contrôle"
   },
   "montage": {
     "title": "Montage",

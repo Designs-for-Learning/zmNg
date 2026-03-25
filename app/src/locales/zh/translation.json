@@ -505,7 +505,8 @@
     "video_writer_encode": "编码",
     "video_writer_passthrough": "摄像头直通",
     "storage_updated": "存储设置已更新",
-    "storage_failed": "更新存储设置失败"
+    "storage_failed": "更新存储设置失败",
+    "control_address": "控制地址"
   },
   "montage": {
     "title": "蒙太奇",

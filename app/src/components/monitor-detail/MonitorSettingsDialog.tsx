@@ -306,6 +306,11 @@ export function MonitorSettingsDialog({
                 {monitor.Controllable === '1' || monitor.Controllable === 'true' ? t('common.yes') : t('common.no')}
               </Badge>
             </SettingsRow>
+            {(monitor.Controllable === '1' || monitor.Controllable === 'true') && monitor.ControlAddress && (
+              <SettingsRow label={t('monitor_detail.control_address')} testId="settings-control-address">
+                <span className="font-mono text-xs">{monitor.ControlAddress}</span>
+              </SettingsRow>
+            )}
           </TabsContent>
 
           {/* Tab 3: Display (read-only) */}

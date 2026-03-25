@@ -505,7 +505,8 @@
     "video_writer_encode": "Codificar",
     "video_writer_passthrough": "Paso directo de cámara",
     "storage_updated": "Ajustes de almacenamiento actualizados",
-    "storage_failed": "Error al actualizar los ajustes de almacenamiento"
+    "storage_failed": "Error al actualizar los ajustes de almacenamiento",
+    "control_address": "Dirección de control"
   },
   "montage": {
     "title": "Montaje",

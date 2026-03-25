@@ -505,7 +505,8 @@
     "video_writer_encode": "Kodieren",
     "video_writer_passthrough": "Kamera-Durchleitung",
     "storage_updated": "Speicher-Einstellungen aktualisiert",
-    "storage_failed": "Fehler beim Aktualisieren der Speicher-Einstellungen"
+    "storage_failed": "Fehler beim Aktualisieren der Speicher-Einstellungen",
+    "control_address": "Steuerungsadresse"
   },
   "montage": {
     "title": "Montage",
