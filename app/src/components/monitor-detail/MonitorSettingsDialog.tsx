@@ -118,13 +118,13 @@ export function MonitorSettingsDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue="capture" className="mt-2">
+        <Tabs defaultValue="video" className="mt-2">
           <TabsList className="w-full">
-            <TabsTrigger value="capture" className="flex-1" data-testid="settings-tab-capture">
-              {t('monitor_detail.tab_capture')}
-            </TabsTrigger>
             <TabsTrigger value="video" className="flex-1" data-testid="settings-tab-video">
               {t('monitor_detail.tab_video')}
+            </TabsTrigger>
+            <TabsTrigger value="capture" className="flex-1" data-testid="settings-tab-capture">
+              {t('monitor_detail.tab_capture')}
             </TabsTrigger>
             <TabsTrigger value="display" className="flex-1" data-testid="settings-tab-display">
               {t('monitor_detail.tab_display')}
