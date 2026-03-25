@@ -24,6 +24,8 @@ interface MonitorControlsCardProps {
   currentFunction: MonitorFunction;
   isModeUpdating: boolean;
   onModeChange: (mode: MonitorFunction) => void;
+  /** When true (ZM 1.38+), hide the legacy mode dropdown. */
+  hasNewApi: boolean;
 }
 
 export function MonitorControlsCard({
@@ -36,6 +38,7 @@ export function MonitorControlsCard({
   currentFunction,
   isModeUpdating,
   onModeChange,
+  hasNewApi,
 }: MonitorControlsCardProps) {
   const { t } = useTranslation();
 
@@ -63,29 +66,31 @@ export function MonitorControlsCard({
             data-testid="monitor-alarm-toggle"
           />
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="monitor-mode">{t('monitor_detail.mode_label')}</Label>
-          <Select
-            value={currentFunction}
-            onValueChange={(value) => onModeChange(value as MonitorFunction)}
-            disabled={isModeUpdating}
-          >
-            <SelectTrigger id="monitor-mode" data-testid="monitor-mode-select">
-              <SelectValue placeholder={t('monitor_detail.mode_label')} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Monitor">{t('monitor_detail.mode_monitor')}</SelectItem>
-              <SelectItem value="Modect">{t('monitor_detail.mode_modect')}</SelectItem>
-              <SelectItem value="Record">{t('monitor_detail.mode_record')}</SelectItem>
-              <SelectItem value="Mocord">{t('monitor_detail.mode_mocord')}</SelectItem>
-              <SelectItem value="Nodect">{t('monitor_detail.mode_nodect')}</SelectItem>
-              <SelectItem value="None">{t('monitor_detail.mode_none')}</SelectItem>
-            </SelectContent>
-          </Select>
-          <p className="text-xs text-muted-foreground">
-            {isModeUpdating ? t('monitor_detail.mode_updating') : t('monitor_detail.mode_help')}
-          </p>
-        </div>
+        {!hasNewApi && (
+          <div className="space-y-2">
+            <Label htmlFor="monitor-mode">{t('monitor_detail.mode_label')}</Label>
+            <Select
+              value={currentFunction}
+              onValueChange={(value) => onModeChange(value as MonitorFunction)}
+              disabled={isModeUpdating}
+            >
+              <SelectTrigger id="monitor-mode" data-testid="monitor-mode-select">
+                <SelectValue placeholder={t('monitor_detail.mode_label')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Monitor">{t('monitor_detail.mode_monitor')}</SelectItem>
+                <SelectItem value="Modect">{t('monitor_detail.mode_modect')}</SelectItem>
+                <SelectItem value="Record">{t('monitor_detail.mode_record')}</SelectItem>
+                <SelectItem value="Mocord">{t('monitor_detail.mode_mocord')}</SelectItem>
+                <SelectItem value="Nodect">{t('monitor_detail.mode_nodect')}</SelectItem>
+                <SelectItem value="None">{t('monitor_detail.mode_none')}</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              {isModeUpdating ? t('monitor_detail.mode_updating') : t('monitor_detail.mode_help')}
+            </p>
+          </div>
+        )}
         <p className="text-xs text-muted-foreground">
           {isAlarmUpdating ? t('monitor_detail.alarm_updating') : t('monitor_detail.alarm_help')}
         </p>

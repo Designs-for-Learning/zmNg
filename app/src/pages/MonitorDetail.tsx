@@ -554,6 +554,7 @@ export default function MonitorDetail() {
         {!isFullscreen && (
         <div className="w-full max-w-5xl mt-8">
           <MonitorControlsCard
+            hasNewApi={hasNewApi}
             hasAlarmStatus={hasAlarmStatus}
             displayAlarmArmed={displayAlarmArmed}
             alarmStatusLabel={alarmStatusLabel}
