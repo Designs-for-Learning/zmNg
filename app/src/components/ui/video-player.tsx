@@ -44,7 +44,7 @@ interface VideoPlayerProps {
   /** Callback when player is ready */
   onReady?: (player: Player) => void;
   /** Callback on error */
-  onError?: (error: any) => void;
+  onError?: (error: unknown) => void;
   /** Event ID for PiP persistence — when provided, enables PiP survival across navigation */
   eventId?: string;
 }

@@ -88,6 +88,7 @@ interface NotificationState {
   _cleanup: () => void;
   _syncMonitorFilters: () => Promise<void>;
   _updateBadge: (count?: number) => Promise<void>;
+  _clearNativeBadge: () => void;
   _registerPushTokenIfAvailable: () => Promise<void>;
 }
 
@@ -387,6 +388,17 @@ export const useNotificationStore = create<NotificationState>()(
         }
       },
 
+      _clearNativeBadge: () => {
+        // Clear native badge and delivered notifications on mobile
+        import('@capacitor/core').then(({ Capacitor }) => {
+          if (Capacitor.isNativePlatform()) {
+            import('@capacitor-firebase/messaging').then(({ FirebaseMessaging }) => {
+              FirebaseMessaging.removeAllDeliveredNotifications();
+            }).catch(() => {});
+          }
+        }).catch(() => {});
+      },
+
       markAllRead: (profileId: string) => {
         set((state) => {
           const currentEvents = state.profileEvents[profileId] || [];
@@ -408,14 +420,7 @@ export const useNotificationStore = create<NotificationState>()(
           };
         });
 
-        // Clear native badge and delivered notifications on mobile
-        import('@capacitor/core').then(({ Capacitor }) => {
-          if (Capacitor.isNativePlatform()) {
-            import('@capacitor-firebase/messaging').then(({ FirebaseMessaging }) => {
-              FirebaseMessaging.removeAllDeliveredNotifications();
-            }).catch(() => {});
-          }
-        }).catch(() => {});
+        get()._clearNativeBadge();
 
         // Update badge on server if this is the connected profile
         if (get().currentProfileId === profileId) {
@@ -444,14 +449,7 @@ export const useNotificationStore = create<NotificationState>()(
           };
         });
 
-        // Clear native badge and delivered notifications on mobile
-        import('@capacitor/core').then(({ Capacitor }) => {
-          if (Capacitor.isNativePlatform()) {
-            import('@capacitor-firebase/messaging').then(({ FirebaseMessaging }) => {
-              FirebaseMessaging.removeAllDeliveredNotifications();
-            }).catch(() => {});
-          }
-        }).catch(() => {});
+        get()._clearNativeBadge();
 
         // Update badge on server if this is the connected profile
         if (get().currentProfileId === profileId) {

@@ -107,7 +107,6 @@ export default function Montage() {
   const {
     layout,
     gridCols,
-    isScreenTooSmall,
     currentWidthRef,
     handleApplyGridLayout,
     handleLoadSavedLayout,
@@ -310,11 +309,6 @@ export default function Montage() {
               </Button>
               <NotificationBadge />
             </div>
-          )}
-          {isScreenTooSmall && (
-            <p className="text-xs text-destructive px-2 sm:px-3 pb-2">
-              {t('montage.screen_too_small')}
-            </p>
           )}
         </>
       )}

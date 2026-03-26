@@ -103,10 +103,7 @@ interface UseMontageGridOptions {
 interface UseMontageGridReturn {
   layout: Layout[];
   gridCols: number;
-  isScreenTooSmall: boolean;
-  monitorMap: Map<string, Monitor>;
   currentWidthRef: React.MutableRefObject<number>;
-  hasWidth: boolean;
   handleApplyGridLayout: (cols: number) => void;
   handleLoadSavedLayout: (savedLayout: Layout[], displayCols: number) => void;
   handleLayoutChange: (nextLayout: Layout[]) => void;
@@ -131,7 +128,6 @@ export function useMontageGrid({
 
   // displayCols = user's chosen number of visible columns (1–5)
   const [displayCols, setDisplayCols] = useState<number>(settings.montageGridCols);
-  const [isScreenTooSmall, setIsScreenTooSmall] = useState(false);
   const [layout, setLayout] = useState<Layout[]>([]);
   const [hasWidth, setHasWidth] = useState(false);
   // Track whether initial layout has been built (prevent re-running on monitor refetch)
@@ -139,7 +135,6 @@ export function useMontageGrid({
   // Skip the restore effect when handleApplyGridLayout/handleLoadSavedLayout already set layout
   const skipRestoreRef = useRef(false);
 
-  const screenTooSmallRef = useRef(false);
   const currentWidthRef = useRef(0);
   // Width at which heights were last calculated — used to skip trivial changes
   const lastCalcWidthRef = useRef(0);
@@ -264,8 +259,6 @@ export function useMontageGrid({
 
       skipRestoreRef.current = true;
       setDisplayCols(cols);
-      setIsScreenTooSmall(false);
-      screenTooSmallRef.current = false;
       setLayout(nextLayout);
 
       const profileId = currentProfileRef.current.id;
@@ -414,10 +407,7 @@ export function useMontageGrid({
   return {
     layout,
     gridCols: displayCols,
-    isScreenTooSmall,
-    monitorMap,
     currentWidthRef,
-    hasWidth,
     handleApplyGridLayout,
     handleLoadSavedLayout,
     handleLayoutChange,
