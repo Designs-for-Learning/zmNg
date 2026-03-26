@@ -12,19 +12,16 @@ import { useTranslation } from 'react-i18next';
 import { GRID_LAYOUT } from '../../../lib/zmninja-ng-constants';
 import { useSettingsStore } from '../../../stores/settings';
 import { getMonitorAspectRatio } from '../../../lib/monitor-rotation';
+import { getMaxColsForWidth } from '../../../lib/event-utils';
 import type { Layout } from 'react-grid-layout';
 import type { Monitor, MonitorData } from '../../../api/types';
 import type { Profile } from '../../../api/types';
 import type { ProfileSettings } from '../../../stores/settings';
 
+export { getMaxColsForWidth };
+
 /** Internal grid always uses 12 columns for fine-grained positioning. */
 export const INTERNAL_COLS = 12;
-
-export const getMaxColsForWidth = (width: number, minWidth: number, margin: number): number => {
-  if (width <= 0) return 1;
-  const maxCols = Math.floor((width + margin) / (minWidth + margin));
-  return Math.max(1, maxCols);
-};
 
 const parseAspectRatioValue = (monitor: Monitor): number => {
   const ratio = getMonitorAspectRatio(monitor.Width, monitor.Height, monitor.Orientation);
@@ -369,7 +366,8 @@ export function useMontageGrid({
 
   // Proportionally scale the entire layout so it fills the full grid width
   const handleFillWidth = useCallback(() => {
-    if (!currentProfileRef.current) return;
+    const profileId = currentProfileRef.current?.id;
+    if (!profileId) return;
 
     setLayout((prev) => {
       // Find the rightmost edge of any item
@@ -387,7 +385,7 @@ export function useMontageGrid({
       // Recalculate heights for new widths
       const recalculated = recalcHeights(nextLayout, currentWidthRef.current);
 
-      saveMontageLayout(currentProfileRef.current!.id, {
+      saveMontageLayout(profileId, {
         ...settingsRef.current.montageLayouts,
         lg: recalculated,
       });

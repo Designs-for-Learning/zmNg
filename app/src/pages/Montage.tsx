@@ -267,7 +267,7 @@ export default function Montage() {
                   </SelectItem>
                 </SelectContent>
               </Select>
-              <Button onClick={() => refetch()} variant="outline" size="sm" className="h-8 sm:h-9">
+              <Button onClick={() => refetch()} variant="outline" size="sm" className="h-8 sm:h-9" data-testid="montage-refresh-button">
                 <RefreshCw className="h-4 w-4 sm:mr-2" />
                 <span className="hidden sm:inline">{t('common.refresh')}</span>
               </Button>
@@ -303,6 +303,7 @@ export default function Montage() {
                 size="sm"
                 className="h-8 sm:h-9"
                 title={t('montage.fullscreen')}
+                data-testid="montage-fullscreen-button"
               >
                 <Maximize className="h-4 w-4 sm:mr-2" />
                 <span className="hidden sm:inline">{t('montage.fullscreen')}</span>

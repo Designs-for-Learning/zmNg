@@ -62,7 +62,6 @@ export default function Events() {
   );
 
   const parentRef = useRef<HTMLDivElement>(null);
-  const [parentElement, setParentElement] = useState<HTMLDivElement | null>(null);
   const { t } = useTranslation();
 
   // Check if user came from another page (navigation state tracking)
@@ -313,7 +312,6 @@ export default function Events() {
         ref={(el) => {
           parentRef.current = el;
           pullToRefresh.containerRef.current = el;
-          setParentElement(el); // Trigger re-render when ref is set (iOS fix)
         }}
         {...pullToRefresh.bind()}
         className="h-full overflow-auto p-3 sm:p-4 md:p-6 relative touch-pan-y"
@@ -516,8 +514,6 @@ export default function Events() {
             isLoadingMore={isLoadingMore}
             isFetching={isFetching}
             onLoadMore={loadNextPage}
-            parentRef={parentRef}
-            parentElement={parentElement}
             eventTagMap={eventTagMap}
             eventFilters={serverFilters}
           />

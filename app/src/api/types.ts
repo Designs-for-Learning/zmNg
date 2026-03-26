@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { log, LogLevel } from '../lib/logger';
+import type { EventFilters } from './events';
 
 // Authentication types
 export const LoginResponseSchema = z.object({
@@ -547,8 +548,7 @@ export interface EventCardProps {
   thumbnailWidth: number;
   thumbnailHeight: number;
   tags?: Tag[];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  eventFilters?: any;
+  eventFilters?: EventFilters;
 }
 
 // Zone types

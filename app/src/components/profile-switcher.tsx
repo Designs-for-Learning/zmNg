@@ -64,12 +64,13 @@ export function ProfileSwitcher() {
       toast.success(t('profiles.switched_to', { name: profile.name }));
       setIsLoading(false);
       navigate('/monitors');
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (abort.signal.aborted) return;
 
       toast.dismiss(loadingToast);
+      const message = error instanceof Error ? error.message : String(error);
       toast.error(t('profiles.switch_failed'), {
-        description: error?.message || t('common.unknown_error'),
+        description: message || t('common.unknown_error'),
       });
       setIsLoading(false);
     }

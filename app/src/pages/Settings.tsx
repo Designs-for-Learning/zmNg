@@ -4,7 +4,7 @@
  * Three-section flat settings layout: Appearance, Streaming & Playback, Advanced.
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Image, Video as VideoIcon, Zap, Gauge, Leaf, RefreshCw, ChevronDown, Lock } from 'lucide-react';
 import { hasPinStored, storePin, clearPin, verifyPin } from '../lib/kioskPin';
@@ -134,9 +134,9 @@ export default function Settings() {
   const [pendingAction, setPendingAction] = useState<'clear' | 'change' | null>(null);
 
   // Check PIN status on first render
-  useState(() => {
+  useEffect(() => {
     hasPinStored().then(setHasPin);
-  });
+  }, []);
 
   // Try biometrics first, fall back to PIN pad for verification
   const verifyIdentity = useCallback(async (action: 'clear' | 'change'): Promise<boolean> => {
