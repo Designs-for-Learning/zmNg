@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
+import { Pencil } from 'lucide-react';
 import { Switch } from '../ui/switch';
 import { Input } from '../ui/input';
 import { PasswordInput } from '../ui/password-input';
@@ -43,17 +44,22 @@ function SettingsRow({
   label,
   children,
   testId,
+  editable,
 }: {
   label: string;
   children: React.ReactNode;
   testId?: string;
+  editable?: boolean;
 }) {
   return (
     <div
       className="flex items-center justify-between py-2.5 border-b border-border/40 last:border-b-0"
       data-testid={testId}
     >
-      <span className="text-sm text-muted-foreground">{label}</span>
+      <span className="text-sm text-muted-foreground flex items-center gap-1">
+        {label}
+        {editable && <Pencil className="h-2 w-2 shrink-0 opacity-50" />}
+      </span>
       <div className="text-sm font-medium">{children}</div>
     </div>
   );
@@ -202,13 +208,13 @@ export function MonitorSettingsDialog({
           <TabsContent value="capture" className="mt-4 space-y-0 overflow-y-auto">
             {is138Plus ? (
               <>
-                <SettingsRow label={t('monitor_detail.capturing_label')} testId="settings-capturing-row">
+                <SettingsRow label={t('monitor_detail.capturing_label')} testId="settings-capturing-row" editable>
                   <Select
                     value={localCapturing}
                     onValueChange={setLocalCapturing}
                     disabled={!editable || isSaving}
                   >
-                    <SelectTrigger className="w-32 h-8 bg-blue-500/10" data-testid="settings-capturing-select">
+                    <SelectTrigger className="w-32 h-8" data-testid="settings-capturing-select">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -219,13 +225,13 @@ export function MonitorSettingsDialog({
                   </Select>
                 </SettingsRow>
 
-                <SettingsRow label={t('monitor_detail.analysing_label')} testId="settings-analysing-row">
+                <SettingsRow label={t('monitor_detail.analysing_label')} testId="settings-analysing-row" editable>
                   <Select
                     value={localAnalysing}
                     onValueChange={setLocalAnalysing}
                     disabled={!editable || isSaving}
                   >
-                    <SelectTrigger className="w-32 h-8 bg-blue-500/10" data-testid="settings-analysing-select">
+                    <SelectTrigger className="w-32 h-8" data-testid="settings-analysing-select">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -235,13 +241,13 @@ export function MonitorSettingsDialog({
                   </Select>
                 </SettingsRow>
 
-                <SettingsRow label={t('monitor_detail.recording_label')} testId="settings-recording-row">
+                <SettingsRow label={t('monitor_detail.recording_label')} testId="settings-recording-row" editable>
                   <Select
                     value={localRecording}
                     onValueChange={setLocalRecording}
                     disabled={!editable || isSaving}
                   >
-                    <SelectTrigger className="w-32 h-8 bg-blue-500/10" data-testid="settings-recording-select">
+                    <SelectTrigger className="w-32 h-8" data-testid="settings-recording-select">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -253,13 +259,13 @@ export function MonitorSettingsDialog({
                 </SettingsRow>
               </>
             ) : (
-              <SettingsRow label={t('monitor_detail.function_label')} testId="settings-function-row">
+              <SettingsRow label={t('monitor_detail.function_label')} testId="settings-function-row" editable>
                 <Select
                   value={localFunction}
                   onValueChange={(v) => setLocalFunction(v as MonitorFunction)}
                   disabled={!editable || isSaving}
                 >
-                  <SelectTrigger className="w-32 h-8 bg-blue-500/10" data-testid="settings-function-select">
+                  <SelectTrigger className="w-32 h-8" data-testid="settings-function-select">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -276,7 +282,7 @@ export function MonitorSettingsDialog({
 
             {/* Enabled toggle only for ZM < 1.38 — on 1.38+ Capturing controls this */}
             {!is138Plus && (
-              <SettingsRow label={t('monitor_detail.enabled_label')} testId="settings-enabled-row">
+              <SettingsRow label={t('monitor_detail.enabled_label')} testId="settings-enabled-row" editable>
                 <Switch
                   checked={localEnabled}
                   onCheckedChange={setLocalEnabled}
@@ -286,13 +292,13 @@ export function MonitorSettingsDialog({
               </SettingsRow>
             )}
 
-            <SettingsRow label={t('monitor_detail.save_jpegs_label')} testId="settings-savejpegs-row">
+            <SettingsRow label={t('monitor_detail.save_jpegs_label')} testId="settings-savejpegs-row" editable>
               <Select
                 value={localSaveJPEGs}
                 onValueChange={setLocalSaveJPEGs}
                 disabled={!editable || isSaving}
               >
-                <SelectTrigger className="w-40 h-8 bg-blue-500/10" data-testid="settings-savejpegs-select">
+                <SelectTrigger className="w-40 h-8" data-testid="settings-savejpegs-select">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -304,13 +310,13 @@ export function MonitorSettingsDialog({
               </Select>
             </SettingsRow>
 
-            <SettingsRow label={t('monitor_detail.video_writer_label')} testId="settings-videowriter-row">
+            <SettingsRow label={t('monitor_detail.video_writer_label')} testId="settings-videowriter-row" editable>
               <Select
                 value={localVideoWriter}
                 onValueChange={setLocalVideoWriter}
                 disabled={!editable || isSaving}
               >
-                <SelectTrigger className="w-40 h-8 bg-blue-500/10" data-testid="settings-videowriter-select">
+                <SelectTrigger className="w-40 h-8" data-testid="settings-videowriter-select">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -322,9 +328,9 @@ export function MonitorSettingsDialog({
             </SettingsRow>
 
             {onCycleSecondsChange && cycleSeconds !== undefined && (
-              <SettingsRow label={t('monitor_detail.cycle_label')} testId="settings-cycle-row">
+              <SettingsRow label={t('monitor_detail.cycle_label')} testId="settings-cycle-row" editable>
                 <Select value={String(cycleSeconds)} onValueChange={onCycleSecondsChange}>
-                  <SelectTrigger className="w-32 h-8 bg-blue-500/10" data-testid="monitor-detail-cycle-select">
+                  <SelectTrigger className="w-32 h-8" data-testid="monitor-detail-cycle-select">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -357,46 +363,46 @@ export function MonitorSettingsDialog({
           <TabsContent value="video" className="mt-4 space-y-0 overflow-y-auto">
             {/* Source Path — stacked layout for long value */}
             <div className="py-2.5 border-b border-border/40 " data-testid="settings-source-row">
-              <span className="text-sm text-muted-foreground">{t('monitor_detail.source_path')}</span>
+              <span className="text-sm text-muted-foreground flex items-center gap-1">{t('monitor_detail.source_path')}<Pencil className="h-2 w-2 shrink-0 opacity-50" /></span>
               <Input
                 value={localPath}
                 onChange={(e) => setLocalPath(e.target.value)}
                 disabled={!editable || isSaving}
-                className="mt-1.5 text-xs h-8 font-mono bg-blue-500/10"
+                className="mt-1.5 text-xs h-8 font-mono"
                 data-testid="settings-source-input"
               />
             </div>
 
             {/* Username */}
-            <SettingsRow label={t('monitor_detail.username')} testId="settings-username-row">
+            <SettingsRow label={t('monitor_detail.username')} testId="settings-username-row" editable>
               <Input
                 value={localUser}
                 onChange={(e) => setLocalUser(e.target.value)}
                 disabled={!editable || isSaving}
-                className="w-40 h-8 text-xs bg-blue-500/10"
+                className="w-40 h-8 text-xs"
                 data-testid="settings-username-input"
               />
             </SettingsRow>
 
             {/* Password */}
-            <SettingsRow label={t('monitor_detail.password')} testId="settings-password-row">
+            <SettingsRow label={t('monitor_detail.password')} testId="settings-password-row" editable>
               <PasswordInput
                 value={localPass}
                 onChange={(e) => setLocalPass(e.target.value)}
                 disabled={!editable || isSaving}
-                className="w-40 h-8 text-xs bg-blue-500/10"
+                className="w-40 h-8 text-xs"
                 data-testid="settings-password-input"
               />
             </SettingsRow>
 
             {/* Method */}
-            <SettingsRow label={t('monitor_detail.method_label')} testId="settings-method-row">
+            <SettingsRow label={t('monitor_detail.method_label')} testId="settings-method-row" editable>
               <Select
                 value={localMethod}
                 onValueChange={setLocalMethod}
                 disabled={!editable || isSaving}
               >
-                <SelectTrigger className="w-40 h-8 bg-blue-500/10" data-testid="settings-method-select">
+                <SelectTrigger className="w-40 h-8" data-testid="settings-method-select">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -419,7 +425,7 @@ export function MonitorSettingsDialog({
             </SettingsRow>
 
             {/* Max FPS — editable */}
-            <SettingsRow label={t('monitors.max_fps')} testId="settings-maxfps-row">
+            <SettingsRow label={t('monitors.max_fps')} testId="settings-maxfps-row" editable>
               <Input
                 type="number"
                 step="any"
@@ -427,13 +433,13 @@ export function MonitorSettingsDialog({
                 value={localMaxFPS}
                 onChange={(e) => setLocalMaxFPS(e.target.value)}
                 disabled={!editable || isSaving}
-                className="w-24 h-8 text-xs bg-blue-500/10"
+                className="w-24 h-8 text-xs"
                 data-testid="settings-maxfps-input"
               />
             </SettingsRow>
 
             {/* Alarm Max FPS — editable */}
-            <SettingsRow label={t('monitors.alarm_max_fps')} testId="settings-alarmmaxfps-row">
+            <SettingsRow label={t('monitors.alarm_max_fps')} testId="settings-alarmmaxfps-row" editable>
               <Input
                 type="number"
                 step="any"
@@ -441,19 +447,19 @@ export function MonitorSettingsDialog({
                 value={localAlarmMaxFPS}
                 onChange={(e) => setLocalAlarmMaxFPS(e.target.value)}
                 disabled={!editable || isSaving}
-                className="w-24 h-8 text-xs bg-blue-500/10"
+                className="w-24 h-8 text-xs"
                 data-testid="settings-alarmmaxfps-input"
               />
             </SettingsRow>
 
             {/* Orientation */}
-            <SettingsRow label={t('monitor_detail.orientation_label')} testId="monitor-orientation">
+            <SettingsRow label={t('monitor_detail.orientation_label')} testId="monitor-orientation" editable>
               <Select
                 value={localOrientation}
                 onValueChange={setLocalOrientation}
                 disabled={!editable || isSaving}
               >
-                <SelectTrigger className="w-40 h-8 bg-blue-500/10" data-testid="settings-orientation-select">
+                <SelectTrigger className="w-40 h-8" data-testid="settings-orientation-select">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -494,24 +500,24 @@ export function MonitorSettingsDialog({
 
             {/* Event Start Cmd — stacked layout */}
             <div className="py-2.5 border-b border-border/40 " data-testid="settings-event-start-cmd-row">
-              <span className="text-sm text-muted-foreground">{t('monitor_detail.event_start_cmd')}</span>
+              <span className="text-sm text-muted-foreground flex items-center gap-1">{t('monitor_detail.event_start_cmd')}<Pencil className="h-2 w-2 shrink-0 opacity-50" /></span>
               <Input
                 value={localEventStartCmd}
                 onChange={(e) => setLocalEventStartCmd(e.target.value)}
                 disabled={!editable || isSaving}
-                className="mt-1.5 text-xs h-8 font-mono bg-blue-500/10"
+                className="mt-1.5 text-xs h-8 font-mono"
                 data-testid="settings-event-start-cmd-input"
               />
             </div>
 
             {/* Event End Cmd — stacked layout */}
             <div className="py-2.5 border-b border-border/40 " data-testid="settings-event-end-cmd-row">
-              <span className="text-sm text-muted-foreground">{t('monitor_detail.event_end_cmd')}</span>
+              <span className="text-sm text-muted-foreground flex items-center gap-1">{t('monitor_detail.event_end_cmd')}<Pencil className="h-2 w-2 shrink-0 opacity-50" /></span>
               <Input
                 value={localEventEndCmd}
                 onChange={(e) => setLocalEventEndCmd(e.target.value)}
                 disabled={!editable || isSaving}
-                className="mt-1.5 text-xs h-8 font-mono bg-blue-500/10"
+                className="mt-1.5 text-xs h-8 font-mono"
                 data-testid="settings-event-end-cmd-input"
               />
             </div>
