@@ -11,6 +11,7 @@ import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useShallow } from 'zustand/react/shallow';
 import { getEvents } from '../api/events';
 import type { EventFilters } from '../api/events';
+import type { EventData } from '../api/types';
 import { getMonitors } from '../api/monitors';
 import { useCurrentProfile } from '../hooks/useCurrentProfile';
 import { useAuthStore } from '../stores/auth';
@@ -193,7 +194,7 @@ export default function Events() {
 
   // Get event IDs for tag fetching
   const eventIdsForTagFetch = useMemo(() =>
-    (eventsData?.events || []).map(({ Event }: any) => Event.Id),
+    (eventsData?.events || []).map(({ Event }: EventData) => Event.Id),
     [eventsData?.events]
   );
 
@@ -209,13 +210,13 @@ export default function Events() {
 
     // Apply favorites filter if enabled (client-side only - favorites stored locally)
     if (favoritesOnly) {
-      filtered = filtered.filter(({ Event }: any) => favoriteIds.includes(Event.Id));
+      filtered = filtered.filter(({ Event }: EventData) => favoriteIds.includes(Event.Id));
     }
 
     // Apply tag filter if tags are selected (client-side)
     if (selectedTagIds.length > 0 && eventTagMap.size > 0) {
       const isAllTagsFilter = selectedTagIds.includes(ALL_TAGS_FILTER_ID);
-      filtered = filtered.filter(({ Event }: any) => {
+      filtered = filtered.filter(({ Event }: EventData) => {
         const eventTags = eventTagMap.get(Event.Id) || [];
         if (isAllTagsFilter) {
           // "All" = show events that have at least one tag

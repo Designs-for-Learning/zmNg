@@ -80,9 +80,7 @@ export default function EventDetail() {
     enabled: !!id,
   });
 
-  const eventTags = useMemo(() => {
-    return id ? getTagsForEvent(id) : [];
-  }, [id, getTagsForEvent]);
+  const eventTags = id ? getTagsForEvent(id) : [];
 
   const handleFavoriteToggle = useCallback(() => {
     if (currentProfile && event) {

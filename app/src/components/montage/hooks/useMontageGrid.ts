@@ -70,6 +70,7 @@ const calculateHeightUnits = (
  * Old layouts have small w values (1–5); new layouts use 12-col space.
  */
 const migrateLayout = (stored: Layout[], displayCols: number): Layout[] => {
+  if (stored.length === 0) return stored;
   const maxW = Math.max(...stored.map((item) => item.w));
   if (maxW <= 5) {
     const scale = Math.floor(INTERNAL_COLS / displayCols);
@@ -406,7 +407,7 @@ export function useMontageGrid({
       else next.add(monitorId);
       return next;
     });
-  }, [layout]);
+  }, []);
 
   const isMonitorPinned = useCallback((monitorId: string) => {
     return pinnedIds.has(monitorId);

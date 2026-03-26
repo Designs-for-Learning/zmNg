@@ -171,16 +171,6 @@ export const EventListView = ({
     scrollMargin,
   });
 
-  // Virtualization is currently disabled
-  // This effect would force recalculation when re-enabled
-  // useEffect(() => {
-  //   if (shouldVirtualize) {
-  //     requestAnimationFrame(() => {
-  //       rowVirtualizer.measure();
-  //     });
-  //   }
-  // }, [events.length, shouldVirtualize, rowVirtualizer]);
-
   // Don't render content until we have a parent element
   if (!parentElement) {
     return (

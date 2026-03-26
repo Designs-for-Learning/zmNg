@@ -10,6 +10,7 @@ import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProfileStore } from '../stores/profile';
 import { useShallow } from 'zustand/react/shallow';
+import { log, LogLevel } from '../lib/logger';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -115,7 +116,8 @@ export function ProfileSwitcher() {
                 {(() => {
                   try {
                     return new URL(profile.portalUrl).hostname;
-                  } catch {
+                  } catch (error) {
+                    log.profile('URL hostname parse failed', LogLevel.DEBUG, { error });
                     return profile.portalUrl;
                   }
                 })()}

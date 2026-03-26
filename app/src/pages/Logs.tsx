@@ -9,7 +9,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { ScrollText, Trash2, Download, Share2, ChevronDown, ChevronUp, Server, Smartphone } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Capacitor } from '@capacitor/core';
-import { Share } from '@capacitor/share';
 import { useToast } from '../hooks/use-toast';
 import { useMemo, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -278,6 +277,7 @@ export default function Logs() {
         const logText = exportLogsAsText(filteredLogs);
 
         try {
+            const { Share } = await import('@capacitor/share');
             await Share.share({
                 title: t('logs.share_title'),
                 text: logText,

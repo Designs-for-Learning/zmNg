@@ -245,7 +245,8 @@ export function VideoPlayer({
     let videoEl: HTMLVideoElement | null = null;
     try {
       videoEl = player.tech({ IWillNotUseThisInPlugins: true })?.el() as HTMLVideoElement;
-    } catch {
+    } catch (error) {
+      log.videoPlayer('Video tech access failed', LogLevel.DEBUG, { error });
       return;
     }
     if (!videoEl || !(videoEl instanceof HTMLVideoElement)) return;
