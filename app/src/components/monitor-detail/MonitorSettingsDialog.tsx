@@ -19,19 +19,6 @@ import type { Monitor } from '../../api/types';
 import type { MonitorFunction } from '../../pages/hooks/useModeControl';
 import { isZmVersionAtLeast } from '../../lib/zm-version';
 
-/** Format raw Orientation value (e.g. ROTATE_270) for display. */
-function formatOrientation(orientation: string | null | undefined): string {
-  if (!orientation || orientation === 'ROTATE_0') return 'None';
-  const map: Record<string, string> = {
-    ROTATE_90: '90°',
-    ROTATE_180: '180°',
-    ROTATE_270: '270°',
-    FLIP_HORI: 'Flip Horizontal',
-    FLIP_VERT: 'Flip Vertical',
-  };
-  return map[orientation] ?? orientation;
-}
-
 interface MonitorSettingsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -46,7 +33,8 @@ interface MonitorSettingsDialogProps {
   onCycleSecondsChange?: (value: string) => void;
   // Read-only display (MonitorDetail only)
   orientedResolution?: string;
-  rotationStatus?: string;
+  /** Map of monitor ID to name for resolving LinkedMonitors. */
+  monitorNames?: Record<string, string>;
 }
 
 /** Shared row layout for label + value/control pairs. */
@@ -80,13 +68,13 @@ export function MonitorSettingsDialog({
   cycleSeconds,
   onCycleSecondsChange,
   orientedResolution,
-  rotationStatus,
+  monitorNames,
 }: MonitorSettingsDialogProps) {
   const { t } = useTranslation();
   const editable = !!onSave;
   const is138Plus = isZmVersionAtLeast(zmVersion, '1.38.0');
 
-  // Local state for editable fields — reset when monitor changes or dialog opens
+  // --- Capture tab local state ---
   const [localCapturing, setLocalCapturing] = useState<string>(monitor.Capturing ?? 'Always');
   const [localAnalysing, setLocalAnalysing] = useState<string>(monitor.Analysing ?? 'None');
   const [localRecording, setLocalRecording] = useState<string>(monitor.Recording ?? 'None');
@@ -95,8 +83,19 @@ export function MonitorSettingsDialog({
   const [localSaveJPEGs, setLocalSaveJPEGs] = useState(monitor.SaveJPEGs ?? '0');
   const [localVideoWriter, setLocalVideoWriter] = useState(monitor.VideoWriter ?? '0');
 
+  // --- Video tab local state ---
+  const [localPath, setLocalPath] = useState(monitor.Path ?? '');
+  const [localUser, setLocalUser] = useState(monitor.User ?? '');
+  const [localPass, setLocalPass] = useState(monitor.Pass ?? '');
+  const [localMethod, setLocalMethod] = useState(monitor.Method ?? 'rtpRtsp');
+  const [localMaxFPS, setLocalMaxFPS] = useState(monitor.MaxFPS ?? '');
+  const [localAlarmMaxFPS, setLocalAlarmMaxFPS] = useState(monitor.AlarmMaxFPS ?? '');
+  const [localEventStartCmd, setLocalEventStartCmd] = useState(monitor.EventStartCommand ?? '');
+  const [localEventEndCmd, setLocalEventEndCmd] = useState(monitor.EventEndCommand ?? '');
+
   // Reset local state when monitor data changes (e.g. after refetch)
   useEffect(() => {
+    // Capture tab
     setLocalCapturing(monitor.Capturing ?? 'Always');
     setLocalAnalysing(monitor.Analysing ?? 'None');
     setLocalRecording(monitor.Recording ?? 'None');
@@ -104,21 +103,44 @@ export function MonitorSettingsDialog({
     setLocalEnabled(monitor.Enabled === '1' || monitor.Enabled === 'true');
     setLocalSaveJPEGs(monitor.SaveJPEGs ?? '0');
     setLocalVideoWriter(monitor.VideoWriter ?? '0');
+    // Video tab
+    setLocalPath(monitor.Path ?? '');
+    setLocalUser(monitor.User ?? '');
+    setLocalPass(monitor.Pass ?? '');
+    setLocalMethod(monitor.Method ?? 'rtpRtsp');
+    setLocalMaxFPS(monitor.MaxFPS ?? '');
+    setLocalAlarmMaxFPS(monitor.AlarmMaxFPS ?? '');
+    setLocalEventStartCmd(monitor.EventStartCommand ?? '');
+    setLocalEventEndCmd(monitor.EventEndCommand ?? '');
   }, [monitor]);
 
   // Check if anything changed from server state
   // On ZM 1.38+, Enabled is vestigial — Capturing controls whether the monitor is active
   const serverEnabled = monitor.Enabled === '1' || monitor.Enabled === 'true';
+
+  // Video-tab change flags (same for both ZM versions)
+  const videoHasChanges =
+    localPath !== (monitor.Path ?? '') ||
+    localUser !== (monitor.User ?? '') ||
+    localPass !== (monitor.Pass ?? '') ||
+    localMethod !== (monitor.Method ?? 'rtpRtsp') ||
+    localMaxFPS !== (monitor.MaxFPS ?? '') ||
+    localAlarmMaxFPS !== (monitor.AlarmMaxFPS ?? '') ||
+    localEventStartCmd !== (monitor.EventStartCommand ?? '') ||
+    localEventEndCmd !== (monitor.EventEndCommand ?? '');
+
   const hasChanges = is138Plus
     ? (localCapturing !== (monitor.Capturing ?? 'Always') ||
        localAnalysing !== (monitor.Analysing ?? 'None') ||
        localRecording !== (monitor.Recording ?? 'None') ||
        localSaveJPEGs !== (monitor.SaveJPEGs ?? '0') ||
-       localVideoWriter !== (monitor.VideoWriter ?? '0'))
+       localVideoWriter !== (monitor.VideoWriter ?? '0') ||
+       videoHasChanges)
     : (localFunction !== monitor.Function ||
        localEnabled !== serverEnabled ||
        localSaveJPEGs !== (monitor.SaveJPEGs ?? '0') ||
-       localVideoWriter !== (monitor.VideoWriter ?? '0'));
+       localVideoWriter !== (monitor.VideoWriter ?? '0') ||
+       videoHasChanges);
 
   const handleSave = async () => {
     if (!onSave) return;
@@ -134,6 +156,16 @@ export function MonitorSettingsDialog({
     }
     if (localSaveJPEGs !== (monitor.SaveJPEGs ?? '0')) changes.SaveJPEGs = localSaveJPEGs;
     if (localVideoWriter !== (monitor.VideoWriter ?? '0')) changes.VideoWriter = localVideoWriter;
+
+    // Video tab fields
+    if (localPath !== (monitor.Path ?? '')) changes.Path = localPath;
+    if (localUser !== (monitor.User ?? '')) changes.User = localUser;
+    if (localPass !== (monitor.Pass ?? '')) changes.Pass = localPass;
+    if (localMethod !== (monitor.Method ?? 'rtpRtsp')) changes.Method = localMethod;
+    if (localMaxFPS !== (monitor.MaxFPS ?? '')) changes.MaxFPS = localMaxFPS;
+    if (localAlarmMaxFPS !== (monitor.AlarmMaxFPS ?? '')) changes.AlarmMaxFPS = localAlarmMaxFPS;
+    if (localEventStartCmd !== (monitor.EventStartCommand ?? '')) changes.EventStartCommand = localEventStartCmd;
+    if (localEventEndCmd !== (monitor.EventEndCommand ?? '')) changes.EventEndCommand = localEventEndCmd;
 
     await onSave(changes);
   };
@@ -316,44 +348,167 @@ export function MonitorSettingsDialog({
             )}
           </TabsContent>
 
-          {/* Tab: Video (read-only) */}
+          {/* Tab: Video */}
           <TabsContent value="video" className="mt-4 space-y-0">
-            {monitor.Path && (
-              <div className="py-2.5 border-b border-border/40" data-testid="settings-source-row">
-                <span className="text-sm text-muted-foreground">{t('monitor_detail.source_title')}</span>
-                <Input
-                  value={monitor.Path}
-                  readOnly
-                  className="mt-1.5 text-xs h-8 bg-muted/50 font-mono"
-                  data-testid="settings-source-input"
-                />
-              </div>
-            )}
+            {/* Source Path — stacked layout for long value */}
+            <div className="py-2.5 border-b border-border/40" data-testid="settings-source-row">
+              <span className="text-sm text-muted-foreground">{t('monitor_detail.source_path')}</span>
+              <Input
+                value={localPath}
+                onChange={(e) => setLocalPath(e.target.value)}
+                disabled={!editable || isSaving}
+                className="mt-1.5 text-xs h-8 font-mono"
+                data-testid="settings-source-input"
+              />
+            </div>
+
+            {/* Username */}
+            <SettingsRow label={t('monitor_detail.username')} testId="settings-username-row">
+              <Input
+                value={localUser}
+                onChange={(e) => setLocalUser(e.target.value)}
+                disabled={!editable || isSaving}
+                className="w-40 h-8 text-xs"
+                data-testid="settings-username-input"
+              />
+            </SettingsRow>
+
+            {/* Password */}
+            <SettingsRow label={t('monitor_detail.password')} testId="settings-password-row">
+              <Input
+                type="password"
+                value={localPass}
+                onChange={(e) => setLocalPass(e.target.value)}
+                disabled={!editable || isSaving}
+                className="w-40 h-8 text-xs"
+                data-testid="settings-password-input"
+              />
+            </SettingsRow>
+
+            {/* Method */}
+            <SettingsRow label={t('monitor_detail.method_label')} testId="settings-method-row">
+              <Select
+                value={localMethod}
+                onValueChange={setLocalMethod}
+                disabled={!editable || isSaving}
+              >
+                <SelectTrigger className="w-40 h-8" data-testid="settings-method-select">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="rtpRtsp">{t('monitor_detail.method_tcp')}</SelectItem>
+                  <SelectItem value="rtpUni">{t('monitor_detail.method_udp')}</SelectItem>
+                  <SelectItem value="rtpMulti">{t('monitor_detail.method_udp_multicast')}</SelectItem>
+                  <SelectItem value="rtpRtspHttp">{t('monitor_detail.method_http_tunnel')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </SettingsRow>
+
+            {/* Resolution — read-only */}
             <SettingsRow label={t('monitors.resolution')}>
               {orientedResolution ?? `${monitor.Width}x${monitor.Height}`}
             </SettingsRow>
+
+            {/* Colours — read-only */}
             <SettingsRow label={t('monitors.colours')}>
               {monitor.Colours}
             </SettingsRow>
-            <SettingsRow label={t('monitors.max_fps')}>
-              {monitor.MaxFPS || t('monitors.unlimited')}
+
+            {/* Max FPS — editable */}
+            <SettingsRow label={t('monitors.max_fps')} testId="settings-maxfps-row">
+              <Input
+                type="number"
+                step="any"
+                min="0"
+                value={localMaxFPS}
+                onChange={(e) => setLocalMaxFPS(e.target.value)}
+                disabled={!editable || isSaving}
+                className="w-24 h-8 text-xs"
+                data-testid="settings-maxfps-input"
+              />
             </SettingsRow>
-            <SettingsRow label={t('monitors.alarm_max_fps')}>
-              {monitor.AlarmMaxFPS || t('monitors.same_as_max_fps')}
+
+            {/* Alarm Max FPS — editable */}
+            <SettingsRow label={t('monitors.alarm_max_fps')} testId="settings-alarmmaxfps-row">
+              <Input
+                type="number"
+                step="any"
+                min="0"
+                value={localAlarmMaxFPS}
+                onChange={(e) => setLocalAlarmMaxFPS(e.target.value)}
+                disabled={!editable || isSaving}
+                className="w-24 h-8 text-xs"
+                data-testid="settings-alarmmaxfps-input"
+              />
             </SettingsRow>
+
+            {/* Orientation — read-only, raw value */}
+            <SettingsRow label={t('monitor_detail.orientation_label')} testId="monitor-rotation">
+              {monitor.Orientation ?? 'ROTATE_0'}
+            </SettingsRow>
+
+            {/* Controllable — read-only badge */}
             <SettingsRow label={t('monitors.controllable')}>
               <Badge variant={monitor.Controllable === '1' || monitor.Controllable === 'true' ? 'secondary' : 'outline'}>
                 {monitor.Controllable === '1' || monitor.Controllable === 'true' ? t('common.yes') : t('common.no')}
               </Badge>
             </SettingsRow>
+
+            {/* Control Address — shown when controllable */}
             {(monitor.Controllable === '1' || monitor.Controllable === 'true') && monitor.ControlAddress && (
               <SettingsRow label={t('monitor_detail.control_address')} testId="settings-control-address">
                 <span className="font-mono text-xs">{monitor.ControlAddress}</span>
               </SettingsRow>
             )}
-            <SettingsRow label={t('monitor_detail.rotation_label')} testId="monitor-rotation">
-              {rotationStatus || formatOrientation(monitor.Orientation)}
-            </SettingsRow>
+
+            {/* Linked Monitors — read-only, shown only when defined */}
+            {monitor.LinkedMonitors && (
+              <SettingsRow label={t('monitor_detail.linked_monitors')} testId="settings-linked-monitors">
+                <span className="text-xs">
+                  {monitor.LinkedMonitors.split(',')
+                    .map(id => monitorNames?.[id.trim()] ?? `#${id.trim()}`)
+                    .join(', ')}
+                </span>
+              </SettingsRow>
+            )}
+
+            {/* Event Start Cmd — stacked layout */}
+            <div className="py-2.5 border-b border-border/40" data-testid="settings-event-start-cmd-row">
+              <span className="text-sm text-muted-foreground">{t('monitor_detail.event_start_cmd')}</span>
+              <Input
+                value={localEventStartCmd}
+                onChange={(e) => setLocalEventStartCmd(e.target.value)}
+                disabled={!editable || isSaving}
+                className="mt-1.5 text-xs h-8 font-mono"
+                data-testid="settings-event-start-cmd-input"
+              />
+            </div>
+
+            {/* Event End Cmd — stacked layout */}
+            <div className="py-2.5 border-b border-border/40" data-testid="settings-event-end-cmd-row">
+              <span className="text-sm text-muted-foreground">{t('monitor_detail.event_end_cmd')}</span>
+              <Input
+                value={localEventEndCmd}
+                onChange={(e) => setLocalEventEndCmd(e.target.value)}
+                disabled={!editable || isSaving}
+                className="mt-1.5 text-xs h-8 font-mono"
+                data-testid="settings-event-end-cmd-input"
+              />
+            </div>
+
+            {/* Save button for Video tab */}
+            {editable && (
+              <div className="pt-4">
+                <Button
+                  onClick={handleSave}
+                  disabled={!hasChanges || isSaving}
+                  className="w-full"
+                  data-testid="settings-video-save-button"
+                >
+                  {isSaving ? t('common.saving') : t('common.save')}
+                </Button>
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       </DialogContent>

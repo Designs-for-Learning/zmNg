@@ -122,6 +122,8 @@ export const MonitorSchema = z.object({
   Hue: z.coerce.number().nullable(),
   Colour: z.coerce.number().nullable(),
   EventPrefix: z.string().nullable(),
+  EventStartCommand: z.string().nullable().optional(),
+  EventEndCommand: z.string().nullable().optional(),
   LabelFormat: z.string().nullable(),
   LabelX: z.coerce.string().nullable(),
   LabelY: z.coerce.string().nullable(),

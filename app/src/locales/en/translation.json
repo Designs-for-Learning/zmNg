@@ -503,7 +503,19 @@
     "video_writer_passthrough": "Camera Passthrough",
     "storage_updated": "Storage settings updated",
     "storage_failed": "Failed to update storage settings",
-    "control_address": "Control Address"
+    "control_address": "Control Address",
+    "source_path": "Source Path",
+    "username": "Username",
+    "password": "Password",
+    "method_label": "Method",
+    "method_tcp": "TCP",
+    "method_udp": "UDP",
+    "method_udp_multicast": "UDP Multicast",
+    "method_http_tunnel": "HTTP Tunnel",
+    "orientation_label": "Orientation",
+    "linked_monitors": "Linked Monitors",
+    "event_start_cmd": "Event Start Cmd",
+    "event_end_cmd": "Event End Cmd"
   },
   "montage": {
     "title": "Montage",

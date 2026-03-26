@@ -506,7 +506,19 @@
     "video_writer_passthrough": "Kamera-Durchleitung",
     "storage_updated": "Speicher-Einstellungen aktualisiert",
     "storage_failed": "Fehler beim Aktualisieren der Speicher-Einstellungen",
-    "control_address": "Steuerungsadresse"
+    "control_address": "Steuerungsadresse",
+    "source_path": "Quellpfad",
+    "username": "Benutzername",
+    "password": "Passwort",
+    "method_label": "Methode",
+    "method_tcp": "TCP",
+    "method_udp": "UDP",
+    "method_udp_multicast": "UDP Multicast",
+    "method_http_tunnel": "HTTP-Tunnel",
+    "orientation_label": "Orientierung",
+    "linked_monitors": "Verknüpfte Monitore",
+    "event_start_cmd": "Event-Start-Befehl",
+    "event_end_cmd": "Event-Ende-Befehl"
   },
   "montage": {
     "title": "Montage",

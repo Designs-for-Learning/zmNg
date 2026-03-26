@@ -155,23 +155,6 @@ export default function MonitorDetail() {
   }, [monitor?.Monitor.Id, refetch, t]);
 
   // Computed values
-  const rotationStatus = useMemo(() => {
-    const rotation = parseMonitorRotation(monitor?.Monitor.Orientation);
-    switch (rotation.kind) {
-      case 'flip_horizontal':
-        return t('monitor_detail.rotation_flip_horizontal');
-      case 'flip_vertical':
-        return t('monitor_detail.rotation_flip_vertical');
-      case 'degrees':
-        return t('monitor_detail.rotation_degrees', { degrees: rotation.degrees });
-      case 'unknown':
-        return t('common.unknown');
-      case 'none':
-      default:
-        return t('monitor_detail.rotation_none');
-    }
-  }, [monitor?.Monitor.Orientation, t]);
-
   const orientedResolution = useMemo(() => {
     const width = Number(monitor?.Monitor.Width);
     const height = Number(monitor?.Monitor.Height);
@@ -541,7 +524,6 @@ export default function MonitorDetail() {
         cycleSeconds={settings.monitorDetailCycleSeconds}
         onCycleSecondsChange={handleCycleSecondsChange}
         orientedResolution={orientedResolution}
-        rotationStatus={rotationStatus}
       />
     </div>
   );

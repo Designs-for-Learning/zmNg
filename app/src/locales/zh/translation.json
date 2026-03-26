@@ -506,7 +506,19 @@
     "video_writer_passthrough": "摄像头直通",
     "storage_updated": "存储设置已更新",
     "storage_failed": "更新存储设置失败",
-    "control_address": "控制地址"
+    "control_address": "控制地址",
+    "source_path": "源路径",
+    "username": "用户名",
+    "password": "密码",
+    "method_label": "方法",
+    "method_tcp": "TCP",
+    "method_udp": "UDP",
+    "method_udp_multicast": "UDP 多播",
+    "method_http_tunnel": "HTTP 隧道",
+    "orientation_label": "方向",
+    "linked_monitors": "关联监视器",
+    "event_start_cmd": "事件开始命令",
+    "event_end_cmd": "事件结束命令"
   },
   "montage": {
     "title": "蒙太奇",
