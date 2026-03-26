@@ -95,6 +95,37 @@ interface NotificationState {
 const MAX_EVENTS = 100; // Keep last 100 events
 const DEFAULT_PORT = 9000;
 
+/**
+ * Helper for state updaters that modify a profile's event list and badge count.
+ *
+ * Reads the current events for `profileId`, applies `updater` to produce the
+ * new list, recalculates `unreadCount`, and returns the merged state slice for
+ * both `profileEvents` and `profileSettings`.
+ */
+function _updateProfileEvents(
+  state: Pick<NotificationState, 'profileEvents' | 'profileSettings'>,
+  profileId: string,
+  updater: (current: NotificationEvent[]) => NotificationEvent[]
+): Pick<NotificationState, 'profileEvents' | 'profileSettings'> {
+  const currentEvents = state.profileEvents[profileId] || [];
+  const events = updater(currentEvents);
+  const unreadCount = events.filter((e) => !e.read).length;
+  const profileSettings = state.profileSettings[profileId] || DEFAULT_SETTINGS;
+  return {
+    profileEvents: {
+      ...state.profileEvents,
+      [profileId]: events,
+    },
+    profileSettings: {
+      ...state.profileSettings,
+      [profileId]: {
+        ...profileSettings,
+        badgeCount: unreadCount,
+      },
+    },
+  };
+}
+
 const DEFAULT_SETTINGS: NotificationSettings = {
   enabled: false,
   notificationMode: 'es',
@@ -317,39 +348,21 @@ export const useNotificationStore = create<NotificationState>()(
           eventId: event.EventId,
           source, });
 
-        set((state) => {
-          const notificationEvent: NotificationEvent = {
-            ...event,
-            receivedAt: Date.now(),
-            read: false,
-            source,
-          };
+        const notificationEvent: NotificationEvent = {
+          ...event,
+          receivedAt: Date.now(),
+          read: false,
+          source,
+        };
 
-          const currentEvents = state.profileEvents[profileId] || [];
-
-          // Remove any existing event with the same ID to avoid duplicates
-          // This prevents duplicate entries when receiving the same event from both WebSocket and FCM
-          const otherEvents = currentEvents.filter(e => e.EventId !== event.EventId);
-
-          const events = [notificationEvent, ...otherEvents].slice(0, MAX_EVENTS);
-          const unreadCount = events.filter((e) => !e.read).length;
-
-          const profileSettings = state.profileSettings[profileId] || DEFAULT_SETTINGS;
-
-          return {
-            profileEvents: {
-              ...state.profileEvents,
-              [profileId]: events,
-            },
-            profileSettings: {
-              ...state.profileSettings,
-              [profileId]: {
-                ...profileSettings,
-                badgeCount: unreadCount,
-              },
-            },
-          };
-        });
+        set((state) =>
+          _updateProfileEvents(state, profileId, (current) => {
+            // Remove any existing event with the same ID to avoid duplicates
+            // This prevents duplicate entries when receiving the same event from both WebSocket and FCM
+            const otherEvents = current.filter((e) => e.EventId !== event.EventId);
+            return [notificationEvent, ...otherEvents].slice(0, MAX_EVENTS);
+          })
+        );
 
         // Sync badge count with server so future push notifications use the correct number
         if (get().currentProfileId === profileId) {
@@ -358,29 +371,11 @@ export const useNotificationStore = create<NotificationState>()(
       },
 
       markEventRead: (profileId: string, eventId: number) => {
-        set((state) => {
-          const currentEvents = state.profileEvents[profileId] || [];
-          const events = currentEvents.map((e) =>
-            e.EventId === eventId ? { ...e, read: true } : e
-          );
-          const unreadCount = events.filter((e) => !e.read).length;
-
-          const profileSettings = state.profileSettings[profileId] || DEFAULT_SETTINGS;
-
-          return {
-            profileEvents: {
-              ...state.profileEvents,
-              [profileId]: events,
-            },
-            profileSettings: {
-              ...state.profileSettings,
-              [profileId]: {
-                ...profileSettings,
-                badgeCount: unreadCount,
-              },
-            },
-          };
-        });
+        set((state) =>
+          _updateProfileEvents(state, profileId, (current) =>
+            current.map((e) => (e.EventId === eventId ? { ...e, read: true } : e))
+          )
+        );
 
         // Update badge on server if this is the connected profile
         if (get().currentProfileId === profileId) {
@@ -400,25 +395,11 @@ export const useNotificationStore = create<NotificationState>()(
       },
 
       markAllRead: (profileId: string) => {
-        set((state) => {
-          const currentEvents = state.profileEvents[profileId] || [];
-          const events = currentEvents.map((e) => ({ ...e, read: true }));
-          const profileSettings = state.profileSettings[profileId] || DEFAULT_SETTINGS;
-
-          return {
-            profileEvents: {
-              ...state.profileEvents,
-              [profileId]: events,
-            },
-            profileSettings: {
-              ...state.profileSettings,
-              [profileId]: {
-                ...profileSettings,
-                badgeCount: 0,
-              },
-            },
-          };
-        });
+        set((state) =>
+          _updateProfileEvents(state, profileId, (current) =>
+            current.map((e) => ({ ...e, read: true }))
+          )
+        );
 
         get()._clearNativeBadge();
 
@@ -431,23 +412,9 @@ export const useNotificationStore = create<NotificationState>()(
       clearEvents: (profileId: string) => {
         log.notifications('Clearing all notification events', LogLevel.INFO, { profileId });
 
-        set((state) => {
-          const profileSettings = state.profileSettings[profileId] || DEFAULT_SETTINGS;
-
-          return {
-            profileEvents: {
-              ...state.profileEvents,
-              [profileId]: [],
-            },
-            profileSettings: {
-              ...state.profileSettings,
-              [profileId]: {
-                ...profileSettings,
-                badgeCount: 0,
-              },
-            },
-          };
-        });
+        set((state) =>
+          _updateProfileEvents(state, profileId, () => [])
+        );
 
         get()._clearNativeBadge();
 

@@ -36,8 +36,8 @@ import { Badge } from '../components/ui/badge';
 import type { Profile } from '../api/types';
 import { useToast } from '../hooks/use-toast';
 import { toast as sonnerToast } from 'sonner';
-import { createApiClient, setApiClient } from '../api/client';
-import { discoverZoneminder, DiscoveryError } from '../lib/discovery';
+import { setApiClient } from '../api/client';
+import { discoverUrls } from '../lib/discovery';
 import { useTranslation } from 'react-i18next';
 import { NotificationBadge } from '../components/NotificationBadge';
 
@@ -71,24 +71,6 @@ export default function Profiles() {
 
   const [showPassword, setShowPassword] = useState(false);
 
-  // Check server connection and discover URLs
-  // If credentials are provided, also authenticates to fetch ZM_PATH_ZMS for accurate cgiUrl
-  const discoverUrls = async (portal: string, credentials?: { username: string; password: string }) => {
-    try {
-      const result = await discoverZoneminder(portal, credentials);
-
-      // Initialize client with found API
-      const client = createApiClient(result.apiUrl);
-      setApiClient(client);
-
-      return result;
-    } catch (e) {
-      if (e instanceof DiscoveryError) {
-        throw e;
-      }
-      throw new Error(t('setup.discovery_failed'));
-    }
-  };
 
   const handleOpenEditDialog = async (profile: Profile) => {
     setSelectedProfile(profile);
@@ -154,7 +136,12 @@ export default function Profiles() {
         const credentials = formData.username && formData.password
           ? { username: formData.username, password: formData.password }
           : undefined;
-        const discovered = await discoverUrls(portalUrl, credentials);
+        const discovered = await discoverUrls(portalUrl, {
+          credentials,
+          onClientCreated: (client) => {
+            setApiClient(client);
+          },
+        });
         apiUrl = discovered.apiUrl;
         cgiUrl = discovered.cgiUrl;
         // Update portalUrl to match the discovered confirmed one

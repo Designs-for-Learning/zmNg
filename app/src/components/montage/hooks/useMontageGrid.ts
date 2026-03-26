@@ -12,13 +12,10 @@ import { useTranslation } from 'react-i18next';
 import { GRID_LAYOUT } from '../../../lib/zmninja-ng-constants';
 import { useSettingsStore } from '../../../stores/settings';
 import { getMonitorAspectRatio } from '../../../lib/monitor-rotation';
-import { getMaxColsForWidth } from '../../../lib/event-utils';
 import type { Layout } from 'react-grid-layout';
 import type { Monitor, MonitorData } from '../../../api/types';
 import type { Profile } from '../../../api/types';
 import type { ProfileSettings } from '../../../stores/settings';
-
-export { getMaxColsForWidth };
 
 /** Internal grid always uses 12 columns for fine-grained positioning. */
 export const INTERNAL_COLS = 12;

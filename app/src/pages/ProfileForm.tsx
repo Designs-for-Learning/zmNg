@@ -14,7 +14,7 @@ import { Label } from '../components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../components/ui/card';
 import { useProfileStore } from '../stores/profile';
 import { createApiClient, setApiClient } from '../api/client';
-import { discoverZoneminder, DiscoveryError } from '../lib/discovery';
+import { discoverUrls, DiscoveryError } from '../lib/discovery';
 import { Switch } from '../components/ui/switch';
 import { Video, Server, ShieldCheck, ArrowRight, Loader2, Eye, EyeOff, ArrowLeft, QrCode, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -116,45 +116,6 @@ export default function ProfileForm() {
     toast.success(t('qr_scanner.import_success', { name: result.data.name }));
   };
 
-  // Discover API and CGI URLs from portal URL
-  // If credentials are provided, also authenticates to fetch ZM_PATH_ZMS for accurate cgiUrl
-  // Retries once on network failure to handle iOS local network permission dialog race condition
-  const discoverUrls = async (portal: string, credentials?: { username: string; password: string }, signal?: AbortSignal) => {
-    const attempt = async () => {
-      const result = await discoverZoneminder(portal, { ...credentials, signal });
-      const client = createApiClient(result.apiUrl);
-      setApiClient(client);
-      log.profileForm('Successfully connected', LogLevel.INFO, { apiUrl: result.apiUrl });
-      return result;
-    };
-
-    try {
-      return await attempt();
-    } catch (e) {
-      // On network-related failures, retry once after a delay.
-      // This handles the iOS local network permission dialog: the first request
-      // fails while the dialog is showing, but succeeds after the user grants access.
-      if (e instanceof DiscoveryError && (e.code === 'API_NOT_FOUND' || e.code === 'PORTAL_UNREACHABLE')) {
-        log.profileForm('First discovery attempt failed, retrying in case of iOS permission dialog', LogLevel.INFO);
-        await new Promise((resolve) => setTimeout(resolve, 3000));
-        if (signal?.aborted) {
-          throw new DiscoveryError('Discovery cancelled', 'CANCELLED');
-        }
-        try {
-          return await attempt();
-        } catch (retryError) {
-          if (retryError instanceof DiscoveryError) {
-            throw retryError;
-          }
-          throw new Error(t('setup.discovery_failed'));
-        }
-      }
-      if (e instanceof DiscoveryError) {
-        throw e;
-      }
-      throw new Error(t('setup.discovery_failed'));
-    }
-  };
 
   // Cancel ongoing discovery
   const handleCancelDiscovery = () => {
@@ -239,7 +200,14 @@ export default function ProfileForm() {
         // Pass credentials if provided to fetch accurate ZM_PATH_ZMS from server
         log.profileForm('Discovering URLs', LogLevel.INFO);
         const credentials = hasUsername && hasPassword ? { username: normalizedUsername, password } : undefined;
-        const discovered = await discoverUrls(portalUrl, credentials, signal);
+        const discovered = await discoverUrls(portalUrl, {
+          credentials,
+          signal,
+          onClientCreated: (client) => {
+            setApiClient(client);
+          },
+        });
+        log.profileForm('Successfully connected', LogLevel.INFO, { apiUrl: discovered.apiUrl });
         confirmedPortalUrl = discovered.portalUrl;
         apiUrl = discovered.apiUrl;
         cgiUrl = discovered.cgiUrl;

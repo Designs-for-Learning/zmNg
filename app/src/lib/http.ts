@@ -400,7 +400,7 @@ async function nativeHttpRequest<T>(
   const nativeResponseType =
     responseType === 'arraybuffer' ? 'arraybuffer' : responseType === 'blob' || responseType === 'base64' ? 'blob' : undefined;
   const response = await CapacitorHttp.request({
-    method: method as any,
+    method: method as 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD',
     url,
     headers,
     data: body,
