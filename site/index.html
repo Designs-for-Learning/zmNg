@@ -260,6 +260,37 @@
 
     .play-overlay svg { width: 28px; height: 28px; fill: white; margin-left: 4px; }
 
+    /* === Scroll hint === */
+    .scroll-hint {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: var(--muted);
+      animation: bounce 2s infinite;
+      opacity: 0.6;
+      transition: opacity 0.3s;
+      z-index: 50;
+      cursor: pointer;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .scroll-hint:hover { opacity: 1; }
+    .scroll-hint.hidden { opacity: 0; pointer-events: none; }
+    .scroll-hint svg { width: 22px; height: 22px; }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateX(-50%) translateY(0); }
+      50% { transform: translateX(-50%) translateY(8px); }
+    }
+
     /* === Sections (shared) === */
     .section { width: 100%; padding: 80px 5%; }
     .section-alt { background: var(--card); }
@@ -592,7 +623,7 @@
         <p class="hero-subtitle">zmNinjaNG: The modern ZoneMinder client that runs on every platform.</p>
         <a href="https://zmeventnotificationv7.readthedocs.io/en/latest/" class="zmes-callout" target="_blank" rel="noopener">
           <img src="zmES7plus.png" alt="zmES7+" class="zmes-logo">
-          <span>Pair with <strong>zmES7+</strong> for AI-powered object detection, face recognition, and license plate reading.</span>
+          <span>Pair with <strong>zmES7+</strong> for AI-powered object detection, face recognition, license plate reading, bird song recognition, and more.</span>
           <i data-lucide="arrow-right" style="flex-shrink:0;width:18px;height:18px;color:var(--muted);"></i>
         </a>
       </div>
@@ -611,6 +642,7 @@
   </section>
 
   <!-- Platforms -->
+  <section class="section" id="platforms">
   <section class="section">
     <div class="section-inner" style="text-align: center;">
       <p class="section-label">Platforms</p>
@@ -785,6 +817,11 @@
     <img id="lightboxImg" src="" alt="Enlarged screenshot">
   </div>
 
+  <!-- Scroll hint -->
+  <div class="scroll-hint" id="scrollHint" onclick="window.scrollBy({top: window.innerHeight * 0.8, behavior: 'smooth'})">
+    <i data-lucide="chevron-down"></i>
+  </div>
+
   <!-- Footer -->
   <footer>
     <div class="footer-inner">
@@ -831,6 +868,12 @@
 
     document.addEventListener('keydown', function(e) {
       if (e.key === 'Escape') closeLightbox();
+    });
+
+    var scrollHint = document.getElementById('scrollHint');
+    window.addEventListener('scroll', function() {
+      var atBottom = (window.innerHeight + window.scrollY) >= (document.body.scrollHeight - 100);
+      scrollHint.classList.toggle('hidden', atBottom);
     });
 
     lucide.createIcons();
