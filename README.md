@@ -16,7 +16,7 @@ A modern web and mobile application for ZoneMinder, providing a clean, intuitive
 
 ### Demo
 
-https://pliablepixels.github.io/zmNinjaNG/demo.mp4
+[Watch the demo](https://pliablepixels.github.io/zmNinjaNG/)
 
 ### Important Notes:
 - zmNinjaNG supports self-signed certificates on mobile (iOS/Android). Enable it in Settings > Connection. On desktop, add your CA to the system trust store. Using proper certificates (e.g. [LetsEncrypt](https://letsencrypt.org/)) is still recommended.
