@@ -161,12 +161,15 @@
       max-width: 500px;
     }
 
-    .zmes-callout:hover {
-      border-color: var(--ring);
-      transform: translateY(-2px);
+    .zmes-callout strong { color: var(--fg); }
+
+    .zmes-link {
+      color: var(--ring);
+      text-decoration: underline;
+      text-underline-offset: 2px;
     }
 
-    .zmes-callout strong { color: var(--fg); }
+    .zmes-link:hover { color: var(--fg); }
 
     .zmes-logo {
       width: 40px;
@@ -552,11 +555,10 @@
           <h1 class="hero-title">Monitor smarter,<br>not harder.</h1>
         </div>
         <p class="hero-subtitle">zmNinjaNG: The modern ZoneMinder client that runs on every platform</p>
-        <a href="https://zmeventnotificationv7.readthedocs.io/en/latest/" class="zmes-callout" target="_blank" rel="noopener">
+        <div class="zmes-callout">
           <img src="zmES7plus.png" alt="zmES7+" class="zmes-logo">
-          <span>Pair with <strong>zmES7+</strong> for AI-powered object detection, face recognition, license plate reading, bird song recognition, and more.</span>
-          <i data-lucide="arrow-right" style="flex-shrink:0;width:18px;height:18px;color:var(--muted);"></i>
-        </a>
+          <span>Pair with <a href="https://zmeventnotificationv7.readthedocs.io/en/latest/" target="_blank" rel="noopener" class="zmes-link"><strong>zmES7+</strong></a> for object detection, face recognition, license plates, bird songs, or even <a href="https://pyzmv2.readthedocs.io/en/latest/guide/training.html" target="_blank" rel="noopener" class="zmes-link">train</a> your own models and more...</span>
+        </div>
       </div>
       <div class="hero-screenshot" id="heroMedia">
         <div class="phone-frame-wrap">
