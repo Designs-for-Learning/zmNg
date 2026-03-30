@@ -1,11 +1,13 @@
 /**
  * Managed Configuration Reader
  *
- * Reads configuration injected by the zmNinjaNG Kiosk Config Chrome Extension.
- * The extension reads chrome.storage.managed (set by Google Admin Console)
- * and relays it to the web app via localStorage and a CustomEvent.
+ * Reads configuration set by Google Admin Console for managed Chrome OS
+ * kiosk deployments via the navigator.managed API.
  *
- * Flow: Google Admin → chrome.storage.managed → Extension → localStorage/event → App
+ * Flow: Google Admin → Chrome OS policy → navigator.managed → App
+ *
+ * Also supports the companion extension fallback (localStorage injection)
+ * for environments where navigator.managed is not available.
  */
 
 import { log, LogLevel } from './logger';
@@ -38,55 +40,41 @@ export interface ManagedConfig {
   insomnia?: boolean;
 }
 
-const STORAGE_KEY = 'zmng-managed-config';
-const EVENT_NAME = 'zmng-managed-config';
+// All keys we request from managed config
+const MANAGED_KEYS = [
+  'serverUrl', 'username', 'password', 'profileName', 'defaultPage',
+  'kioskMode', 'kioskPin', 'kioskNavigationLock', 'allowSelfSignedCerts',
+  'montageGridRows', 'montageGridCols', 'montageFeedFit', 'montageShowToolbar',
+  'montageIsFullscreen', 'viewMode', 'streamingMethod', 'snapshotRefreshInterval',
+  'streamMaxFps', 'streamScale', 'selectedGroupId', 'insomnia',
+];
+
+const EXTENSION_STORAGE_KEY = 'zmng-managed-config';
+const EXTENSION_EVENT_NAME = 'zmng-managed-config';
 const VALID_DEFAULT_PAGES = ['/montage', '/monitors', '/events', '/dashboard', '/timeline'];
 
-/** Check if managed config has been injected by the companion extension */
-export function isManagedConfigAvailable(): boolean {
-  try {
-    return localStorage.getItem(STORAGE_KEY) !== null;
-  } catch {
-    return false;
+// TypeScript declarations for navigator.managed
+interface NavigatorManagedData extends EventTarget {
+  getManagedConfiguration(keys: string[]): Promise<Record<string, unknown>>;
+}
+
+declare global {
+  interface Navigator {
+    readonly managed?: NavigatorManagedData;
   }
 }
 
-/**
- * Wait for managed config to arrive from the companion extension.
- * The content script runs at document_start but fetches config async
- * from the background worker — it may not be in localStorage yet
- * when the app initializes.
- */
-export function waitForManagedConfig(timeoutMs = 2000): Promise<ManagedConfig | null> {
-  // Already available
-  if (isManagedConfigAvailable()) {
-    return getManagedConfig();
+/** Check if any managed config source is available */
+export function isManagedConfigAvailable(): boolean {
+  // Check navigator.managed API (Chrome OS kiosk)
+  if (navigator.managed) return true;
+
+  // Fallback: check companion extension localStorage
+  try {
+    return localStorage.getItem(EXTENSION_STORAGE_KEY) !== null;
+  } catch {
+    return false;
   }
-
-  return new Promise((resolve) => {
-    const handler = (event: Event) => {
-      cleanup();
-      const detail = (event as CustomEvent).detail as Record<string, unknown>;
-      resolve(parseConfig(detail));
-    };
-
-    const timer = setTimeout(() => {
-      cleanup();
-      // Check one more time in case it arrived without the event
-      if (isManagedConfigAvailable()) {
-        getManagedConfig().then(resolve);
-      } else {
-        resolve(null);
-      }
-    }, timeoutMs);
-
-    function cleanup() {
-      clearTimeout(timer);
-      window.removeEventListener(EVENT_NAME, handler);
-    }
-
-    window.addEventListener(EVENT_NAME, handler);
-  });
 }
 
 /** Parse and validate raw config data into a ManagedConfig */
@@ -145,13 +133,27 @@ function parseConfig(items: Record<string, unknown>): ManagedConfig | null {
   return config;
 }
 
-/** Read managed config from localStorage (written by companion extension) */
+/** Read managed config — tries navigator.managed first, falls back to extension localStorage */
 export async function getManagedConfig(): Promise<ManagedConfig | null> {
+  // Primary: navigator.managed API (Chrome OS kiosk)
+  if (navigator.managed) {
+    try {
+      const items = await navigator.managed.getManagedConfiguration(MANAGED_KEYS);
+      log.managedConfig('Read config via navigator.managed', LogLevel.DEBUG);
+      return parseConfig(items);
+    } catch (error) {
+      log.managedConfig('navigator.managed failed', LogLevel.WARN, { error });
+      // Fall through to extension fallback
+    }
+  }
+
+  // Fallback: companion extension localStorage
   try {
-    const stored = localStorage.getItem(STORAGE_KEY);
+    const stored = localStorage.getItem(EXTENSION_STORAGE_KEY);
     if (!stored) return null;
 
     const items = JSON.parse(stored) as Record<string, unknown>;
+    log.managedConfig('Read config via extension fallback', LogLevel.DEBUG);
     return parseConfig(items);
   } catch (error) {
     log.managedConfig('Failed to read managed config', LogLevel.ERROR, { error });
@@ -160,26 +162,82 @@ export async function getManagedConfig(): Promise<ManagedConfig | null> {
 }
 
 /**
- * Listen for managed config changes pushed by admin (via companion extension).
- * The extension dispatches a CustomEvent when config changes.
+ * Wait for managed config to become available.
+ * Handles async delivery from both navigator.managed and the companion extension.
+ */
+export function waitForManagedConfig(timeoutMs = 2000): Promise<ManagedConfig | null> {
+  // Already available via navigator.managed
+  if (navigator.managed) {
+    return getManagedConfig();
+  }
+
+  // Already in localStorage from extension
+  if (isManagedConfigAvailable()) {
+    return getManagedConfig();
+  }
+
+  // Wait for extension to deliver via CustomEvent
+  return new Promise((resolve) => {
+    const handler = (event: Event) => {
+      cleanup();
+      const detail = (event as CustomEvent).detail as Record<string, unknown>;
+      resolve(parseConfig(detail));
+    };
+
+    const timer = setTimeout(() => {
+      cleanup();
+      // Check one more time
+      if (isManagedConfigAvailable()) {
+        getManagedConfig().then(resolve);
+      } else {
+        resolve(null);
+      }
+    }, timeoutMs);
+
+    function cleanup() {
+      clearTimeout(timer);
+      window.removeEventListener(EXTENSION_EVENT_NAME, handler);
+    }
+
+    window.addEventListener(EXTENSION_EVENT_NAME, handler);
+  });
+}
+
+/**
+ * Listen for managed config changes.
+ * Supports both navigator.managed events and companion extension CustomEvents.
  * Returns an unsubscribe function.
  */
 export function onManagedConfigChanged(
   callback: (config: ManagedConfig | null) => void
 ): () => void {
-  const handler = (event: Event) => {
+  const unsubscribers: (() => void)[] = [];
+
+  // navigator.managed change listener
+  if (navigator.managed) {
+    const handler = () => {
+      getManagedConfig().then(callback);
+    };
+    navigator.managed.addEventListener('managedconfigurationchange', handler);
+    unsubscribers.push(() =>
+      navigator.managed?.removeEventListener('managedconfigurationchange', handler)
+    );
+  }
+
+  // Extension CustomEvent fallback
+  const extHandler = (event: Event) => {
     const detail = (event as CustomEvent).detail as Record<string, unknown>;
     callback(parseConfig(detail));
   };
+  window.addEventListener(EXTENSION_EVENT_NAME, extHandler);
+  unsubscribers.push(() => window.removeEventListener(EXTENSION_EVENT_NAME, extHandler));
 
-  window.addEventListener(EVENT_NAME, handler);
-  return () => window.removeEventListener(EVENT_NAME, handler);
+  return () => unsubscribers.forEach((fn) => fn());
 }
 
 /** Compute a stable hash string for change detection */
 export async function getManagedConfigHash(config: ManagedConfig): Promise<string> {
   const serialized = JSON.stringify(config);
-
   const data = new TextEncoder().encode(serialized);
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
