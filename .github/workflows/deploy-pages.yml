@@ -3,7 +3,9 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
-    paths: ['site/**']
+    paths:
+      - 'app/**'
+      - 'site/**'
   workflow_dispatch:
 
 permissions:
@@ -24,13 +26,34 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install dependencies
+        working-directory: app
+        run: npm ci
+
+      - name: Build app
+        working-directory: app
+        run: npx vite build
+
+      - name: Prepare deploy directory
+        run: |
+          mkdir -p deploy
+          cp -r site/* deploy/
+          cp -r app/dist deploy/app
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: site
+          path: deploy
 
       - name: Deploy to GitHub Pages
         id: deployment
