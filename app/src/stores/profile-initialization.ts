@@ -16,7 +16,7 @@ import type { Profile } from '../api/types';
 import { createApiClient, setApiClient } from '../api/client';
 import { log, LogLevel } from '../lib/logger';
 import { performBootstrap, type BootstrapContext } from './profile-bootstrap';
-import { isManagedConfigAvailable, getManagedConfig } from '../lib/managed-config';
+import { waitForManagedConfig } from '../lib/managed-config';
 import { applyManagedConfig } from '../services/managed-provisioning';
 
 function safeLog(message: string, level: LogLevel, details?: Record<string, unknown>) {
@@ -189,24 +189,23 @@ export async function handleProfileRehydration(
     currentProfileId: state?.currentProfileId,
   });
 
-  // Check for managed config (Chrome kiosk deployment via Google Admin)
-  if (isManagedConfigAvailable()) {
-    try {
-      const managedConfig = await getManagedConfig();
-      if (managedConfig) {
-        safeLog('Managed config detected, provisioning', LogLevel.INFO);
-        const profileId = await applyManagedConfig(managedConfig);
-        if (profileId) {
-          // Re-read state after provisioning — profile may have been created
-          const updatedState = storeGet();
-          if (updatedState.currentProfileId) {
-            state = updatedState;
-          }
+  // Check for managed config (Chrome kiosk deployment via Google Admin).
+  // Wait briefly for the companion extension's content script to deliver config.
+  try {
+    const managedConfig = await waitForManagedConfig(2000);
+    if (managedConfig) {
+      safeLog('Managed config detected, provisioning', LogLevel.INFO);
+      const profileId = await applyManagedConfig(managedConfig);
+      if (profileId) {
+        // Re-read state after provisioning — profile may have been created
+        const updatedState = storeGet();
+        if (updatedState.currentProfileId) {
+          state = updatedState;
         }
       }
-    } catch (error) {
-      safeLog('Managed config provisioning failed', LogLevel.ERROR, { error: String(error) });
     }
+  } catch (error) {
+    safeLog('Managed config provisioning failed', LogLevel.ERROR, { error: String(error) });
   }
 
   // Case 1: No profile exists - just mark as initialized

@@ -51,6 +51,44 @@ export function isManagedConfigAvailable(): boolean {
   }
 }
 
+/**
+ * Wait for managed config to arrive from the companion extension.
+ * The content script runs at document_start but fetches config async
+ * from the background worker — it may not be in localStorage yet
+ * when the app initializes.
+ */
+export function waitForManagedConfig(timeoutMs = 2000): Promise<ManagedConfig | null> {
+  // Already available
+  if (isManagedConfigAvailable()) {
+    return getManagedConfig();
+  }
+
+  return new Promise((resolve) => {
+    const handler = (event: Event) => {
+      cleanup();
+      const detail = (event as CustomEvent).detail as Record<string, unknown>;
+      resolve(parseConfig(detail));
+    };
+
+    const timer = setTimeout(() => {
+      cleanup();
+      // Check one more time in case it arrived without the event
+      if (isManagedConfigAvailable()) {
+        getManagedConfig().then(resolve);
+      } else {
+        resolve(null);
+      }
+    }, timeoutMs);
+
+    function cleanup() {
+      clearTimeout(timer);
+      window.removeEventListener(EVENT_NAME, handler);
+    }
+
+    window.addEventListener(EVENT_NAME, handler);
+  });
+}
+
 /** Parse and validate raw config data into a ManagedConfig */
 function parseConfig(items: Record<string, unknown>): ManagedConfig | null {
   if (!items || Object.keys(items).length === 0) {
