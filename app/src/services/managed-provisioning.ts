@@ -57,7 +57,15 @@ export async function applyManagedConfig(config: ManagedConfig): Promise<string 
   const existingProfileId = getManagedProfileId();
 
   if (!changed && existingProfileId) {
-    log.managedConfig('Config unchanged, skipping provisioning', LogLevel.DEBUG);
+    log.managedConfig('Config unchanged, re-applying settings', LogLevel.DEBUG);
+    // Always re-apply settings even if config hash hasn't changed,
+    // in case settings were reset or not applied on a previous boot
+    try {
+      const { useSettingsStore } = await import('../stores/settings');
+      applySettings(useSettingsStore.getState(), existingProfileId, config);
+    } catch (error) {
+      log.managedConfig('Failed to re-apply settings', LogLevel.WARN, { error });
+    }
     return existingProfileId;
   }
 
@@ -96,35 +104,7 @@ export async function applyManagedConfig(config: ManagedConfig): Promise<string 
 
     // Apply settings
     const settingsStore = useSettingsStore.getState();
-    const updates: Record<string, unknown> = {};
-
-    if (config.defaultPage) updates.defaultPage = config.defaultPage;
-    if (config.kioskNavigationLock !== undefined) updates.kioskNavigationLock = config.kioskNavigationLock;
-    if (config.allowSelfSignedCerts !== undefined) updates.allowSelfSignedCerts = config.allowSelfSignedCerts;
-
-    // Montage settings
-    if (config.montageGridRows !== undefined) updates.montageGridRows = config.montageGridRows;
-    if (config.montageGridCols !== undefined) updates.montageGridCols = config.montageGridCols;
-    if (config.montageFeedFit) updates.montageFeedFit = config.montageFeedFit;
-    if (config.montageShowToolbar !== undefined) updates.montageShowToolbar = config.montageShowToolbar;
-    if (config.montageIsFullscreen !== undefined) updates.montageIsFullscreen = config.montageIsFullscreen;
-
-    // Streaming settings
-    if (config.viewMode) updates.viewMode = config.viewMode;
-    if (config.streamingMethod) updates.streamingMethod = config.streamingMethod;
-    if (config.snapshotRefreshInterval !== undefined) updates.snapshotRefreshInterval = config.snapshotRefreshInterval;
-    if (config.streamMaxFps !== undefined) updates.streamMaxFps = config.streamMaxFps;
-    if (config.streamScale !== undefined) updates.streamScale = config.streamScale;
-
-    // Monitor filter
-    if (config.selectedGroupId !== undefined) updates.selectedGroupId = config.selectedGroupId;
-
-    // Display
-    if (config.insomnia !== undefined) updates.insomnia = config.insomnia;
-
-    if (Object.keys(updates).length > 0) {
-      settingsStore.updateProfileSettings(profileId, updates);
-    }
+    applySettings(settingsStore, profileId, config);
 
     // Store kiosk PIN if provided
     if (config.kioskPin) {
@@ -147,6 +127,44 @@ export async function applyManagedConfig(config: ManagedConfig): Promise<string 
   } catch (error) {
     log.managedConfig('Failed to apply managed config', LogLevel.ERROR, { error });
     return null;
+  }
+}
+
+/** Apply managed settings to a profile */
+function applySettings(
+  settingsStore: { updateProfileSettings: (id: string, updates: Record<string, unknown>) => void },
+  profileId: string,
+  config: ManagedConfig
+): void {
+  const updates: Record<string, unknown> = {};
+
+  if (config.defaultPage) updates.defaultPage = config.defaultPage;
+  if (config.kioskNavigationLock !== undefined) updates.kioskNavigationLock = config.kioskNavigationLock;
+  if (config.allowSelfSignedCerts !== undefined) updates.allowSelfSignedCerts = config.allowSelfSignedCerts;
+
+  // Montage settings
+  if (config.montageGridRows !== undefined) updates.montageGridRows = config.montageGridRows;
+  if (config.montageGridCols !== undefined) updates.montageGridCols = config.montageGridCols;
+  if (config.montageFeedFit) updates.montageFeedFit = config.montageFeedFit;
+  if (config.montageShowToolbar !== undefined) updates.montageShowToolbar = config.montageShowToolbar;
+  if (config.montageIsFullscreen !== undefined) updates.montageIsFullscreen = config.montageIsFullscreen;
+
+  // Streaming settings
+  if (config.viewMode) updates.viewMode = config.viewMode;
+  if (config.streamingMethod) updates.streamingMethod = config.streamingMethod;
+  if (config.snapshotRefreshInterval !== undefined) updates.snapshotRefreshInterval = config.snapshotRefreshInterval;
+  if (config.streamMaxFps !== undefined) updates.streamMaxFps = config.streamMaxFps;
+  if (config.streamScale !== undefined) updates.streamScale = config.streamScale;
+
+  // Monitor filter
+  if (config.selectedGroupId !== undefined) updates.selectedGroupId = config.selectedGroupId;
+
+  // Display
+  if (config.insomnia !== undefined) updates.insomnia = config.insomnia;
+
+  if (Object.keys(updates).length > 0) {
+    settingsStore.updateProfileSettings(profileId, updates);
+    log.managedConfig('Settings applied', LogLevel.INFO, { profileId, keys: Object.keys(updates) });
   }
 }
 
