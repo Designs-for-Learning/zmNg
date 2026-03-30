@@ -258,18 +258,25 @@ export function SidebarContent({ onMobileClose, isCollapsed }: SidebarContentPro
               );
             }
 
+            // Disable nav links when kiosk nav lock is active
+            const navLocked = kioskIsLocked && profileSettings?.kioskNavigationLock && profileSettings?.defaultPage;
+
             return (
               <Link
                 key={item.path}
-                to={item.path}
-                onClick={() => onMobileClose?.()}
+                to={navLocked ? location.pathname : item.path}
+                onClick={(e) => {
+                  if (navLocked) { e.preventDefault(); return; }
+                  onMobileClose?.();
+                }}
                 className={cn(
                   "flex items-center rounded-lg font-medium transition-all duration-200 group relative",
                   isMobileDrawer ? "gap-2 px-2 py-2 text-sm" : "gap-3 px-3 py-2.5 text-sm",
                   isActive
                     ? "bg-primary text-primary-foreground shadow-md"
                     : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
-                  isCollapsed && "justify-center px-2"
+                  isCollapsed && "justify-center px-2",
+                  navLocked && !isActive && "opacity-40 pointer-events-none"
                 )}
                 title={isCollapsed ? item.label : undefined}
                 data-testid={`nav-item-${item.path.replace('/', '')}`}

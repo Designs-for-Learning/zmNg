@@ -1017,6 +1017,13 @@
     "pin_changed": "PIN de kiosco actualizado",
     "pin_cleared": "PIN de kiosco eliminado",
     "pin_setting_label": "PIN de kiosco",
-    "pin_setting_desc": "PIN para bloquear y desbloquear el modo kiosco"
+    "pin_setting_desc": "PIN para bloquear y desbloquear el modo kiosco",
+    "default_page": "Página predeterminada",
+    "default_page_desc": "Página mostrada al iniciar y después de bloquear",
+    "default_page_none": "Ninguna (usar última página)",
+    "navigation_lock": "Bloquear navegación",
+    "navigation_lock_desc": "En modo kiosco, restringir solo a la página predeterminada",
+    "managed_profile_created": "Perfil configurado automáticamente por el administrador",
+    "managed_config_updated": "Configuración del administrador actualizada"
   }
 }

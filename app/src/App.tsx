@@ -137,7 +137,7 @@ function AppRoutes() {
           path="/"
           element={
             currentProfile ? (
-              <Navigate to={lastRoute || '/monitors'} replace />
+              <Navigate to={settings.defaultPage || lastRoute || '/monitors'} replace />
             ) : profiles.length > 0 ? (
               <Navigate to="/profiles" replace />
             ) : (

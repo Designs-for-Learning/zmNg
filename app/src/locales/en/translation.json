@@ -1017,6 +1017,13 @@
     "pin_changed": "Kiosk PIN updated",
     "pin_cleared": "Kiosk PIN removed",
     "pin_setting_label": "Kiosk PIN",
-    "pin_setting_desc": "PIN used to lock and unlock kiosk mode"
+    "pin_setting_desc": "PIN used to lock and unlock kiosk mode",
+    "default_page": "Default Page",
+    "default_page_desc": "Page shown on app launch and after locking",
+    "default_page_none": "None (use last page)",
+    "navigation_lock": "Lock Navigation",
+    "navigation_lock_desc": "When kiosk mode is active, restrict to default page only",
+    "managed_profile_created": "Profile auto-configured by administrator",
+    "managed_config_updated": "Admin configuration updated"
   }
 }

@@ -1017,6 +1017,13 @@
     "pin_changed": "Kiosk-PIN aktualisiert",
     "pin_cleared": "Kiosk-PIN entfernt",
     "pin_setting_label": "Kiosk-PIN",
-    "pin_setting_desc": "PIN zum Sperren und Entsperren des Kiosk-Modus"
+    "pin_setting_desc": "PIN zum Sperren und Entsperren des Kiosk-Modus",
+    "default_page": "Standardseite",
+    "default_page_desc": "Seite, die beim Start und nach dem Sperren angezeigt wird",
+    "default_page_none": "Keine (letzte Seite verwenden)",
+    "navigation_lock": "Navigation sperren",
+    "navigation_lock_desc": "Im Kiosk-Modus nur die Standardseite zulassen",
+    "managed_profile_created": "Profil automatisch vom Administrator konfiguriert",
+    "managed_config_updated": "Administratorkonfiguration aktualisiert"
   }
 }

@@ -1,4 +1,12 @@
 {
+  "name": "zmNinjaNG",
+  "short_name": "zmNinjaNG",
+  "description": "ZoneMinder mobile client",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
   "icons": [
     {
       "src": "../icons/icon-48.webp",

@@ -1017,6 +1017,13 @@
     "pin_changed": "PIN kiosque mis à jour",
     "pin_cleared": "PIN kiosque supprimé",
     "pin_setting_label": "PIN kiosque",
-    "pin_setting_desc": "PIN pour verrouiller et déverrouiller le mode kiosque"
+    "pin_setting_desc": "PIN pour verrouiller et déverrouiller le mode kiosque",
+    "default_page": "Page par défaut",
+    "default_page_desc": "Page affichée au démarrage et après le verrouillage",
+    "default_page_none": "Aucune (utiliser la dernière page)",
+    "navigation_lock": "Verrouiller la navigation",
+    "navigation_lock_desc": "En mode kiosque, restreindre à la page par défaut uniquement",
+    "managed_profile_created": "Profil configuré automatiquement par l'administrateur",
+    "managed_config_updated": "Configuration administrateur mise à jour"
   }
 }

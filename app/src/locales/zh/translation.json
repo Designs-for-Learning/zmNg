@@ -1017,6 +1017,13 @@
     "pin_changed": "展台PIN已更新",
     "pin_cleared": "展台PIN已移除",
     "pin_setting_label": "展台PIN",
-    "pin_setting_desc": "用于锁定和解锁展台模式的PIN"
+    "pin_setting_desc": "用于锁定和解锁展台模式的PIN",
+    "default_page": "默认页面",
+    "default_page_desc": "应用启动和锁定后显示的页面",
+    "default_page_none": "无（使用上次页面）",
+    "navigation_lock": "锁定导航",
+    "navigation_lock_desc": "展台模式下仅限默认页面",
+    "managed_profile_created": "管理员已自动配置配置文件",
+    "managed_config_updated": "管理员配置已更新"
   }
 }

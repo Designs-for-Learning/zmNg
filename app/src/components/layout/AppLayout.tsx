@@ -6,7 +6,7 @@
  * It also handles the sidebar resizing logic and mobile drawer state.
  */
 
-import { Outlet, useLocation, Navigate } from 'react-router-dom';
+import { Outlet, useLocation, Navigate, useNavigate } from 'react-router-dom';
 import { useCurrentProfile } from '../../hooks/useCurrentProfile';
 import { useProfileStore } from '../../stores/profile';
 import { useSettingsStore } from '../../stores/settings';
@@ -40,6 +40,7 @@ export default function AppLayout() {
   const { currentProfile, settings } = useCurrentProfile();
   const updateProfileSettings = useSettingsStore((state) => state.updateProfileSettings);
   const location = useLocation();
+  const navigate = useNavigate();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(() => (settings.sidebarWidth ?? 256) <= 80);
   const { t } = useTranslation();
@@ -63,6 +64,18 @@ export default function AppLayout() {
   useInsomnia({ enabled: settings.insomnia });
 
   const { isLocked, previousInsomniaState } = useKioskStore();
+
+  // Kiosk navigation lock: redirect to defaultPage when locked with nav lock enabled
+  useEffect(() => {
+    if (
+      isLocked &&
+      settings.kioskNavigationLock &&
+      settings.defaultPage &&
+      location.pathname !== settings.defaultPage
+    ) {
+      navigate(settings.defaultPage, { replace: true });
+    }
+  }, [isLocked, settings.kioskNavigationLock, settings.defaultPage, location.pathname, navigate]);
 
   useEffect(() => {
     if (isLocked && !isCollapsed) {

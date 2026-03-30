@@ -51,4 +51,13 @@ export const Platform = {
   get shouldUseProxy() {
     return this.isDev && this.isWeb;
   },
+
+  /** True if running in a Chrome environment with managed config support (e.g. Chromebook kiosk) */
+  get isChromeManaged() {
+    return (
+      typeof chrome !== 'undefined' &&
+      typeof chrome.storage !== 'undefined' &&
+      typeof chrome.storage.managed !== 'undefined'
+    );
+  },
 };

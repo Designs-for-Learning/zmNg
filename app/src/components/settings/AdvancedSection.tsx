@@ -331,6 +331,50 @@ export function AdvancedSection({
               </Button>
             </div>
           </SettingsRow>
+
+          {/* Default Page */}
+          <SettingsRow>
+            <RowLabel
+              label={t('kiosk.default_page')}
+              desc={t('kiosk.default_page_desc')}
+            />
+            <select
+              value={settings.defaultPage || ''}
+              onChange={(e) =>
+                currentProfile &&
+                updateSettings(currentProfile.id, {
+                  defaultPage: e.target.value || null,
+                })
+              }
+              className="h-8 rounded-md border border-input bg-background px-2 text-xs"
+              data-testid="settings-default-page"
+            >
+              <option value="">{t('kiosk.default_page_none')}</option>
+              <option value="/dashboard">{t('sidebar.dashboard')}</option>
+              <option value="/monitors">{t('sidebar.monitors')}</option>
+              <option value="/montage">{t('sidebar.montage')}</option>
+              <option value="/events">{t('sidebar.events')}</option>
+              <option value="/timeline">{t('sidebar.timeline')}</option>
+            </select>
+          </SettingsRow>
+
+          {/* Navigation Lock */}
+          <SettingsRow>
+            <RowLabel
+              label={t('kiosk.navigation_lock')}
+              desc={t('kiosk.navigation_lock_desc')}
+            />
+            <Switch
+              id="kiosk-nav-lock"
+              checked={settings.kioskNavigationLock}
+              disabled={!settings.defaultPage}
+              onCheckedChange={(checked) =>
+                currentProfile &&
+                updateSettings(currentProfile.id, { kioskNavigationLock: checked })
+              }
+              data-testid="settings-kiosk-nav-lock"
+            />
+          </SettingsRow>
         </SettingsCard>
       </section>
 
