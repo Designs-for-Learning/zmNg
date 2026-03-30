@@ -99,3 +99,108 @@ global.AudioContext = vi.fn(() => ({
   destination: {},
   currentTime: 0,
 })) as unknown as typeof AudioContext;
+
+// Mock Capacitor
+vi.mock('@capacitor/core', () => ({
+  Capacitor: {
+    isNativePlatform: () => false,
+    getPlatform: () => 'web',
+  },
+}));
+
+// Mock Capacitor Haptics
+vi.mock('@capacitor/haptics', () => ({
+  Haptics: {
+    impact: vi.fn().mockResolvedValue(undefined),
+    notification: vi.fn().mockResolvedValue(undefined),
+    vibrate: vi.fn().mockResolvedValue(undefined),
+    selectionStart: vi.fn().mockResolvedValue(undefined),
+    selectionChanged: vi.fn().mockResolvedValue(undefined),
+    selectionEnd: vi.fn().mockResolvedValue(undefined),
+  },
+  ImpactStyle: {
+    Heavy: 'Heavy',
+    Medium: 'Medium',
+    Light: 'Light',
+  },
+  NotificationType: {
+    Success: 'Success',
+    Warning: 'Warning',
+    Error: 'Error',
+  },
+}));
+
+// Mock Capacitor Network
+vi.mock('@capacitor/network', () => ({
+  Network: {
+    addListener: vi.fn().mockResolvedValue({ remove: vi.fn() }),
+    getStatus: vi.fn().mockResolvedValue({ connected: true, connectionType: 'wifi' }),
+  },
+}));
+
+// Mock html5-qrcode for QR scanner tests
+vi.mock('html5-qrcode', () => ({
+  Html5Qrcode: vi.fn().mockImplementation(() => ({
+    start: vi.fn().mockResolvedValue(undefined),
+    stop: vi.fn().mockResolvedValue(undefined),
+    getState: vi.fn().mockReturnValue(0), // NOT_STARTED
+  })),
+  Html5QrcodeScannerState: {
+    NOT_STARTED: 0,
+    SCANNING: 1,
+    PAUSED: 2,
+  },
+}));
+
+// Mock SSLTrust plugin
+vi.mock('../src/plugins/ssl-trust', () => ({
+  SSLTrust: {
+    enable: vi.fn().mockResolvedValue(undefined),
+    disable: vi.fn().mockResolvedValue(undefined),
+    isEnabled: vi.fn().mockResolvedValue({ enabled: false }),
+    setTrustedFingerprint: vi.fn().mockResolvedValue(undefined),
+    getServerCertFingerprint: vi.fn().mockResolvedValue({
+      fingerprint: 'AA:BB:CC:DD:EE:FF',
+      subject: 'CN=localhost',
+      issuer: 'CN=localhost',
+      expiry: '2027-01-01',
+    }),
+  },
+}));
+
+// Mock @capawesome/capacitor-badge for app icon badge
+vi.mock('@capawesome/capacitor-badge', () => ({
+  Badge: {
+    set: vi.fn().mockResolvedValue(undefined),
+    get: vi.fn().mockResolvedValue({ count: 0 }),
+    clear: vi.fn().mockResolvedValue(undefined),
+  },
+}));
+
+// Mock capacitor-barcode-scanner for native QR scanning tests
+vi.mock('capacitor-barcode-scanner', () => ({
+  BarcodeScanner: {
+    scan: vi.fn().mockResolvedValue({ result: false, code: null }),
+    multiScan: vi.fn().mockResolvedValue({ result: false, count: 0, codes: [] }),
+  },
+}));
+
+// Mock @aparajita/capacitor-biometric-auth
+vi.mock('@aparajita/capacitor-biometric-auth', () => ({
+  BiometricAuth: {
+    checkBiometry: vi.fn().mockResolvedValue({
+      isAvailable: false,
+      biometryType: 0,
+      reason: 'Not available in test environment',
+    }),
+    authenticate: vi.fn().mockResolvedValue(undefined),
+  },
+  BiometryType: {
+    none: 0,
+    touchId: 1,
+    faceId: 2,
+    fingerprintAuthentication: 3,
+    faceAuthentication: 4,
+    irisAuthentication: 5,
+  },
+}));

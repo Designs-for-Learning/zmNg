@@ -6,10 +6,11 @@
  * provides options to add new profiles or switch to existing ones.
  */
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProfileStore } from '../stores/profile';
 import { useShallow } from 'zustand/react/shallow';
+import { log, LogLevel } from '../lib/logger';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,7 +22,7 @@ import {
 import { Button } from './ui/button';
 import { Check, ChevronDown, Server, Plus, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { log, LogLevel } from '../lib/logger';
+
 import { useTranslation } from 'react-i18next';
 
 /**
@@ -40,51 +41,37 @@ export function ProfileSwitcher() {
   );
   const switchProfile = useProfileStore((state) => state.switchProfile);
   const [isLoading, setIsLoading] = useState(false);
+  const switchAbortRef = useRef<AbortController | null>(null);
 
-  /**
-   * Handles switching to a selected profile.
-   *
-   * @param profileId - The ID of the profile to switch to
-   */
   const handleSwitch = async (profileId: string) => {
-    if (profileId === currentProfile?.id) return;
-
     const profile = profiles.find((p) => p.id === profileId);
     if (!profile) return;
 
-    log.profile('Switching profile', LogLevel.INFO, {
-      from: currentProfile?.name,
-      to: profile.name,
-      fromId: currentProfile?.id,
-      toId: profileId
-    });
+    // Abort any in-flight switch
+    if (switchAbortRef.current) switchAbortRef.current.abort();
+    const abort = new AbortController();
+    switchAbortRef.current = abort;
+
+    toast.dismiss();
     setIsLoading(true);
     const loadingToast = toast.loading(t('profiles.switching_to', { name: profile.name }));
 
     try {
       await switchProfile(profileId);
+      if (abort.signal.aborted) return;
 
-      // Success!
-      log.profile('Profile switch successful', LogLevel.INFO, { profileName: profile.name, profileId });
       toast.dismiss(loadingToast);
       toast.success(t('profiles.switched_to', { name: profile.name }));
-
       setIsLoading(false);
-
-      // Navigate to monitors to trigger data reload
       navigate('/monitors');
-    } catch (error: any) {
-      log.profileSwitcher('Profile switch failed', LogLevel.ERROR, {
-        profileId,
-        profileName: profile.name,
-        error,
-      });
+    } catch (error: unknown) {
+      if (abort.signal.aborted) return;
 
       toast.dismiss(loadingToast);
+      const message = error instanceof Error ? error.message : String(error);
       toast.error(t('profiles.switch_failed'), {
-        description: error?.message || t('common.unknown_error'),
+        description: message || t('common.unknown_error'),
       });
-
       setIsLoading(false);
     }
   };
@@ -101,15 +88,14 @@ export function ProfileSwitcher() {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
-          variant="outline"
-          className="flex items-center gap-2 min-w-[200px] justify-between"
-          disabled={isLoading}
+          variant="ghost"
+          className="flex items-center gap-2 w-full justify-between focus-visible:ring-0 focus-visible:ring-offset-0"
         >
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 min-w-0">
             {isLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
             ) : (
-              <Server className="h-4 w-4" />
+              <Server className="h-4 w-4 shrink-0" />
             )}
             <span className="truncate">{currentProfile?.name || t('profiles.select_profile')}</span>
           </div>
@@ -131,7 +117,8 @@ export function ProfileSwitcher() {
                 {(() => {
                   try {
                     return new URL(profile.portalUrl).hostname;
-                  } catch {
+                  } catch (error) {
+                    log.profile('URL hostname parse failed', LogLevel.DEBUG, { error });
                     return profile.portalUrl;
                   }
                 })()}

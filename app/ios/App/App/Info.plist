@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-	<string>zmNg</string>
+	<string>zmNinjaNG</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -27,6 +27,10 @@
 		<key>NSAllowsArbitraryLoads</key>
 		<true/>
 	</dict>
+	<key>NSFaceIDUsageDescription</key>
+	<string>We use Face ID to unlock kiosk mode.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>We need camera access to scan QR codes for importing server profiles.</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>We need access to your local network to connect to your ZoneMinder server.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
@@ -56,5 +60,7 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 </dict>
 </plist>

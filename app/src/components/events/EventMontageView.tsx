@@ -2,33 +2,44 @@
  * Event Montage View
  *
  * Grid view of events with thumbnails and metadata.
+ * Features:
+ * - Responsive grid layout
+ * - Haptic feedback on downloads (native platforms)
+ * - Touch-optimized download buttons
  */
 
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Download, Loader2 } from 'lucide-react';
-import { format } from 'date-fns';
-import { toast } from 'sonner';
+import { getEventCauseIcon } from '../../lib/event-icons';
+import { getObjectClassIconFromList } from '../../lib/object-class-icons';
+import { useDateTimeFormat } from '../../hooks/useDateTimeFormat';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { SecureImage } from '../ui/secure-image';
 import { downloadEventVideo } from '../../lib/download';
-import { getEventImageUrl } from '../../api/events';
-import { calculateThumbnailDimensions } from '../../lib/event-utils';
-import { ZM_CONSTANTS } from '../../lib/constants';
-import type { Monitor } from '../../api/types';
+import { getEventImageUrl, type EventFilters } from '../../api/events';
+import { calculateThumbnailDimensions, getMonitorDimensions } from '../../lib/event-utils';
+import { ZM_INTEGRATION } from '../../lib/zmninja-ng-constants';
+import type { EventData, Monitor, Tag } from '../../api/types';
+import { Capacitor } from '@capacitor/core';
+import { TagChipList } from './TagChip';
 
 interface EventMontageViewProps {
-  events: any[];
+  events: EventData[];
   monitors: Array<{ Monitor: Monitor }>;
   gridCols: number;
   thumbnailFit: 'contain' | 'cover' | 'none' | 'scale-down';
   portalUrl: string;
   accessToken?: string;
-  eventLimit: number;
+  batchSize: number;
+  totalCount?: number;
   isLoadingMore: boolean;
+  isFetching?: boolean;
   onLoadMore: () => void;
+  eventTagMap?: Map<string, Tag[]>;
+  eventFilters?: EventFilters;
 }
 
 export const EventMontageView = ({
@@ -38,15 +49,44 @@ export const EventMontageView = ({
   thumbnailFit,
   portalUrl,
   accessToken,
-  eventLimit,
+  batchSize,
+  totalCount,
   isLoadingMore,
+  isFetching = false,
   onLoadMore,
+  eventTagMap,
+  eventFilters,
 }: EventMontageViewProps) => {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const { fmtDateTimeShort } = useDateTimeFormat();
+
+  // Haptic feedback helper
+  const triggerHaptic = async () => {
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const { Haptics, ImpactStyle } = await import('@capacitor/haptics');
+        await Haptics.impact({ style: ImpactStyle.Light });
+      } catch {
+        // Haptics not available, silently ignore
+      }
+    }
+  };
+
+  const isLoadingData = isLoadingMore || isFetching;
+  const hasMore = totalCount !== undefined ? events.length < totalCount : false;
+  const remaining = totalCount !== undefined ? Math.min(batchSize, totalCount - events.length) : batchSize;
 
   return (
     <div className="min-h-0" data-testid="events-montage-grid">
+      {/* Status header */}
+      <div className="text-xs text-muted-foreground pb-3 flex items-center gap-2">
+        {isFetching && <Loader2 className="h-3 w-3 animate-spin" />}
+        {totalCount !== undefined
+          ? t('events.showing_of_total', { showing: events.length, total: totalCount })
+          : t('events.showing_events', { count: events.length })}
+      </div>
+
       <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))` }}>
         {events.map((eventData) => {
           const event = eventData.Event;
@@ -54,15 +94,13 @@ export const EventMontageView = ({
           const monitorName = monitorData?.Name || `Camera ${event.MonitorId}`;
           const startTime = new Date(event.StartDateTime.replace(' ', 'T'));
 
-          // Get monitor dimensions (use event dimensions as fallback)
-          const monitorWidth = parseInt(monitorData?.Width || event.Width || '640', 10);
-          const monitorHeight = parseInt(monitorData?.Height || event.Height || '480', 10);
+          const { width: monitorWidth, height: monitorHeight } = getMonitorDimensions(monitorData, event.Width, event.Height);
 
           const { width: thumbnailWidth, height: thumbnailHeight } = calculateThumbnailDimensions(
             monitorWidth,
             monitorHeight,
             monitorData?.Orientation ?? event.Orientation,
-            ZM_CONSTANTS.eventMontageImageWidth
+            ZM_INTEGRATION.eventMontageImageWidth
           );
 
           const imageUrl = getEventImageUrl(portalUrl, event.Id, 'snapshot', {
@@ -78,7 +116,7 @@ export const EventMontageView = ({
             <Card
               key={event.Id}
               className="overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary transition-all"
-              onClick={() => navigate(`/events/${event.Id}`)}
+              onClick={() => navigate(`/events/${event.Id}`, { state: { from: '/events', eventFilters } })}
             >
               <div className="relative bg-black" style={{ aspectRatio: aspectRatio.toString() }}>
                 <SecureImage
@@ -86,6 +124,7 @@ export const EventMontageView = ({
                   alt={event.Name}
                   className="w-full h-full"
                   style={{ objectFit: thumbnailFit }}
+                  loading="lazy"
                   onError={(e) => {
                     const img = e.target as HTMLImageElement;
                     img.src =
@@ -100,12 +139,12 @@ export const EventMontageView = ({
                     <Button
                       variant="secondary"
                       size="icon"
-                      className="h-7 w-7"
-                      onClick={(e) => {
+                      className="h-8 w-8"
+                      onClick={async (e) => {
                         e.stopPropagation();
-                        downloadEventVideo(portalUrl, event.Id, event.Name, accessToken)
-                          .then(() => toast.success(t('eventMontage.video_download_started')))
-                          .catch(() => toast.error(t('eventMontage.video_download_failed')));
+                        await triggerHaptic();
+                        downloadEventVideo(portalUrl, event.Id, event.Name, accessToken);
+                        // Background task drawer will show download progress
                       }}
                       title={t('eventMontage.download_video')}
                       aria-label={t('eventMontage.download_video')}
@@ -121,11 +160,36 @@ export const EventMontageView = ({
                   {event.Name}
                 </div>
                 <div className="text-xs text-muted-foreground truncate">{monitorName}</div>
-                <div className="text-xs text-muted-foreground">{format(startTime, 'MMM d, HH:mm:ss')}</div>
-                {event.Cause && (
-                  <Badge variant="outline" className="text-xs">
-                    {event.Cause}
-                  </Badge>
+                <div className="text-xs text-muted-foreground">{fmtDateTimeShort(startTime)}</div>
+                {event.Cause && (() => {
+                  const CauseIcon = getEventCauseIcon(event.Cause);
+                  return (
+                    <Badge variant="outline" className="text-xs gap-1">
+                      <CauseIcon className="h-3 w-3" />
+                      {event.Cause}
+                    </Badge>
+                  );
+                })()}
+                {event.Notes && (() => {
+                  const noteText = event.Notes.split('|')[0].trim();
+                  const isDetection = noteText.startsWith('detected:');
+                  const classList = isDetection ? noteText.slice('detected:'.length) : '';
+                  const NoteIcon = isDetection && classList ? getObjectClassIconFromList(classList) : null;
+                  return (
+                    <p className="flex items-center gap-1 text-[10px] text-muted-foreground truncate" title={event.Notes}>
+                      {NoteIcon && <NoteIcon className="h-3 w-3 shrink-0" />}
+                      <span className="truncate">{noteText}</span>
+                    </p>
+                  );
+                })()}
+                {/* Tags */}
+                {eventTagMap && eventTagMap.get(event.Id) && (
+                  <TagChipList
+                    tags={eventTagMap.get(event.Id) || []}
+                    maxVisible={3}
+                    size="sm"
+                    overflowText={(count) => t('events.tags.moreCount', { count })}
+                  />
                 )}
               </div>
             </Card>
@@ -133,31 +197,28 @@ export const EventMontageView = ({
         })}
       </div>
 
-      <div className="text-center py-4 space-y-3">
-        <div className="text-xs text-muted-foreground">
-          {t('events.showing_events', { count: events.length })}
-          {events.length >= eventLimit && ` (${t('events.more_available')})`}
-        </div>
-        {events.length >= eventLimit && (
+      {/* Load More button */}
+      {hasMore && (
+        <div className="text-center py-4">
           <Button
             onClick={onLoadMore}
-            disabled={isLoadingMore}
+            disabled={isLoadingData}
             variant="outline"
             size="sm"
             className="w-full"
             data-testid="events-load-more"
           >
-            {isLoadingMore ? (
+            {isLoadingData ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                {t('common.loading')}
+                {t('events.loading_more', { count: remaining })}
               </>
             ) : (
               t('events.load_more')
             )}
           </Button>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };

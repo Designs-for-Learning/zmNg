@@ -8,22 +8,28 @@
  * - Automatic platform detection (Native/Tauri/Web/Proxy)
  * - CORS handling via native HTTP or proxy
  * - Token injection for authenticated requests
- * - Response type handling (json, blob, arraybuffer, text)
+ * - Response type handling (json, blob, arraybuffer, text, base64)
  * - Logging integration
  */
 
-import { CapacitorHttp, type HttpResponse as CapacitorHttpResponse } from '@capacitor/core';
-import { fetch as tauriFetch } from '@tauri-apps/plugin-http';
 import { Platform } from './platform';
 import { log, LogLevel } from './logger';
 
+// Monotonically increasing request ID counter for correlation
+let requestIdCounter = 0;
+
 export interface HttpOptions {
-  method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+  method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD';
   headers?: Record<string, string>;
-  params?: Record<string, string>;
+  params?: Record<string, string | number>;
   body?: unknown;
-  responseType?: 'json' | 'blob' | 'arraybuffer' | 'text';
+  responseType?: 'json' | 'blob' | 'arraybuffer' | 'text' | 'base64';
   token?: string; // Optional auth token to inject
+  timeoutMs?: number;
+  timeout?: number;
+  signal?: AbortSignal;
+  validateStatus?: (status: number) => boolean;
+  onDownloadProgress?: (progress: HttpProgress) => void;
 }
 
 export interface HttpResponse<T = unknown> {
@@ -31,6 +37,12 @@ export interface HttpResponse<T = unknown> {
   status: number;
   statusText: string;
   headers: Record<string, string>;
+}
+
+export interface HttpProgress {
+  loaded: number;
+  total: number;
+  percentage: number;
 }
 
 export interface HttpError extends Error {
@@ -54,22 +66,119 @@ function createHttpError(
   return error;
 }
 
-async function parseFetchResponse<T>(
-  response: Response,
-  responseType: string
-): Promise<{ data: T; headers: Record<string, string> }> {
+/**
+ * Serialize request body to string for fetch-based requests
+ */
+function serializeRequestBody(body: unknown): string | undefined {
+  if (!body) return undefined;
+  if (typeof body === 'string') return body;
+  if (body instanceof URLSearchParams) return body.toString();
+  return JSON.stringify(body);
+}
+
+function normalizeHeaders(headers: Headers): Record<string, string> {
   const responseHeaders: Record<string, string> = {};
-  response.headers.forEach((value: string, key: string) => {
+  headers.forEach((value: string, key: string) => {
     responseHeaders[key] = value;
   });
+  return responseHeaders;
+}
+
+function stringifyParams(params: Record<string, string | number>): Record<string, string> {
+  const stringParams: Record<string, string> = {};
+  Object.entries(params).forEach(([key, value]) => {
+    stringParams[key] = String(value);
+  });
+  return stringParams;
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = '';
+  for (let i = 0; i < bytes.length; i += 1) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+
+async function readResponseBytes(
+  response: Response,
+  onDownloadProgress?: (progress: HttpProgress) => void
+): Promise<Uint8Array> {
+  if (!response.body) {
+    const arrayBuffer = await response.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuffer);
+    if (onDownloadProgress) {
+      onDownloadProgress({
+        loaded: bytes.length,
+        total: bytes.length,
+        percentage: 100,
+      });
+    }
+    return bytes;
+  }
+
+  const reader = response.body.getReader();
+  const contentLengthHeader = response.headers.get('content-length');
+  const total = contentLengthHeader ? parseInt(contentLengthHeader, 10) : 0;
+  let loaded = 0;
+  const chunks: Uint8Array[] = [];
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    if (value) {
+      chunks.push(value);
+      loaded += value.length;
+      if (onDownloadProgress) {
+        const percentage = total > 0 ? Math.round((loaded * 100) / total) : 0;
+        onDownloadProgress({ loaded, total, percentage });
+      }
+    }
+  }
+
+  const combined = new Uint8Array(loaded);
+  let offset = 0;
+  for (const chunk of chunks) {
+    combined.set(chunk, offset);
+    offset += chunk.length;
+  }
+
+  if (onDownloadProgress) {
+    onDownloadProgress({
+      loaded,
+      total: total || loaded,
+      percentage: 100,
+    });
+  }
+
+  return combined;
+}
+
+async function parseFetchResponse<T>(
+  response: Response,
+  responseType: string,
+  onDownloadProgress?: (progress: HttpProgress) => void
+): Promise<{ data: T; headers: Record<string, string> }> {
+  const responseHeaders = normalizeHeaders(response.headers);
 
   let data: T;
-  if (responseType === 'blob') {
-    data = (await response.blob()) as T;
-  } else if (responseType === 'arraybuffer') {
-    data = (await response.arrayBuffer()) as T;
+  if (responseType === 'blob' || responseType === 'arraybuffer' || responseType === 'base64') {
+    const bytes = await readResponseBytes(response, onDownloadProgress);
+    if (responseType === 'blob') {
+      const contentType =
+        responseHeaders['content-type'] ||
+        responseHeaders['Content-Type'] ||
+        'application/octet-stream';
+      const blobBuffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+      data = new Blob([blobBuffer], { type: contentType }) as T;
+    } else if (responseType === 'arraybuffer') {
+      data = bytes.buffer as T;
+    } else {
+      data = bytesToBase64(bytes) as T;
+    }
   } else if (responseType === 'text') {
-    data = (await response.text()) as T;
+    const text = await response.text();
+    data = text as T;
   } else {
     const text = await response.text();
     try {
@@ -80,6 +189,34 @@ async function parseFetchResponse<T>(
   }
 
   return { data, headers: responseHeaders };
+}
+
+function withTimeoutSignal(timeoutMs?: number, signal?: AbortSignal): { signal?: AbortSignal; cleanup: () => void } {
+  if (!timeoutMs) {
+    return { signal, cleanup: () => {} };
+  }
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  const onAbort = () => controller.abort();
+
+  if (signal) {
+    if (signal.aborted) {
+      controller.abort();
+    } else {
+      signal.addEventListener('abort', onAbort, { once: true });
+    }
+  }
+
+  return {
+    signal: controller.signal,
+    cleanup: () => {
+      clearTimeout(timeoutId);
+      if (signal) {
+        signal.removeEventListener('abort', onAbort);
+      }
+    },
+  };
 }
 
 /**
@@ -100,6 +237,11 @@ export async function httpRequest<T = unknown>(
     body,
     responseType = 'json',
     token,
+    timeout,
+    timeoutMs,
+    signal,
+    validateStatus,
+    onDownloadProgress,
   } = options;
 
   // Add token to params if provided
@@ -109,12 +251,19 @@ export async function httpRequest<T = unknown>(
   }
 
   // Build query string
-  const queryString = new URLSearchParams(finalParams).toString();
+  const queryString = new URLSearchParams(stringifyParams(finalParams)).toString();
   const fullUrl = queryString ? (url.includes('?') ? `${url}&${queryString}` : `${url}?${queryString}`) : url;
 
   // Handle proxy in dev mode for web
   let requestUrl = fullUrl;
   let requestHeaders = { ...headers };
+
+  if (body && typeof body !== 'string' && !(body instanceof URLSearchParams)) {
+    requestHeaders = {
+      ...requestHeaders,
+      'Content-Type': requestHeaders['Content-Type'] || 'application/json',
+    };
+  }
 
   if (Platform.shouldUseProxy && (url.startsWith('http://') || url.startsWith('https://'))) {
     // Extract the base URL to use as X-Target-Host
@@ -126,20 +275,113 @@ export async function httpRequest<T = unknown>(
     requestHeaders['X-Target-Host'] = baseUrl;
   }
 
-  log.api(`[HTTP] ${method} ${fullUrl}`, LogLevel.DEBUG, {
-    platform: Platform.isNative ? 'Native' : Platform.isTauri ? 'Tauri' : 'Web',
+  // Generate monotonically increasing request ID for correlation
+  const requestId = ++requestIdCounter;
+  const platform = Platform.isNative ? 'Native' : Platform.isTauri ? 'Tauri' : 'Web';
+  const startTime = performance.now();
+
+  // Prepare request body for logging
+  let requestBodyForLog: unknown = body;
+  if (body instanceof URLSearchParams) {
+    const formData: Record<string, string> = {};
+    body.forEach((value, key) => {
+      formData[key] = value;
+    });
+    requestBodyForLog = formData;
+  }
+
+  log.http(`[HTTP] Request #${requestId} ${method} ${fullUrl}`, LogLevel.DEBUG, {
+    requestId,
+    platform,
+    method,
+    url: fullUrl,
+    params: Object.keys(finalParams).length > 0 ? finalParams : undefined,
+    headers: Object.keys(requestHeaders).length > 0 ? requestHeaders : undefined,
+    body: requestBodyForLog,
   });
 
   try {
+    let response: HttpResponse<T>;
     if (Platform.isNative) {
-      return await nativeHttpRequest<T>(requestUrl, method, requestHeaders, body, responseType);
+      response = await nativeHttpRequest<T>(requestUrl, method, requestHeaders, body, responseType);
     } else if (Platform.isTauri) {
-      return await tauriHttpRequest<T>(requestUrl, method, requestHeaders, body, responseType);
+      const { signal: timeoutSignal, cleanup } = withTimeoutSignal(timeoutMs ?? timeout, signal);
+      response = await tauriHttpRequest<T>(
+        requestUrl,
+        method,
+        requestHeaders,
+        body,
+        responseType,
+        timeoutSignal,
+        onDownloadProgress
+      );
+      cleanup();
     } else {
-      return await webHttpRequest<T>(requestUrl, method, requestHeaders, body, responseType);
+      const { signal: timeoutSignal, cleanup } = withTimeoutSignal(timeoutMs ?? timeout, signal);
+      response = await webHttpRequest<T>(
+        requestUrl,
+        method,
+        requestHeaders,
+        body,
+        responseType,
+        timeoutSignal,
+        onDownloadProgress
+      );
+      cleanup();
     }
+
+    const isValidStatus = validateStatus
+      ? validateStatus(response.status)
+      : response.status >= 200 && response.status < 300;
+
+    if (!isValidStatus) {
+      throw createHttpError(response.status, response.statusText, response.data, response.headers);
+    }
+
+    const duration = Math.round(performance.now() - startTime);
+
+    // Prepare response data for logging (truncate large responses)
+    let responseDataForLog: unknown = response.data;
+    if (responseType === 'blob' || responseType === 'arraybuffer' || responseType === 'base64') {
+      responseDataForLog = `<Binary data: ${responseType}>`;
+    } else if (typeof response.data === 'string' && response.data.length > 1000) {
+      responseDataForLog = `${response.data.substring(0, 1000)}... (truncated, total: ${response.data.length} chars)`;
+    } else if (typeof response.data === 'object' && response.data !== null) {
+      const jsonString = JSON.stringify(response.data);
+      if (jsonString.length > 2000) {
+        responseDataForLog = `${jsonString.substring(0, 2000)}... (truncated, total: ${jsonString.length} chars)`;
+      }
+    }
+
+    log.http(`[HTTP] Response #${requestId} ${method} ${fullUrl}`, LogLevel.DEBUG, {
+      requestId,
+      platform,
+      method,
+      url: fullUrl,
+      status: response.status,
+      statusText: response.statusText || undefined,
+      duration: `${duration}ms`,
+      headers: Object.keys(response.headers).length > 0 ? response.headers : undefined,
+      data: responseDataForLog,
+    });
+
+    return response;
   } catch (error) {
-    log.http(`[HTTP] Request failed: ${method} ${fullUrl}`, LogLevel.ERROR, error);
+    const duration = Math.round(performance.now() - startTime);
+    const httpError = error as HttpError;
+
+    log.http(`[HTTP] Failed #${requestId} ${method} ${fullUrl}`, LogLevel.ERROR, {
+      requestId,
+      platform,
+      method,
+      url: fullUrl,
+      duration: `${duration}ms`,
+      status: httpError.status || undefined,
+      statusText: httpError.statusText || undefined,
+      headers: httpError.headers && Object.keys(httpError.headers).length > 0 ? httpError.headers : undefined,
+      errorData: httpError.data || undefined,
+      error: httpError.message || error,
+    });
     throw error;
   }
 }
@@ -154,39 +396,19 @@ async function nativeHttpRequest<T>(
   body: unknown,
   responseType: string
 ): Promise<HttpResponse<T>> {
-  const response: CapacitorHttpResponse = await CapacitorHttp.request({
-    method: method as any,
+  const { CapacitorHttp } = await import('@capacitor/core');
+  const nativeResponseType =
+    responseType === 'arraybuffer' ? 'arraybuffer' : responseType === 'blob' || responseType === 'base64' ? 'blob' : undefined;
+  const response = await CapacitorHttp.request({
+    method: method as 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD',
     url,
     headers,
     data: body,
-    responseType: responseType === 'blob' ? 'blob' : responseType === 'arraybuffer' ? 'arraybuffer' : undefined,
+    responseType: nativeResponseType,
   });
 
-  let data: T;
-
-  // Handle blob response - CapacitorHttp returns base64 string for blob
-  if (responseType === 'blob' && typeof response.data === 'string') {
-    try {
-      const byteCharacters = atob(response.data);
-      const byteNumbers = new Array(byteCharacters.length);
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i);
-      }
-      const byteArray = new Uint8Array(byteNumbers);
-      const contentType = response.headers['Content-Type'] || response.headers['content-type'] || 'application/octet-stream';
-      data = new Blob([byteArray], { type: contentType }) as T;
-    } catch (e) {
-      log.http('Failed to convert base64 to blob', LogLevel.ERROR, e);
-      data = response.data as T;
-    }
-  } else {
-    data = response.data as T;
-  }
-
+  const data = response.data as T;
   const responseHeaders = response.headers as Record<string, string>;
-  if (response.status < 200 || response.status >= 300) {
-    throw createHttpError(response.status, '', data, responseHeaders);
-  }
 
   return {
     data,
@@ -204,29 +426,28 @@ async function tauriHttpRequest<T>(
   method: string,
   headers: Record<string, string>,
   body: unknown,
-  responseType: string
+  responseType: string,
+  signal?: AbortSignal,
+  onDownloadProgress?: (progress: HttpProgress) => void
 ): Promise<HttpResponse<T>> {
-  let requestBody: string | undefined = undefined;
-  if (body) {
-    if (typeof body === 'string') {
-      requestBody = body;
-    } else if (body instanceof URLSearchParams) {
-      requestBody = body.toString();
-    } else {
-      requestBody = JSON.stringify(body);
-    }
-  }
+  const requestBody = serializeRequestBody(body);
 
+  // Check if self-signed cert support is enabled for Tauri
+  const { isTauriSslTrustEnabled } = await import('./ssl-trust');
+  const dangerOpts = isTauriSslTrustEnabled()
+    ? { danger: { acceptInvalidCerts: true, acceptInvalidHostnames: true } }
+    : {};
+
+  const { fetch: tauriFetch } = await import('@tauri-apps/plugin-http');
   const response = await tauriFetch(url, {
     method,
     headers,
     body: requestBody,
+    signal,
+    ...dangerOpts,
   });
 
-  const { data, headers: responseHeaders } = await parseFetchResponse<T>(response, responseType);
-  if (response.status < 200 || response.status >= 300) {
-    throw createHttpError(response.status, response.statusText, data, responseHeaders);
-  }
+  const { data, headers: responseHeaders } = await parseFetchResponse<T>(response, responseType, onDownloadProgress);
 
   return {
     data,
@@ -244,30 +465,20 @@ async function webHttpRequest<T>(
   method: string,
   headers: Record<string, string>,
   body: unknown,
-  responseType: string
+  responseType: string,
+  signal?: AbortSignal,
+  onDownloadProgress?: (progress: HttpProgress) => void
 ): Promise<HttpResponse<T>> {
-  let requestBody: string | undefined = undefined;
-  if (body) {
-    if (typeof body === 'string') {
-      requestBody = body;
-    } else if (body instanceof URLSearchParams) {
-      requestBody = body.toString();
-    } else {
-      requestBody = JSON.stringify(body);
-      headers['Content-Type'] = headers['Content-Type'] || 'application/json';
-    }
-  }
+  const requestBody = serializeRequestBody(body);
 
   const response = await fetch(url, {
     method,
     headers,
     body: requestBody,
+    signal,
   });
 
-  const { data, headers: responseHeaders } = await parseFetchResponse<T>(response, responseType);
-  if (!response.ok) {
-    throw createHttpError(response.status, response.statusText, data, responseHeaders);
-  }
+  const { data, headers: responseHeaders } = await parseFetchResponse<T>(response, responseType, onDownloadProgress);
 
   return {
     data,

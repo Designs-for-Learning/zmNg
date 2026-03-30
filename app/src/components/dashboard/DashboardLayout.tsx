@@ -13,23 +13,20 @@
 import { useDashboardStore } from '../../stores/dashboard';
 import { useProfileStore } from '../../stores/profile';
 import { useShallow } from 'zustand/react/shallow';
+import { GRID_LAYOUT } from '../../lib/zmninja-ng-constants';
 import { DashboardWidget } from './DashboardWidget';
 import { MonitorWidget } from './widgets/MonitorWidget';
 import { EventsWidget } from './widgets/EventsWidget';
 import { TimelineWidget } from './widgets/TimelineWidget';
 import { HeatmapWidget } from './widgets/HeatmapWidget';
-import { ReactGridLayout, WidthProvider } from 'react-grid-layout/legacy';
-import type { Layout, LayoutItem } from 'react-grid-layout/legacy';
+import GridLayout, { WidthProvider } from 'react-grid-layout';
+import type { Layout } from 'react-grid-layout';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
-const WrappedGridLayout = WidthProvider(ReactGridLayout);
-const GRID_COLS = 12;
-/** Height of each row in pixels */
-const ROW_HEIGHT = 100;
-const GRID_MARGIN = 16;
+const WrappedGridLayout = WidthProvider(GridLayout);
 
 export function DashboardLayout() {
     const { t } = useTranslation();
@@ -48,18 +45,29 @@ export function DashboardLayout() {
     const isEditing = useDashboardStore((state) => state.isEditing);
 
     const [mounted, setMounted] = useState(false);
-    const [layout, setLayout] = useState<LayoutItem[]>([]);
+    const [layout, setLayout] = useState<Layout[]>([]);
+
+    // Use ref to track profileId without making it a dependency
+    const profileIdRef = useRef(profileId);
+    
+    // Track when we're syncing from store to prevent feedback loop
+    const isSyncingFromStoreRef = useRef(false);
+
+    // Keep ref updated with current profileId
+    useEffect(() => {
+        profileIdRef.current = profileId;
+    }, [profileId]);
 
     // Force component to mount properly
     useEffect(() => {
         setMounted(true);
     }, []);
 
-    const layouts = useMemo((): LayoutItem[] => {
+    const layouts = useMemo(() => {
         return widgets.map((w) => ({ ...w.layout, i: w.id }));
     }, [widgets]);
 
-    const areLayoutsEqual = (a: LayoutItem[], b: LayoutItem[]) => {
+    const areLayoutsEqual = useCallback((a: Layout[], b: Layout[]) => {
         if (a.length !== b.length) return false;
         const map = new Map(a.map((item) => [item.i, item]));
         return b.every((item) => {
@@ -72,19 +80,40 @@ export function DashboardLayout() {
                 match.h === item.h
             );
         });
-    };
+    }, []);
 
     useEffect(() => {
+        // Mark that we're syncing from store - this prevents handleLayoutChange from 
+        // writing back to store and causing an infinite loop
+        isSyncingFromStoreRef.current = true;
         setLayout((prev) => (areLayoutsEqual(prev, layouts) ? prev : layouts));
-    }, [layouts]);
+        // Reset the flag after React has processed the state update
+        // Use requestAnimationFrame for more predictable timing than queueMicrotask
+        requestAnimationFrame(() => {
+            isSyncingFromStoreRef.current = false;
+        });
+    }, [layouts, areLayoutsEqual]);
 
-    const handleLayoutChange = (nextLayout: Layout) => {
-        const items = [...nextLayout] as LayoutItem[];
-        setLayout((prev) => (areLayoutsEqual(prev, items) ? prev : items));
-        if (!isEditing) return;
+    const handleLayoutChange = useCallback((nextLayout: Layout[]) => {
+        setLayout((prev) => (areLayoutsEqual(prev, nextLayout) ? prev : nextLayout));
+        
+        // Don't update store if:
+        // 1. Not in edit mode
+        // 2. We're just syncing from store (would cause infinite loop)
+        if (!isEditing || isSyncingFromStoreRef.current) return;
 
-        updateLayouts(profileId, { lg: items });
-    };
+        // Use ref to access current profileId without adding it to dependencies
+        updateLayouts(profileIdRef.current, { lg: nextLayout });
+    }, [areLayoutsEqual, isEditing]);
+
+    // Merge local layout state with store layouts to ensure newly added widgets
+    // always have their correct dimensions. The local state may lag behind the store
+    // (useEffect is async), so new widgets could be missing from it.
+    const activeLayout = useMemo(() => {
+        if (layout.length === 0) return layouts;
+        const localMap = new Map(layout.map(l => [l.i, l]));
+        return layouts.map(l => localMap.get(l.i) || l);
+    }, [layout, layouts]);
 
     if (widgets.length === 0) {
         return (
@@ -117,56 +146,55 @@ export function DashboardLayout() {
         return null;
     }
 
-    const activeLayout = layout.length > 0 ? layout : layouts;
-
     return (
         <div className="p-4 min-h-screen w-full">
             <WrappedGridLayout
                 className="layout"
                 layout={activeLayout}
-                cols={GRID_COLS}
-                rowHeight={ROW_HEIGHT}
+                cols={GRID_LAYOUT.cols}
+                rowHeight={GRID_LAYOUT.rowHeight}
                 onLayoutChange={handleLayoutChange}
                 isDraggable={isEditing}
                 isResizable={isEditing}
                 draggableHandle=".drag-handle"
-                margin={[GRID_MARGIN, GRID_MARGIN]}
+                margin={[GRID_LAYOUT.margin, GRID_LAYOUT.margin]}
                 containerPadding={[0, 0]}
                 compactType="vertical"
                 preventCollision={false}
             >
-                {widgets.map((widget) => (
-                    <div key={widget.id}>
-                        <DashboardWidget id={widget.id} title={widget.title} profileId={profileId}>
-                            {widget.type === 'monitor' && widget.settings.monitorIds && (
-                                <MonitorWidget
-                                    monitorIds={widget.settings.monitorIds}
-                                    objectFit={widget.settings.feedFit || 'contain'}
-                                />
-                            )}
-                            {/* Backwards compatibility for single monitorId */}
-                            {widget.type === 'monitor' && widget.settings.monitorId && !widget.settings.monitorIds && (
-                                <MonitorWidget
-                                    monitorIds={[widget.settings.monitorId]}
-                                    objectFit={widget.settings.feedFit || 'contain'}
-                                />
-                            )}
-                            {widget.type === 'events' && (
-                                <EventsWidget
-                                    monitorId={widget.settings.monitorId}
-                                    limit={widget.settings.eventCount}
-                                    refreshInterval={widget.settings.refreshInterval}
-                                />
-                            )}
-                            {widget.type === 'timeline' && (
-                                <TimelineWidget />
-                            )}
-                            {widget.type === 'heatmap' && (
-                                <HeatmapWidget title={widget.title} />
-                            )}
-                        </DashboardWidget>
-                    </div>
-                ))}
+                {widgets.map((widget) => {
+                    // Memoize monitorIds to prevent new array references
+                    const monitorIds = widget.settings.monitorIds ?? 
+                        (widget.settings.monitorId ? [widget.settings.monitorId] : []);
+                    
+                    return (
+                        <div key={widget.id}>
+                            <DashboardWidget id={widget.id} title={widget.title} profileId={profileId}>
+                                {widget.type === 'monitor' && monitorIds.length > 0 && (
+                                    <MonitorWidget
+                                        monitorIds={monitorIds}
+                                        objectFit={widget.settings.feedFit || 'contain'}
+                                    />
+                                )}
+                                {widget.type === 'events' && (
+                                    <EventsWidget
+                                        monitorIds={widget.settings.monitorIds ?? (widget.settings.monitorId ? [widget.settings.monitorId] : undefined)}
+                                        limit={widget.settings.eventCount}
+                                        refreshInterval={widget.settings.refreshInterval}
+                                        onlyDetectedObjects={widget.settings.onlyDetectedObjects}
+                                        tagIds={widget.settings.tagIds}
+                                    />
+                                )}
+                                {widget.type === 'timeline' && (
+                                    <TimelineWidget />
+                                )}
+                                {widget.type === 'heatmap' && (
+                                    <HeatmapWidget title={widget.title} />
+                                )}
+                            </DashboardWidget>
+                        </div>
+                    );
+                })}
             </WrappedGridLayout>
         </div>
     );

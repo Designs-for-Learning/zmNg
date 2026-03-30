@@ -1,1 +1,2 @@
-@AGENTS.md
+Use @AGENTS.md as your instructions
+

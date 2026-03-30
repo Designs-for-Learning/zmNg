@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { log, LogLevel } from '../lib/logger';
 import type { MonitorFeedFit } from './settings';
+import { GRID_LAYOUT } from '../lib/zmninja-ng-constants';
 
 export type WidgetType = 'monitor' | 'events' | 'timeline' | 'heatmap';
 
@@ -27,6 +28,7 @@ export interface DashboardWidget {
         showThumbnails?: boolean;
         refreshInterval?: number; // in milliseconds
         autoRefresh?: boolean;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- extensible widget settings
         [key: string]: any;
     };
     layout: WidgetLayout; // kept for backward compatibility and as 'current' layout
@@ -52,7 +54,6 @@ export const useDashboardStore = create<DashboardState>()(
 
             addWidget: (profileId, widget) =>
                 set((state) => {
-                    const DEFAULT_COLS = 12;
                     const id = crypto.randomUUID();
                     const profileWidgets = state.widgets[profileId] || [];
                     // Simple auto-placement: put at the bottom
@@ -82,7 +83,7 @@ export const useDashboardStore = create<DashboardState>()(
                                     ...widget,
                                     id,
                                     layout: initialLayout,
-                                    layouts: { lg: { ...initialLayout, w: Math.min(initialLayout.w, DEFAULT_COLS) } }
+                                    layouts: { lg: { ...initialLayout, w: Math.min(initialLayout.w, GRID_LAYOUT.cols) } }
                                 },
                             ]
                         },
@@ -144,7 +145,6 @@ export const useDashboardStore = create<DashboardState>()(
 
             resetWidgetWidths: (profileId) => {
                 set((state) => {
-                    const fullWidth = 12;
                     const widgetCount = (state.widgets[profileId] || []).length;
                     log.dashboard('Resetting dashboard widget widths to full width', LogLevel.INFO, { profileId,
                         widgetCount });
@@ -160,13 +160,13 @@ export const useDashboardStore = create<DashboardState>()(
                                     const existingLayout = w.layouts?.[bp] || w.layout;
                                     updatedLayouts[bp] = {
                                         ...existingLayout,
-                                        w: fullWidth,
+                                        w: GRID_LAYOUT.cols,
                                     };
                                 });
 
                                 return {
                                     ...w,
-                                    layout: { ...(updatedLayouts.lg || w.layout), w: fullWidth },
+                                    layout: { ...(updatedLayouts.lg || w.layout), w: GRID_LAYOUT.cols },
                                     layouts: updatedLayouts
                                 };
                             })
@@ -182,12 +182,16 @@ export const useDashboardStore = create<DashboardState>()(
             name: 'dashboard-storage',
             partialize: (state) => ({ widgets: state.widgets }), // Only persist widgets
             version: 3,
+            // Migrations operate on unknown persisted state shapes from previous versions.
+            // Using `any` is intentional since we can't know the exact shape at each version.
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- migrations handle unknown persisted shapes
             migrate: (persistedState: any, version: number) => {
                 let newState = persistedState;
 
                 if (version === 0) {
                     // Migration from version 0 to 1
                     const widgets = newState.widgets || [];
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- unknown persisted shape
                     const newWidgets = widgets.map((w: any) => ({
                         ...w,
                         layout: {
@@ -220,6 +224,7 @@ export const useDashboardStore = create<DashboardState>()(
                     // Migration from version 2 to 3 (Multi-breakpoint layouts)
                     // Populate w.layouts['lg'] with w.layout
                     Object.keys(newState.widgets || {}).forEach(profileKey => {
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- unknown persisted shape
                         newState.widgets[profileKey] = newState.widgets[profileKey].map((w: any) => ({
                             ...w,
                             layouts: { lg: w.layout, md: w.layout, sm: w.layout } // Init all to current to prevent reset

@@ -8,6 +8,10 @@
  */
 
 import { log, LogLevel } from '../lib/logger';
+import { useAuthStore } from '../stores/auth';
+import { useProfileStore } from '../stores/profile';
+import { useSettingsStore } from '../stores/settings';
+import { getBandwidthSettings } from '../lib/zmninja-ng-constants';
 
 import type {
   ZMEventServerConfig,
@@ -30,11 +34,12 @@ export class ZMNotificationService {
   private config: ZMEventServerConfig | null = null;
   private state: ConnectionState = 'disconnected';
   private reconnectAttempts = 0;
-  private maxReconnectAttempts = 5;
-  private reconnectDelay = 5000; // 5 seconds
+  private baseReconnectDelay = 2000; // 2 seconds initial
+  private maxReconnectDelay = 120000; // Cap at 2 minutes
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private pingInterval: ReturnType<typeof setInterval> | null = null;
   private pendingAuth: PendingAuth | null = null;
+  private intentionalDisconnect = false;
 
   // Event listeners
   private eventCallbacks: Set<NotificationEventCallback> = new Set();
@@ -55,6 +60,7 @@ export class ZMNotificationService {
 
     this.config = config;
     this.reconnectAttempts = 0;
+    this.intentionalDisconnect = false;
 
     await this._connect();
   }
@@ -64,18 +70,8 @@ export class ZMNotificationService {
    */
   public disconnect(): void {
     log.notifications('Disconnecting from notification server', LogLevel.INFO);
-
-    // Clear any pending reconnect
-    if (this.reconnectTimer) {
-      clearTimeout(this.reconnectTimer);
-      this.reconnectTimer = null;
-    }
-
-    // Clear ping interval
-    if (this.pingInterval) {
-      clearInterval(this.pingInterval);
-      this.pingInterval = null;
-    }
+    this.intentionalDisconnect = true;
+    this._clearTimers();
 
     // Reject pending auth
     if (this.pendingAuth) {
@@ -94,13 +90,49 @@ export class ZMNotificationService {
   }
 
   /**
+   * Send a ping and verify the connection is alive.
+   * Resolves true if the connection responded, false otherwise.
+   * Used by the NotificationHandler to verify liveness on app resume.
+   */
+  public async checkAlive(timeoutMs = 5000): Promise<boolean> {
+    if (!this._isConnected()) {
+      return false;
+    }
+
+    return new Promise((resolve) => {
+      const timeout = setTimeout(() => {
+        this.ws?.removeEventListener('message', handleMessage);
+        resolve(false);
+      }, timeoutMs);
+
+      const handleMessage = (event: MessageEvent) => {
+        try {
+          const data = JSON.parse(event.data) as ZMNotificationMessage;
+          // Any response to our version request means the connection is alive
+          if (data.event === 'control' && data.type === 'version') {
+            clearTimeout(timeout);
+            this.ws?.removeEventListener('message', handleMessage);
+            resolve(true);
+          }
+        } catch {
+          // Ignore parse errors
+        }
+      };
+
+      this.ws?.addEventListener('message', handleMessage);
+      this._send({ event: 'control', data: { type: 'version' } });
+    });
+  }
+
+  /**
    * Register mobile push token with server
    */
   public async registerPushToken(
     token: string,
     platform: 'ios' | 'android',
     monitorIds?: number[],
-    intervals?: number[]
+    intervals?: number[],
+    profileName?: string
   ): Promise<void> {
     if (!this._isConnected()) {
       throw new Error('Not connected to notification server');
@@ -115,12 +147,14 @@ export class ZMNotificationService {
         ...(monitorIds && { monlist: monitorIds.join(',') }),
         ...(intervals && { intlist: intervals.join(',') }),
         state: 'enabled',
+        ...(profileName && { profile: profileName.slice(0, 128) }),
       },
     };
 
     log.notifications('Registering push token', LogLevel.INFO, {
       platform,
       monitorCount: monitorIds?.length,
+      profileName,
     });
 
     this._send(message);
@@ -131,7 +165,8 @@ export class ZMNotificationService {
    */
   public async deregisterPushToken(
     token: string,
-    platform: 'ios' | 'android'
+    platform: 'ios' | 'android',
+    profileName?: string
   ): Promise<void> {
     if (!this._isConnected()) {
       log.notifications('Cannot deregister push token - not connected', LogLevel.WARN);
@@ -145,10 +180,11 @@ export class ZMNotificationService {
         token,
         platform,
         state: 'disabled',
+        ...(profileName && { profile: profileName.slice(0, 128) }),
       },
     };
 
-    log.notifications('Deregistering push token', LogLevel.INFO, { platform, });
+    log.notifications('Deregistering push token', LogLevel.INFO, { platform, profileName });
 
     this._send(message);
   }
@@ -326,15 +362,14 @@ export class ZMNotificationService {
     } catch (error) {
       log.notifications('Failed to connect to notification server', LogLevel.ERROR, error);
       this._setState('error');
-      this._scheduleReconnect();
-      throw error;
+      // Don't throw — let _handleClose schedule reconnect for transport failures.
+      // For auth failures, disconnect() was already called in _handleMessage.
     }
   }
 
   private _handleOpen(): void {
     log.notifications('WebSocket connected, authenticating...', LogLevel.INFO);
     this._setState('authenticating');
-    this.reconnectAttempts = 0;
 
     // Send authentication message
     if (this.config) {
@@ -366,6 +401,7 @@ export class ZMNotificationService {
       if (message.event === 'auth') {
         if (message.status === 'Success') {
           log.notifications('Authentication successful', LogLevel.INFO, { version: message.version, });
+          this.reconnectAttempts = 0;
           this._setState('connected');
           this._startPingInterval();
 
@@ -398,14 +434,21 @@ export class ZMNotificationService {
             cause: event.Cause,
           });
 
-          // Construct image URL for the event snapshot
-          if (this.config && event.EventId) {
+          // Set image URL: prefer server-provided Picture, fall back to client-constructed URL
+          if (event.Picture) {
+            event.ImageUrl = event.Picture;
+            log.notifications('Using server-provided image URL', LogLevel.INFO, {
+              eventId: event.EventId,
+              imageUrl: event.Picture,
+            });
+          } else if (this.config && event.EventId) {
+            const currentToken = useAuthStore.getState().accessToken;
             let imageUrl = `${this.config.portalUrl}/index.php?view=image&eid=${event.EventId}&fid=snapshot&width=600`;
-            if (this.config.token) {
-              imageUrl += `&token=${this.config.token}`;
+            if (currentToken) {
+              imageUrl += `&token=${currentToken}`;
             }
             event.ImageUrl = imageUrl;
-            log.notifications('Constructed image URL for event', LogLevel.INFO, {
+            log.notifications('Using client-constructed image URL (no Picture from server)', LogLevel.INFO, {
               eventId: event.EventId,
               imageUrl,
             });
@@ -438,30 +481,36 @@ export class ZMNotificationService {
       wasClean: event.wasClean,
     });
 
-    this._setState('disconnected');
     this.ws = null;
+    this._clearTimers();
 
-    // Clear ping interval
-    if (this.pingInterval) {
-      clearInterval(this.pingInterval);
-      this.pingInterval = null;
+    // Reject pending auth if still waiting
+    if (this.pendingAuth) {
+      clearTimeout(this.pendingAuth.timeout);
+      this.pendingAuth.reject(new Error('Connection closed during authentication'));
+      this.pendingAuth = null;
     }
 
-    // Attempt to reconnect if not a clean close
-    if (!event.wasClean && this.config) {
+    this._setState('disconnected');
+
+    // Reconnect unless the user explicitly called disconnect()
+    if (!this.intentionalDisconnect && this.config) {
       this._scheduleReconnect();
     }
   }
 
   private _scheduleReconnect(): void {
-    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      log.notifications('Max reconnect attempts reached', LogLevel.ERROR);
-      this._setState('error');
-      return;
-    }
+    // Don't schedule if already have a pending reconnect
+    if (this.reconnectTimer) return;
 
     this.reconnectAttempts++;
-    const delay = this.reconnectDelay * this.reconnectAttempts;
+
+    // Exponential backoff: 2s, 4s, 8s, 16s, ... capped at maxReconnectDelay
+    const exponentialDelay = this.baseReconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
+    const cappedDelay = Math.min(exponentialDelay, this.maxReconnectDelay);
+    // Add jitter: ±25% to prevent thundering herd
+    const jitter = cappedDelay * 0.25 * (Math.random() * 2 - 1);
+    const delay = Math.round(cappedDelay + jitter);
 
     log.notifications('Scheduling reconnect', LogLevel.INFO, {
       attempt: this.reconnectAttempts,
@@ -469,20 +518,68 @@ export class ZMNotificationService {
     });
 
     this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null;
       this._connect().catch((error) => {
         log.notifications('Reconnect failed', LogLevel.ERROR, error);
       });
     }, delay);
   }
 
+  /**
+   * Trigger an immediate reconnect (e.g., after network comes back online).
+   * Cancels any pending scheduled reconnect.
+   */
+  public reconnectNow(): void {
+    if (this.state === 'connected' || this.state === 'connecting' || this.state === 'authenticating') {
+      return;
+    }
+    if (!this.config || this.intentionalDisconnect) {
+      return;
+    }
+
+    log.notifications('Triggering immediate reconnect', LogLevel.INFO);
+
+    // Cancel any pending scheduled reconnect
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+
+    // Reset attempt counter on explicit reconnect (e.g., network restored)
+    this.reconnectAttempts = 0;
+
+    this._connect().catch((error) => {
+      log.notifications('Immediate reconnect failed', LogLevel.ERROR, error);
+    });
+  }
+
+  private _clearTimers(): void {
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+    if (this.pingInterval) {
+      clearInterval(this.pingInterval);
+      this.pingInterval = null;
+    }
+  }
+
   private _startPingInterval(): void {
-    // Send periodic pings to keep connection alive (every 60 seconds)
+    // Clear any existing interval first
+    if (this.pingInterval) {
+      clearInterval(this.pingInterval);
+    }
+    const profileId = useProfileStore.getState().currentProfileId;
+    const profileSettings = profileId
+      ? useSettingsStore.getState().getProfileSettings(profileId)
+      : null;
+    const bandwidth = getBandwidthSettings(profileSettings?.bandwidthMode ?? 'normal');
     this.pingInterval = setInterval(() => {
       if (this._isConnected()) {
-        log.notifications('Sending keepalive ping', LogLevel.INFO);
+        log.notifications('Sending keepalive ping', LogLevel.DEBUG);
         this._send({ event: 'control', data: { type: 'version' } });
       }
-    }, 60000);
+    }, bandwidth.wsKeepaliveInterval);
   }
 
   private _send(message: unknown): void {
@@ -525,9 +622,18 @@ export class ZMNotificationService {
   private _waitForAuth(): Promise<void> {
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
-        reject(new Error('Authentication timeout (20 seconds)'));
+        log.notifications('Authentication timed out after 20 seconds', LogLevel.ERROR);
         this.pendingAuth = null;
-      }, 20000); // ZM server default auth timeout is 20 seconds
+        this._setState('error');
+
+        // Close the socket — this triggers _handleClose which will schedule reconnect
+        if (this.ws) {
+          this.ws.close();
+          this.ws = null;
+        }
+
+        reject(new Error('Authentication timeout (20 seconds)'));
+      }, 20000);
 
       this.pendingAuth = { resolve, reject, timeout };
     });

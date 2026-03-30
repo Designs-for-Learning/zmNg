@@ -9,31 +9,43 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { getEvent, getEventVideoUrl, getEventImageUrl } from '../api/events';
 import { getMonitor } from '../api/monitors';
-import { useProfileStore } from '../stores/profile';
+import { useCurrentProfile } from '../hooks/useCurrentProfile';
 import { useAuthStore } from '../stores/auth';
+import { useEventTagMapping } from '../hooks/useEventTags';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { VideoPlayer } from '../components/ui/video-player';
 import { ZmsEventPlayer } from '../components/events/ZmsEventPlayer';
-import { ArrowLeft, Calendar, Clock, HardDrive, AlertTriangle, Download, Archive, Video } from 'lucide-react';
-import { format } from 'date-fns';
+import { TagChip } from '../components/events/TagChip';
+import { ArrowLeft, Calendar, Clock, HardDrive, AlertTriangle, Download, Archive, Video, Star, Timer, Tag, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { getEventCauseIcon } from '../lib/event-icons';
+import { getObjectClassIconFromList } from '../lib/object-class-icons';
+import { useDateTimeFormat } from '../hooks/useDateTimeFormat';
 import { downloadEventVideo } from '../lib/download';
-import { parseMonitorRotation } from '../lib/monitor-rotation';
+import { getOrientedResolution } from '../lib/monitor-rotation';
 import { toast } from 'sonner';
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { log, LogLevel } from '../lib/logger';
 import { generateEventMarkers, type VideoMarker } from '../lib/video-markers';
+import { useEventFavoritesStore } from '../stores/eventFavorites';
+import { useZoomPan } from '../hooks/useZoomPan';
+import { ZoomControls } from '../components/ui/ZoomControls';
+import { useEventNavigation } from '../hooks/useEventNavigation';
+import { cn } from '../lib/utils';
 
 export default function EventDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
   const { t } = useTranslation();
+  const { fmtDate, fmtTime } = useDateTimeFormat();
 
   // Check if user came from another page (navigation state tracking)
   const referrer = location.state?.from as string | undefined;
+  const canGoBack = referrer || window.history.length > 1;
+  const goBack = () => referrer ? navigate(referrer) : canGoBack ? navigate(-1) : navigate('/events');
   const [useZmsFallback, setUseZmsFallback] = useState(false);
 
   const { data: event, isLoading, error } = useQuery({
@@ -47,8 +59,37 @@ export default function EventDetail() {
     enabled: !!event?.Event.MonitorId,
   });
 
-  const currentProfile = useProfileStore((state) => state.currentProfile());
+  const { currentProfile, settings } = useCurrentProfile();
   const accessToken = useAuthStore((state) => state.accessToken);
+  const { isFavorited, toggleFavorite } = useEventFavoritesStore();
+  const {
+    goToPrevEvent,
+    goToNextEvent,
+    isLoadingPrev,
+    isLoadingNext,
+  } = useEventNavigation({
+    currentEventId: id,
+    currentStartDateTime: event?.Event.StartDateTime,
+  });
+
+  const isFav = currentProfile && event ? isFavorited(currentProfile.id, event.Event.Id) : false;
+
+  // Fetch tags for this event
+  const { getTagsForEvent } = useEventTagMapping({
+    eventIds: id ? [id] : [],
+    enabled: !!id,
+  });
+
+  const eventTags = id ? getTagsForEvent(id) : [];
+
+  const handleFavoriteToggle = useCallback(() => {
+    if (currentProfile && event) {
+      toggleFavorite(currentProfile.id, event.Event.Id);
+      toast.success(
+        isFav ? t('events.removed_from_favorites') : t('events.added_to_favorites')
+      );
+    }
+  }, [currentProfile, event, toggleFavorite, isFav, t]);
 
   // Generate video markers for alarm frames
   // NOTE: This hook must be called before any conditional returns
@@ -75,31 +116,33 @@ export default function EventDetail() {
     toast.info(t('event_detail.marker_jumped', { text: marker.text }));
   }, [t]);
 
-  const orientedResolution = useMemo(() => {
-    const width = Number(event?.Event.Width ?? monitorData?.Monitor.Width);
-    const height = Number(event?.Event.Height ?? monitorData?.Monitor.Height);
+  // Set document title for iOS fullscreen banner (shows instead of raw URL)
+  useEffect(() => {
+    const monitorName = monitorData?.Monitor.Name;
+    document.title = monitorName
+      ? `${monitorName} – Event ${id}`
+      : `Event ${id}`;
+    return () => { document.title = 'zmNinjaNG'; };
+  }, [id, monitorData]);
 
-    if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
-      return `${event?.Event.Width ?? ''}${event?.Event.Width ? 'x' : ''}${event?.Event.Height ?? ''}`;
-    }
+  // Pinch-to-zoom and pan for event video/image
+  const zoomPan = useZoomPan({ maxScale: 4 });
 
-    const rotation = parseMonitorRotation(event?.Event.Orientation ?? monitorData?.Monitor.Orientation);
-    if (rotation.kind === 'degrees') {
-      const normalized = ((rotation.degrees % 360) + 360) % 360;
-      if (normalized === 90 || normalized === 270) {
-        return `${height}x${width}`;
-      }
-    }
-
-    return `${width}x${height}`;
-  }, [
-    event?.Event.Height,
-    event?.Event.Orientation,
-    event?.Event.Width,
-    monitorData?.Monitor.Height,
-    monitorData?.Monitor.Orientation,
-    monitorData?.Monitor.Width,
-  ]);
+  const orientedResolution = useMemo(
+    () => getOrientedResolution(
+      event?.Event.Width ?? monitorData?.Monitor.Width,
+      event?.Event.Height ?? monitorData?.Monitor.Height,
+      event?.Event.Orientation ?? monitorData?.Monitor.Orientation
+    ),
+    [
+      event?.Event.Height,
+      event?.Event.Orientation,
+      event?.Event.Width,
+      monitorData?.Monitor.Height,
+      monitorData?.Monitor.Orientation,
+      monitorData?.Monitor.Width,
+    ]
+  );
 
   if (isLoading) {
     return (
@@ -117,7 +160,7 @@ export default function EventDetail() {
           <AlertTriangle className="h-5 w-5" />
           {t('event_detail.load_error')}
         </div>
-        <Button onClick={() => navigate(-1)} className="mt-4">
+        <Button onClick={goBack} className="mt-4">
           {t('common.go_back')}
         </Button>
       </div>
@@ -149,6 +192,7 @@ export default function EventDetail() {
     : undefined;
 
   const startTime = new Date(event.Event.StartDateTime.replace(' ', 'T'));
+  const incomingSlide = location.state?.slideDirection as 'left' | 'right' | undefined;
 
   return (
     <div className="flex flex-col h-full bg-background">
@@ -158,32 +202,81 @@ export default function EventDetail() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => referrer ? navigate(referrer) : navigate(-1)}
+            onClick={goBack}
             aria-label={t('common.go_back')}
             className="h-8 w-8"
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={goToPrevEvent}
+            disabled={isLoadingPrev}
+            aria-label={t('common.previous')}
+            className="h-7 w-7"
+            data-testid="event-detail-prev"
+          >
+            {isLoadingPrev ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <ChevronLeft className="h-4 w-4" />
+            )}
+          </Button>
           <div>
             <h1 className="text-sm sm:text-base font-semibold truncate max-w-[200px] sm:max-w-none">{event.Event.Name}</h1>
             <div className="flex items-center gap-1.5 text-[10px] sm:text-xs text-muted-foreground">
-              <Badge variant="outline" className="text-[10px] h-4">
-                {event.Event.Cause}
-              </Badge>
-              <span className="hidden sm:inline">{t('event_detail.camera')} {event.Event.MonitorId}</span>
+              {(() => {
+                const CauseIcon = getEventCauseIcon(event.Event.Cause);
+                return (
+                  <Badge variant="outline" className="text-[10px] h-4 gap-1">
+                    <CauseIcon className="h-3 w-3" />
+                    {event.Event.Cause}
+                  </Badge>
+                );
+              })()}
+              {monitorData && (
+                <span className="hidden sm:inline">{monitorData.Monitor.Name}</span>
+              )}
             </div>
           </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={goToNextEvent}
+            disabled={isLoadingNext}
+            aria-label={t('common.next')}
+            className="h-7 w-7"
+            data-testid="event-detail-next"
+          >
+            {isLoadingNext ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <ChevronRight className="h-4 w-4" />
+            )}
+          </Button>
         </div>
         <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-          <Button variant="outline" size="sm" className="gap-2 h-8 sm:h-9" onClick={() => navigate(`/monitors/${event.Event.MonitorId}`)} title={t('event_detail.view_camera')}>
+          <Button
+            variant={isFav ? "default" : "outline"}
+            size="sm"
+            className="gap-2 h-8 sm:h-9"
+            onClick={handleFavoriteToggle}
+            title={isFav ? t('events.unfavorite') : t('events.favorite')}
+            data-testid="event-detail-favorite-button"
+          >
+            <Star className={isFav ? "h-4 w-4 fill-current" : "h-4 w-4"} />
+            <span className="hidden sm:inline">{isFav ? t('events.favorited') : t('events.favorite')}</span>
+          </Button>
+          <Button variant="outline" size="sm" className="gap-2 h-8 sm:h-9" onClick={() => navigate(`/monitors/${event.Event.MonitorId}`)} title={t('event_detail.view_camera')} data-testid="event-detail-view-camera">
             <Video className="h-4 w-4" />
             <span className="hidden sm:inline">{t('event_detail.view_camera')}</span>
           </Button>
-          <Button variant="outline" size="sm" className="gap-2 h-8 sm:h-9" onClick={() => navigate(`/events?monitorId=${event.Event.MonitorId}`)} title={t('event_detail.all_events')}>
+          <Button variant="outline" size="sm" className="gap-2 h-8 sm:h-9" onClick={() => navigate(`/events?monitorId=${event.Event.MonitorId}`)} title={t('event_detail.all_events')} data-testid="event-detail-all-events">
             <Clock className="h-4 w-4" />
             <span className="hidden sm:inline">{t('event_detail.all_events')}</span>
           </Button>
-          <Button variant="outline" size="sm" className="gap-2 h-8 sm:h-9" title={t('event_detail.archive')}>
+          <Button variant="outline" size="sm" className="gap-2 h-8 sm:h-9" title={t('event_detail.archive')} data-testid="event-detail-archive">
             <Archive className="h-4 w-4" />
             <span className="hidden sm:inline">{t('event_detail.archive')}</span>
           </Button>
@@ -199,12 +292,12 @@ export default function EventDetail() {
                     event.Event.Id,
                     event.Event.Name,
                     accessToken || undefined
-                  )
-                    .then(() => toast.success(t('event_detail.video_download_started')))
-                    .catch(() => toast.error(t('event_detail.video_download_failed')));
+                  );
+                  // Background task drawer will show download progress
                 }
               }}
               title={t('event_detail.download_video')}
+              data-testid="download-video-button"
             >
               <Download className="h-4 w-4" />
               <span className="hidden sm:inline">{t('event_detail.download_video')}</span>
@@ -214,7 +307,14 @@ export default function EventDetail() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 p-2 sm:p-3 md:p-4 flex flex-col items-center bg-muted/10 overflow-y-auto">
+      <div
+        key={id}
+        className={cn(
+          'flex-1 p-2 sm:p-3 md:p-4 flex flex-col items-center bg-muted/10 overflow-y-auto',
+          incomingSlide === 'left' && 'event-slide-left',
+          incomingSlide === 'right' && 'event-slide-right',
+        )}
+      >
         <div className="w-full max-w-5xl space-y-3 sm:space-y-4 md:space-y-6">
           {/* Video Player or ZMS Playback */}
           {hasVideo ? (
@@ -236,23 +336,41 @@ export default function EventDetail() {
               )
             ) : (
               // MP4 video playback
-              <Card className="overflow-hidden shadow-2xl border-0 ring-1 ring-border/20 bg-black">
+              <Card
+                ref={zoomPan.ref}
+                className="overflow-hidden shadow-2xl border-0 ring-1 ring-border/20 bg-black touch-none relative"
+              >
                 <div className="aspect-video relative">
-                  <VideoPlayer
-                    src={videoUrl}
-                    type="video/mp4"
-                    className="w-full h-full"
-                    poster={posterUrl}
-                    autoplay
-                    markers={videoMarkers}
-                    onMarkerClick={handleMarkerClick}
-                    onError={() => {
-                      log.eventDetail('Video playback failed, falling back to ZMS stream', LogLevel.INFO);
-                      toast.error(t('event_detail.video_playback_failed'));
-                      setUseZmsFallback(true);
-                    }}
-                  />
+                  <div ref={zoomPan.innerRef}>
+                    <VideoPlayer
+                      src={videoUrl}
+                      type="video/mp4"
+                      className="w-full h-full"
+                      poster={posterUrl}
+                      autoplay={settings.eventVideoAutoplay}
+                      markers={videoMarkers}
+                      onMarkerClick={handleMarkerClick}
+                      eventId={event.Event.Id}
+                      onError={() => {
+                        log.eventDetail('Video playback failed, falling back to ZMS stream', LogLevel.INFO);
+                        toast.error(t('event_detail.video_playback_failed'));
+                        setUseZmsFallback(true);
+                      }}
+                    />
+                  </div>
                 </div>
+                <ZoomControls
+                  onZoomIn={zoomPan.zoomIn}
+                  onZoomOut={zoomPan.zoomOut}
+                  onReset={zoomPan.reset}
+                  onPanLeft={zoomPan.panLeft}
+                  onPanRight={zoomPan.panRight}
+                  onPanUp={zoomPan.panUp}
+                  onPanDown={zoomPan.panDown}
+                  isZoomed={zoomPan.isZoomed}
+                  scale={zoomPan.scale}
+                  className="bottom-12 left-2"
+                />
               </Card>
             )
           ) : hasJPEGs ? (
@@ -294,20 +412,18 @@ export default function EventDetail() {
                   <Calendar className="h-5 w-5 text-primary" />
                   <div>
                     <div className="text-sm font-medium">{t('event_detail.date')}</div>
-                    <div className="text-sm text-muted-foreground">{format(startTime, 'MMMM d, yyyy')}</div>
+                    <div className="text-sm text-muted-foreground">{fmtDate(startTime)}</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <Clock className="h-5 w-5 text-primary" />
                   <div>
                     <div className="text-sm font-medium">{t('event_detail.time')}</div>
-                    <div className="text-sm text-muted-foreground">{format(startTime, 'HH:mm:ss')}</div>
+                    <div className="text-sm text-muted-foreground">{fmtTime(startTime)}</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <div className="h-5 w-5 flex items-center justify-center font-bold text-primary text-xs border rounded border-primary">
-                    {event.Event.Length}s
-                  </div>
+                  <Timer className="h-5 w-5 text-primary" />
                   <div>
                     <div className="text-sm font-medium">{t('event_detail.duration')}</div>
                     <div className="text-sm text-muted-foreground">{event.Event.Length} {t('event_detail.seconds')}</div>
@@ -331,6 +447,20 @@ export default function EventDetail() {
                   <span className="text-sm text-muted-foreground">{t('event_detail.score')}</span>
                   <span className="text-sm font-medium">{event.Event.AvgScore} / {event.Event.MaxScore}</span>
                 </div>
+                {event.Event.Notes && event.Event.Notes.startsWith('detected:') && (() => {
+                  const classList = event.Event.Notes.slice('detected:'.length).split('|')[0].trim();
+                  if (!classList) return null;
+                  const DetectIcon = getObjectClassIconFromList(classList);
+                  return (
+                    <div className="flex justify-between items-center py-1 border-b border-border/50" data-testid="event-detail-detected-row">
+                      <span className="text-sm text-muted-foreground">{t('event_detail.detected')}</span>
+                      <span className="flex items-center gap-1.5 text-sm font-medium">
+                        <DetectIcon className="h-3.5 w-3.5 shrink-0" />
+                        {classList}
+                      </span>
+                    </div>
+                  );
+                })()}
                 <div className="flex justify-between py-1 border-b border-border/50">
                   <span className="text-sm text-muted-foreground">{t('event_detail.resolution')}</span>
                   <span className="text-sm font-medium">{orientedResolution}</span>
@@ -345,19 +475,36 @@ export default function EventDetail() {
                   <HardDrive className="h-5 w-5 text-primary" />
                   <div>
                     <div className="text-sm font-medium">{t('event_detail.disk_usage')}</div>
-                    <div className="text-sm text-muted-foreground">{event.Event.DiskSpace || 'Unknown'}</div>
+                    <div className="text-sm text-muted-foreground">{event.Event.DiskSpace || t('common.unknown')}</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <Archive className="h-5 w-5 text-primary" />
                   <div>
                     <div className="text-sm font-medium">{t('event_detail.storage_id')}</div>
-                    <div className="text-sm text-muted-foreground">{event.Event.StorageId || 'Default'}</div>
+                    <div className="text-sm text-muted-foreground">{event.Event.StorageId || t('common.default')}</div>
                   </div>
                 </div>
               </div>
             </Card>
           </div>
+
+          {/* Tags Section */}
+          {eventTags.length > 0 && (
+            <Card className="p-6 space-y-4">
+              <div className="flex items-center gap-2">
+                <Tag className="h-5 w-5 text-primary" />
+                <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">
+                  {t('event_detail.tags')}
+                </h3>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {eventTags.map((tag) => (
+                  <TagChip key={tag.Id} tag={tag} size="md" />
+                ))}
+              </div>
+            </Card>
+          )}
         </div>
       </div>
     </div>

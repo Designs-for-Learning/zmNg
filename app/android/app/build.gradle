@@ -1,14 +1,24 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace "com.pliablepixels.zmng"
+    namespace "com.zoneminder.zmNinjaNG"
     compileSdk rootProject.ext.compileSdkVersion
+
+    signingConfigs {
+        release {
+            storeFile file(System.getenv("ZMNINJA_KEYSTORE_PATH") ?: '')
+            storePassword System.getenv("ZMNINJA_KEYSTORE_PASSWORD") ?: ''
+            keyAlias System.getenv("ZMNINJA_KEY_ALIAS") ?: ''
+            keyPassword System.getenv("ZMNINJA_KEY_PASSWORD") ?: ''
+        }
+    }
+
     defaultConfig {
-        applicationId "com.pliablepixels.zmng"
+        applicationId "com.zoneminder.zmNinjaNG"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode 10104
+        versionName "1.1.4"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -18,6 +28,7 @@ android {
     }
     buildTypes {
         release {
+            signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
@@ -44,6 +55,10 @@ dependencies {
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
     implementation project(':capacitor-cordova-android-plugins')
+    implementation "androidx.media3:media3-exoplayer:1.5.1"
+    implementation "androidx.media3:media3-ui:1.5.1"
+    implementation "androidx.media3:media3-datasource:1.5.1"
+    implementation "androidx.media3:media3-session:1.5.1"
 }
 
 apply from: 'capacitor.build.gradle'

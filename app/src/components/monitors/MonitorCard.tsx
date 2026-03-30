@@ -112,19 +112,30 @@ function MonitorCardComponent({
       <div className="flex flex-col sm:flex-row gap-4 p-4">
         {/* Thumbnail Preview - Clickable */}
         <div
-          className="relative bg-black/90 cursor-pointer w-full sm:w-72 md:w-80"
+          className="relative bg-black/90 cursor-pointer w-full sm:w-72 md:w-80 focus:outline-none focus:ring-2 focus:ring-primary"
           style={{ aspectRatio: aspectRatio ?? '16 / 9' }}
           onClick={() => navigate(`/monitors/${monitor.Id}`, { state: { from: '/monitors' } })}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              navigate(`/monitors/${monitor.Id}`, { state: { from: '/monitors' } });
+            }
+          }}
+          role="button"
+          tabIndex={0}
+          aria-label={`${t('monitors.view_live')}: ${monitor.Name}`}
         >
-          <img
-            ref={imgRef}
-            src={displayedImageUrl || streamUrl}
-            alt={monitor.Name}
-            className="w-full h-full"
-            style={{ objectFit: resolvedFit }}
-            onError={handleImageError}
-            data-testid="monitor-player"
-          />
+          {(displayedImageUrl || streamUrl) && (
+            <img
+              ref={imgRef}
+              src={displayedImageUrl || streamUrl}
+              alt={monitor.Name}
+              className="w-full h-full"
+              style={{ objectFit: resolvedFit }}
+              onError={handleImageError}
+              data-testid="monitor-player"
+            />
+          )}
 
           {/* Status Badge */}
           <div className="absolute top-2 left-2 z-10">
@@ -168,10 +179,14 @@ function MonitorCardComponent({
           <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
             <span className="text-sm font-medium text-muted-foreground">{t('monitors.function')}</span>
             <Badge
-              variant={monitor.Function === 'None' ? 'outline' : 'secondary'}
+              variant={
+                monitor.Capturing
+                  ? (monitor.Capturing === 'None' ? 'outline' : 'secondary')
+                  : (monitor.Function === 'None' ? 'outline' : 'secondary')
+              }
               className="font-mono text-xs"
             >
-              {monitor.Function}
+              {monitor.Capturing ?? monitor.Function}
             </Badge>
             {monitor.Controllable === '1' && (
               <div className="flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400">
@@ -194,8 +209,8 @@ function MonitorCardComponent({
               {t('sidebar.events')}
               {eventCount !== undefined && eventCount > 0 && (
                 <Badge
-                  variant="destructive"
-                  className="ml-1 px-1 py-0 text-[10px] h-4 min-w-4"
+                  variant="secondary"
+                  className="ml-1 px-1 py-0 text-[10px] h-4 min-w-4 bg-blue-500/15 text-blue-400 border-blue-500/20"
                 >
                   {formatEventCount(eventCount)}
                 </Badge>

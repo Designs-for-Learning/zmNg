@@ -5,19 +5,31 @@
  * It listens to the notification store and displays toast notifications
  * for new events. It also handles auto-connecting to the notification
  * server when a profile is loaded.
+ *
+ * Connection, push setup, and delivered-notification processing are
+ * delegated to focused hooks under src/hooks/useNotification*.ts.
  */
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useNotificationStore } from '../stores/notifications';
+import { useCurrentProfile } from '../hooks/useCurrentProfile';
 import { useProfileStore } from '../stores/profile';
+import { useAuthStore } from '../stores/auth';
 import { toast } from 'sonner';
 import { Bell } from 'lucide-react';
+import { getEventCauseIcon } from '../lib/event-icons';
 import { log, LogLevel } from '../lib/logger';
 import { navigationService } from '../lib/navigation';
 import { useTranslation } from 'react-i18next';
-import { Capacitor } from '@capacitor/core';
-import { getPushService } from '../services/pushNotifications';
+import {
+  onProfileSwitchRequest,
+  clearPendingProfileSwitch,
+  type PendingProfileSwitch,
+} from '../lib/notification-profile';
+import { useNotificationAutoConnect } from '../hooks/useNotificationAutoConnect';
+import { useNotificationPushSetup } from '../hooks/useNotificationPushSetup';
+import { useNotificationDelivered } from '../hooks/useNotificationDelivered';
 
 /**
  * NotificationHandler component.
@@ -26,8 +38,9 @@ import { getPushService } from '../services/pushNotifications';
  */
 export function NotificationHandler() {
   const navigate = useNavigate();
-  const currentProfile = useProfileStore((state) => state.currentProfile());
+  const { currentProfile } = useCurrentProfile();
   const getDecryptedPassword = useProfileStore((state) => state.getDecryptedPassword);
+  const switchProfile = useProfileStore((state) => state.switchProfile);
   const { t } = useTranslation();
 
   const {
@@ -38,50 +51,78 @@ export function NotificationHandler() {
     currentProfileId,
     connect,
     disconnect,
+    reconnect,
   } = useNotificationStore();
 
   const lastEventId = useRef<number | null>(null);
-  const hasAttemptedAutoConnect = useRef(false);
-  const lastProfileId = useRef<string | null>(null);
+
+  // Profile switch confirmation state
+  const [pendingSwitch, setPendingSwitch] = useState<PendingProfileSwitch | null>(null);
+
+  // Handle profile switch confirmation from push notification taps
+  const handleConfirmSwitch = useCallback(async () => {
+    if (!pendingSwitch) return;
+
+    const { targetProfileId, eventId } = pendingSwitch;
+    setPendingSwitch(null);
+    clearPendingProfileSwitch();
+
+    log.notificationHandler('User confirmed profile switch from notification', LogLevel.INFO, {
+      targetProfileId,
+      eventId,
+    });
+
+    try {
+      await switchProfile(targetProfileId);
+      navigationService.navigateToEvent(eventId, { from: '/monitors', fromNotification: true });
+    } catch (error) {
+      log.notificationHandler('Profile switch failed', LogLevel.ERROR, error);
+      toast.error(t('notifications.profile_switch_failed'));
+    }
+  }, [pendingSwitch, switchProfile, t]);
+
+  const handleCancelSwitch = useCallback(() => {
+    log.notificationHandler('User declined profile switch from notification', LogLevel.INFO, {
+      targetProfileId: pendingSwitch?.targetProfileId,
+    });
+    setPendingSwitch(null);
+    clearPendingProfileSwitch();
+  }, [pendingSwitch]);
+
+  // Listen for profile switch requests from the push notification service
+  useEffect(() => {
+    const unsubscribe = onProfileSwitchRequest((pending) => {
+      setPendingSwitch(pending);
+    });
+    return unsubscribe;
+  }, []);
 
   // Get settings and events for current profile
   const settings = currentProfile ? getProfileSettings(currentProfile.id) : null;
   const events = currentProfile ? getEvents(currentProfile.id) : [];
 
-  // Reset auto-connect flag when profile changes or disabled
-  useEffect(() => {
-    if (!settings?.enabled) {
-      hasAttemptedAutoConnect.current = false;
-    }
-  }, [settings?.enabled]);
+  // --- Delegated hooks ---
 
-  // Initialize push notifications on mobile
-  // This runs whenever notifications are enabled to ensure we get the FCM token
-  useEffect(() => {
-    if (Capacitor.isNativePlatform() && settings && settings.enabled) {
-      const pushService = getPushService();
+  useNotificationAutoConnect({
+    currentProfile,
+    settings,
+    isConnected,
+    connectionState,
+    currentProfileId,
+    connect,
+    disconnect,
+    reconnect,
+    getDecryptedPassword,
+  });
 
-      // Initialize push service - this will call register() to get the current FCM token
-      pushService.initialize().catch((error) => {
-        log.notificationHandler('Failed to initialize push notifications', LogLevel.ERROR, error);
-      });
-    }
-  }, [settings?.enabled]);
+  useNotificationPushSetup({
+    currentProfile,
+    settings,
+  });
 
-  // Handle profile switching
-  useEffect(() => {
-    if (currentProfile?.id !== lastProfileId.current) {
-      lastProfileId.current = currentProfile?.id || null;
-      hasAttemptedAutoConnect.current = false;
-
-      // Disconnect from previous profile if connected to a different one
-      if (isConnected && currentProfileId !== currentProfile?.id) {
-        log.notifications('Profile changed - disconnecting from previous profile', LogLevel.INFO, { previousProfile: currentProfileId,
-          newProfile: currentProfile?.id, });
-        disconnect();
-      }
-    }
-  }, [currentProfile?.id, isConnected, currentProfileId, disconnect]);
+  useNotificationDelivered({
+    currentProfile,
+  });
 
   // Listen to navigation events from services (e.g., push notifications)
   useEffect(() => {
@@ -90,9 +131,9 @@ export function NotificationHandler() {
         replace: event.replace, });
 
       if (event.replace) {
-        navigate(event.path, { replace: true });
+        navigate(event.path, { replace: true, state: event.state });
       } else {
-        navigate(event.path);
+        navigate(event.path, { state: event.state });
       }
     });
 
@@ -100,58 +141,6 @@ export function NotificationHandler() {
       unsubscribe();
     };
   }, [navigate]);
-
-  // Auto-connect when profile loads (if enabled)
-  useEffect(() => {
-    if (
-      settings?.enabled &&
-      settings?.host && // Don't auto-connect if host is not set
-      !isConnected &&
-      connectionState === 'disconnected' &&
-      currentProfile &&
-      currentProfile.username &&
-      currentProfile.password &&
-      !hasAttemptedAutoConnect.current
-    ) {
-      hasAttemptedAutoConnect.current = true;
-
-      log.notifications('Auto-connecting to notification server', LogLevel.INFO, { profileId: currentProfile.id, });
-
-      const attemptConnect = async (retries = 3) => {
-        try {
-          const password = await getDecryptedPassword(currentProfile.id);
-
-          // Check state again right before connecting to avoid race conditions
-          // This is crucial because getDecryptedPassword is async and state might have changed
-          const currentState = useNotificationStore.getState().connectionState;
-          if (currentState !== 'disconnected') {
-             log.notifications('Skipping auto-connect - already connected or connecting', LogLevel.INFO, { state: currentState,
-               profileId: currentProfile.id, });
-             return;
-          }
-
-          if (password) {
-            await connect(currentProfile.id, currentProfile.username!, password, currentProfile.portalUrl);
-            log.notifications('Auto-connected to notification server', LogLevel.INFO, { profileId: currentProfile.id, });
-          } else {
-            throw new Error('Failed to get password');
-          }
-        } catch (error) {
-          log.notifications(`Auto-connect failed (retries left: ${retries})`, LogLevel.ERROR, {
-            profileId: currentProfile.id,
-            error,
-          });
-
-          if (retries > 0) {
-            setTimeout(() => attemptConnect(retries - 1), 2000);
-          }
-        }
-      };
-
-      // Add a small delay to ensure everything is initialized
-      setTimeout(() => attemptConnect(), 500);
-    }
-  }, [settings?.enabled, settings?.host, isConnected, connectionState, currentProfile, connect, getDecryptedPassword]);
 
   // Listen for new events and show toasts
   useEffect(() => {
@@ -171,7 +160,7 @@ export function NotificationHandler() {
           {latestEvent.ImageUrl ? (
             <div className="flex-shrink-0">
               <img
-                src={latestEvent.ImageUrl}
+                src={latestEvent.ImageUrl ? `${latestEvent.ImageUrl}&token=${useAuthStore.getState().accessToken}` : ''}
                 alt={latestEvent.MonitorName}
                 className="h-16 w-16 rounded object-cover border"
                 onError={(e) => {
@@ -192,7 +181,18 @@ export function NotificationHandler() {
           )}
           <div className="flex-1 min-w-0">
             <div className="font-semibold text-sm">{latestEvent.MonitorName}</div>
-            <div className="text-sm text-muted-foreground mt-0.5">{latestEvent.Cause}</div>
+            {currentProfile && (
+              <div className="text-xs text-muted-foreground/70">{currentProfile.name}</div>
+            )}
+            {(() => {
+              const CauseIcon = getEventCauseIcon(latestEvent.Cause);
+              return (
+                <div className="text-sm text-muted-foreground mt-0.5 flex items-center gap-1">
+                  <CauseIcon className="h-3 w-3" />
+                  {latestEvent.Cause}
+                </div>
+              );
+            })()}
             <div className="text-xs text-muted-foreground mt-1">
               {t('events.event_id')}: {latestEvent.EventId}
             </div>
@@ -223,8 +223,64 @@ export function NotificationHandler() {
     }
   }, [events, settings?.showToasts, settings?.playSound, currentProfile?.id, t, navigate]);
 
-  // This component doesn't render anything
-  return null;
+  // Render profile switch confirmation dialog when a cross-profile notification is tapped
+  return (
+    <ProfileSwitchDialog
+      pending={pendingSwitch}
+      onConfirm={handleConfirmSwitch}
+      onCancel={handleCancelSwitch}
+    />
+  );
+}
+
+/**
+ * Profile switch confirmation dialog.
+ * Shown when the user taps a notification from a different profile.
+ */
+function ProfileSwitchDialog({
+  pending,
+  onConfirm,
+  onCancel,
+}: {
+  pending: PendingProfileSwitch | null;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  const { t } = useTranslation();
+
+  if (!pending) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
+      data-testid="profile-switch-dialog"
+    >
+      <div className="w-full max-w-sm mx-4 rounded-lg border bg-background p-6 shadow-lg">
+        <h2 className="text-lg font-semibold">
+          {t('notifications.switch_profile_title')}
+        </h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          {t('notifications.switch_profile_desc', { profile: pending.targetProfileName })}
+        </p>
+        <div className="mt-4 flex justify-end gap-2">
+          <button
+            className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
+            onClick={onCancel}
+            data-testid="profile-switch-cancel"
+          >
+            {t('common.cancel')}
+          </button>
+          <button
+            className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
+            onClick={onConfirm}
+            data-testid="profile-switch-confirm"
+          >
+            {t('notifications.switch_profile_confirm')}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 /**

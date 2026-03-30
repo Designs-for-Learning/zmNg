@@ -6,90 +6,66 @@
  */
 
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { useShallow } from 'zustand/react/shallow';
 import { useQuery } from '@tanstack/react-query';
-import { getMonitor, getStreamUrl, getMonitors, getControl, getAlarmStatus, triggerAlarm, cancelAlarm, changeMonitorFunction } from '../api/monitors';
-import { useProfileStore } from '../stores/profile';
+import { getMonitor, getControl, updateMonitor } from '../api/monitors';
+import { getZones } from '../api/zones';
+import { useCurrentProfile } from '../hooks/useCurrentProfile';
 import { useAuthStore } from '../stores/auth';
 import { useSettingsStore } from '../stores/settings';
 import { Button } from '../components/ui/button';
-import { Badge } from '../components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../components/ui/dialog';
+import { Card } from '../components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Switch } from '../components/ui/switch';
 import { Label } from '../components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { ArrowLeft, Settings, Maximize2, Clock, AlertTriangle, Download, ChevronUp, ChevronDown } from 'lucide-react';
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { ArrowLeft, Settings, Maximize2, Minimize2, Clock, AlertTriangle, Download, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Layers } from 'lucide-react';
+import { useState, useRef, useMemo, useCallback } from 'react';
 import { cn } from '../lib/utils';
-import { useMonitorStore } from '../stores/monitors';
 import { toast } from 'sonner';
 import { downloadSnapshotFromElement } from '../lib/download';
 import { useTranslation } from 'react-i18next';
-import { useSwipeNavigation } from '../hooks/useSwipeNavigation';
 import { useInsomnia } from '../hooks/useInsomnia';
 import { PTZControls } from '../components/monitors/PTZControls';
-import { controlMonitor } from '../api/monitors';
-import { filterEnabledMonitors } from '../lib/filters';
+import { VideoPlayer } from '../components/video/VideoPlayer';
+import { ZoneOverlay } from '../components/video/ZoneOverlay';
 import { log, LogLevel } from '../lib/logger';
-import { Platform } from '../lib/platform';
-import { parseMonitorRotation } from '../lib/monitor-rotation';
+import { getOrientedResolution, parseMonitorRotation } from '../lib/monitor-rotation';
+import { isZmVersionAtLeast } from '../lib/zm-version';
+import { useZoomPan } from '../hooks/useZoomPan';
+
+// Extracted hooks and components
+import { usePTZControl, useAlarmControl, useModeControl, useMonitorNavigation } from './hooks';
+import { MonitorSettingsDialog } from '../components/monitor-detail/MonitorSettingsDialog';
+import { MonitorControlsCard } from '../components/monitor-detail/MonitorControlsCard';
+import { ZoomControls } from '../components/ui/ZoomControls';
 
 export default function MonitorDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
   const { t } = useTranslation();
+
+  // Local UI state
   const [isContinuous, setIsContinuous] = useState(true);
-
-  const handlePTZCommand = async (command: string) => {
-    if (!currentProfile || !monitor) return;
-
-    try {
-      await controlMonitor(
-        currentProfile.portalUrl,
-        monitor.Monitor.Id,
-        command,
-        accessToken || undefined
-      );
-
-      // Auto-stop logic for non-continuous mode
-      // Only apply to moveCon* and zoomCon* commands
-      if (!isContinuous && (command.startsWith('moveCon') || command.startsWith('zoomCon'))) {
-        setTimeout(async () => {
-          try {
-            await controlMonitor(
-              currentProfile.portalUrl,
-              monitor.Monitor.Id,
-              'moveStop',
-              accessToken || undefined
-            );
-          } catch (e) {
-            // Ignore errors on auto-stop
-            log.monitorDetail('Auto-stop command failed', LogLevel.WARN, { error: e });
-          }
-        }, 500);
-      }
-
-      // Optional: Show success feedback, but usually PTZ is visual
-    } catch (error) {
-      log.monitorDetail('PTZ command failed', LogLevel.ERROR, { command, error });
-      toast.error(t('monitor_detail.ptz_failed'));
-    }
-  };
-
-  // Check if user came from another page (navigation state tracking)
-  const referrer = location.state?.from as string | undefined;
-  const streamMode: 'jpeg' | 'stream' = 'jpeg';
-  // Default to false on Tauri/Native to avoid CORS issues unless we know we need it
-  const [corsAllowed, setCorsAllowed] = useState(Platform.isWeb);
   const [showPTZ, setShowPTZ] = useState(true);
-  const [isAlarmUpdating, setIsAlarmUpdating] = useState(false);
-  const [isModeUpdating, setIsModeUpdating] = useState(false);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
-  const [alarmToggleValue, setAlarmToggleValue] = useState(false);
-  const [alarmPendingValue, setAlarmPendingValue] = useState<boolean | null>(null);
+  const [showZones, setShowZones] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const mediaRef = useRef<HTMLImageElement | HTMLVideoElement>(null);
 
+  // Navigation state
+  const referrer = location.state?.from as string | undefined;
+  const canGoBack = referrer || window.history.length > 1;
+  const goBack = () => referrer ? navigate(referrer) : canGoBack ? navigate(-1) : navigate('/monitors');
+
+  // Profile and settings
+  const { currentProfile, settings } = useCurrentProfile();
+  const accessToken = useAuthStore((state) => state.accessToken);
+  const updateSettings = useSettingsStore((state) => state.updateProfileSettings);
+
+  // Keep screen awake when Insomnia is enabled
+  useInsomnia({ enabled: settings.insomnia });
+
+  // Fetch monitor data
   const { data: monitor, isLoading, error, refetch } = useQuery({
     queryKey: ['monitor', id],
     queryFn: () => getMonitor(id!),
@@ -103,221 +79,100 @@ export default function MonitorDetail() {
     enabled: !!monitor?.Monitor.ControlId && monitor.Monitor.Controllable === '1',
   });
 
-  // Fetch all monitors for swipe navigation
-  const { data: monitorsData } = useQuery({
-    queryKey: ['monitors'],
-    queryFn: getMonitors,
+  // Fetch zones when showZones is enabled
+  const { data: zones = [], isLoading: isZonesLoading } = useQuery({
+    queryKey: ['zones', id],
+    queryFn: () => getZones(id!),
+    enabled: !!id && showZones,
+  });
+
+  // Custom hooks for extracted logic
+  const { isSliding, enabledMonitors, hasPrev, hasNext, onSwipeLeft, onSwipeRight } = useMonitorNavigation({
+    currentMonitorId: id,
+    cycleSeconds: settings.monitorDetailCycleSeconds,
+  });
+
+  // Pinch-to-zoom and pan (zooms around focal point, pan when zoomed, swipe when not)
+  const zoomPan = useZoomPan({
+    minScale: 0.5,
+    maxScale: 4,
+    swipeEnabled: !!enabledMonitors && enabledMonitors.length > 1,
+    onSwipeLeft,
+    onSwipeRight,
+  });
+
+  const { handlePTZCommand } = usePTZControl({
+    portalUrl: currentProfile?.portalUrl || '',
+    monitorId: monitor?.Monitor.Id || '',
+    accessToken,
+    isContinuous,
   });
 
   const {
-    data: alarmStatus,
-    isLoading: isAlarmLoading,
-    refetch: refetchAlarmStatus,
-  } = useQuery({
-    queryKey: ['monitor-alarm-status', monitor?.Monitor.Id],
-    queryFn: () => getAlarmStatus(monitor!.Monitor.Id),
-    enabled: !!monitor?.Monitor.Id,
-    refetchInterval: 5000,
-    refetchIntervalInBackground: true,
-    refetchOnWindowFocus: false,
+    hasAlarmStatus,
+    displayAlarmArmed,
+    alarmStatusLabel,
+    isAlarmLoading,
+    isAlarmUpdating,
+    alarmBorderClass,
+    handleAlarmToggle,
+  } = useAlarmControl({
+    monitorId: monitor?.Monitor.Id,
   });
 
-  // Get enabled monitors list and find current monitor index
-  const { enabledMonitors, currentIndex, hasPrev, hasNext } = useMemo(() => {
-    if (!monitorsData?.monitors || !id) {
-      return { enabledMonitors: [], currentIndex: -1, hasPrev: false, hasNext: false };
-    }
-    const enabled = filterEnabledMonitors(monitorsData.monitors);
-    const idx = enabled.findIndex((m) => m.Monitor.Id === id);
-    return {
-      enabledMonitors: enabled,
-      currentIndex: idx,
-      hasPrev: idx > 0,
-      hasNext: idx < enabled.length - 1,
-    };
-  }, [monitorsData?.monitors, id]);
-
-  // Swipe navigation between monitors
-  const swipeNavigation = useSwipeNavigation({
-    onSwipeLeft: () => {
-      if (hasNext) {
-        const nextMonitor = enabledMonitors[currentIndex + 1];
-        navigate(`/monitors/${nextMonitor.Monitor.Id}`, { state: { from: location.pathname } });
-      }
-    },
-    onSwipeRight: () => {
-      if (hasPrev) {
-        const prevMonitor = enabledMonitors[currentIndex - 1];
-        navigate(`/monitors/${prevMonitor.Monitor.Id}`, { state: { from: location.pathname } });
-      }
-    },
-    threshold: 80,
-    enabled: enabledMonitors.length > 1,
+  const { isModeUpdating, handleModeChange } = useModeControl({
+    monitorId: monitor?.Monitor.Id,
+    currentFunction: monitor?.Monitor.Function,
+    onSuccess: refetch,
   });
 
-  // Use direct selector to ensure proper reactivity when profile updates (e.g., streamingBasePort changes)
-  const currentProfile = useProfileStore((state) =>
-    state.profiles.find((p) => p.id === state.currentProfileId) || null
-  );
-  const accessToken = useAuthStore((state) => state.accessToken);
-  const regenerateConnKey = useMonitorStore((state) => state.regenerateConnKey);
-  const settings = useSettingsStore(
-    useShallow((state) => state.getProfileSettings(currentProfile?.id || ''))
-  );
-  const updateSettings = useSettingsStore((state) => state.updateProfileSettings);
+  // ZM version for feature detection
+  const zmVersion = useAuthStore((s) => s.version);
+  const is138Plus = isZmVersionAtLeast(zmVersion, '1.38.0');
 
-  // Keep screen awake when Insomnia is enabled (global setting)
-  useInsomnia({ enabled: settings.insomnia });
-  const [scale, setScale] = useState(settings.streamScale);
-  const [connKey, setConnKey] = useState(0);
-  const [cacheBuster, setCacheBuster] = useState(Date.now());
-  const [displayedImageUrl, setDisplayedImageUrl] = useState<string>('');
-  const [isSliding, setIsSliding] = useState(false);
-  const imgRef = useRef<HTMLImageElement>(null);
-  const rotationStatus = useMemo(() => {
-    const rotation = parseMonitorRotation(monitor?.Monitor.Orientation);
+  // Settings dialog save handler — batches all changes into one or more API calls
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
 
-    switch (rotation.kind) {
-      case 'flip_horizontal':
-        return t('monitor_detail.rotation_flip_horizontal');
-      case 'flip_vertical':
-        return t('monitor_detail.rotation_flip_vertical');
-      case 'degrees':
-        return t('monitor_detail.rotation_degrees', { degrees: rotation.degrees });
-      case 'unknown':
-        return t('common.unknown');
-      case 'none':
-      default:
-        return t('monitor_detail.rotation_none');
-    }
-  }, [monitor?.Monitor.Orientation, t]);
-  const orientedResolution = useMemo(() => {
-    const width = Number(monitor?.Monitor.Width);
-    const height = Number(monitor?.Monitor.Height);
-
-    if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
-      return `${monitor?.Monitor.Width ?? ''}${monitor?.Monitor.Width ? 'x' : ''}${monitor?.Monitor.Height ?? ''}`;
-    }
-
-    const rotation = parseMonitorRotation(monitor?.Monitor.Orientation);
-    if (rotation.kind === 'degrees') {
-      const normalized = ((rotation.degrees % 360) + 360) % 360;
-      if (normalized === 90 || normalized === 270) {
-        return `${height}x${width}`;
-      }
-    }
-
-    return `${width}x${height}`;
-  }, [monitor?.Monitor.Height, monitor?.Monitor.Orientation, monitor?.Monitor.Width]);
-
-  const alarmStatusNumeric = alarmStatus?.status ?? alarmStatus?.output;
-  const alarmStatusValue = alarmStatusNumeric?.toString().toLowerCase();
-  const hasAlarmStatus = alarmStatusNumeric !== undefined && alarmStatusNumeric !== null;
-  const parsedAlarmStatus = alarmStatusNumeric !== undefined && alarmStatusNumeric !== null
-    ? Number(alarmStatusNumeric)
-    : Number.NaN;
-  const isAlarmArmed =
-    Number.isFinite(parsedAlarmStatus) ? parsedAlarmStatus !== 0 : (
-      alarmStatusValue === 'on' ||
-      alarmStatusValue === '1' ||
-      alarmStatusValue === 'armed' ||
-      alarmStatusValue === 'true'
-    );
-  const alarmBorderClass = Number.isFinite(parsedAlarmStatus)
-    ? parsedAlarmStatus === 2
-      ? "ring-4 ring-orange-500/70"
-      : parsedAlarmStatus === 3 || parsedAlarmStatus === 4
-        ? "ring-4 ring-red-500/70"
-        : "ring-0"
-    : "ring-0";
-  const displayAlarmArmed = alarmPendingValue ?? (isAlarmUpdating ? alarmToggleValue : isAlarmArmed);
-  const alarmStatusLabel = hasAlarmStatus
-    ? displayAlarmArmed
-      ? t('monitor_detail.alarm_armed')
-      : t('monitor_detail.alarm_disarmed')
-    : t('common.unknown');
-
-  const handleModeChange = async (nextMode: 'None' | 'Monitor' | 'Modect' | 'Record' | 'Mocord' | 'Nodect') => {
-    if (!monitor) return;
-    if (monitor.Monitor.Function === nextMode) return;
-
-    setIsModeUpdating(true);
+  const handleSaveSettings = useCallback(async (changes: Record<string, string | undefined>) => {
+    if (!monitor?.Monitor.Id) return;
+    setIsSavingSettings(true);
     try {
-      await changeMonitorFunction(monitor.Monitor.Id, nextMode);
+      const params: Record<string, string> = {};
+      for (const [key, value] of Object.entries(changes)) {
+        if (value !== undefined) params[`Monitor[${key}]`] = value;
+      }
+      if (Object.keys(params).length > 0) {
+        await updateMonitor(monitor.Monitor.Id, params);
+      }
       await refetch();
-      toast.success(t('monitor_detail.mode_updated'));
-    } catch (modeError) {
-      log.monitorDetail('Monitor mode update failed', LogLevel.ERROR, {
-        monitorId: monitor.Monitor.Id,
-        nextMode,
-        error: modeError,
-      });
-      toast.error(t('monitor_detail.mode_failed'));
+      toast.success(t('monitor_detail.capture_updated'));
+    } catch (error) {
+      log.monitorDetail('Settings save failed', LogLevel.ERROR, { error });
+      toast.error(t('monitor_detail.capture_failed'));
     } finally {
-      setIsModeUpdating(false);
+      setIsSavingSettings(false);
     }
-  };
+  }, [monitor?.Monitor.Id, refetch, t]);
 
-  const handleAlarmToggle = async (nextValue: boolean) => {
-    if (!monitor) return;
+  // Computed values
+  const orientedResolution = useMemo(
+    () => getOrientedResolution(monitor?.Monitor.Width, monitor?.Monitor.Height, monitor?.Monitor.Orientation),
+    [monitor?.Monitor.Height, monitor?.Monitor.Orientation, monitor?.Monitor.Width]
+  );
 
-    const previousValue = alarmToggleValue;
-    setAlarmToggleValue(nextValue);
-    setAlarmPendingValue(nextValue);
-    setIsAlarmUpdating(true);
-    try {
-      if (nextValue) {
-        await triggerAlarm(monitor.Monitor.Id);
-      } else {
-        await cancelAlarm(monitor.Monitor.Id);
-      }
-      await refetchAlarmStatus();
-      setTimeout(() => {
-        refetchAlarmStatus();
-      }, 1500);
-      toast.success(
-        nextValue
-          ? t('monitor_detail.alarm_armed_toast')
-          : t('monitor_detail.alarm_disarmed_toast')
-      );
-    } catch (toggleError) {
-      log.monitorDetail('Alarm toggle failed', LogLevel.ERROR, {
-        monitorId: monitor.Monitor.Id,
-        nextValue,
-        error: toggleError,
-      });
-      setAlarmToggleValue(previousValue);
-      setAlarmPendingValue(previousValue);
-      toast.error(t('monitor_detail.alarm_failed'));
-    } finally {
-      setIsAlarmUpdating(false);
-    }
-  };
+  const handleToggleFullscreen = useCallback(() => {
+    setIsFullscreen((prev) => !prev);
+    zoomPan.reset();
+  }, [zoomPan]);
 
-  useEffect(() => {
-    if (!hasAlarmStatus) return;
-    setAlarmToggleValue(isAlarmArmed);
-    if (alarmPendingValue !== null && alarmPendingValue === isAlarmArmed) {
-      setAlarmPendingValue(null);
-    }
-  }, [hasAlarmStatus, isAlarmArmed, monitor?.Monitor.Id]);
-
-  useEffect(() => {
-    if (alarmPendingValue === null) return;
-
-    const timeout = setTimeout(() => {
-      setAlarmPendingValue(null);
-    }, 6000);
-
-    return () => clearTimeout(timeout);
-  }, [alarmPendingValue]);
-
+  // Settings handlers
   const handleFeedFitChange = (value: string) => {
     if (!currentProfile) return;
     updateSettings(currentProfile.id, {
       monitorDetailFeedFit: value as typeof settings.monitorDetailFeedFit,
     });
   };
+
   const handleCycleSecondsChange = (value: string) => {
     if (!currentProfile) return;
     const parsedValue = Number(value);
@@ -326,111 +181,16 @@ export default function MonitorDetail() {
     });
   };
 
-  useEffect(() => {
-    if (!id) return;
-    setIsSliding(true);
-    const timeout = window.setTimeout(() => setIsSliding(false), 450);
-    return () => window.clearTimeout(timeout);
-  }, [id]);
+  // Log monitor status for debugging
+  if (monitor?.Monitor) {
+    log.monitorDetail('Monitor loaded in Single View', LogLevel.INFO, {
+      id: monitor.Monitor.Id,
+      name: monitor.Monitor.Name,
+      controllable: monitor.Monitor.Controllable,
+    });
+  }
 
-  useEffect(() => {
-    const cycleSeconds = settings.monitorDetailCycleSeconds;
-    if (!cycleSeconds || cycleSeconds <= 0) return;
-    if (enabledMonitors.length < 2 || currentIndex < 0) return;
-
-    const intervalId = window.setInterval(() => {
-      const nextIndex = currentIndex + 1 < enabledMonitors.length ? currentIndex + 1 : 0;
-      const nextMonitor = enabledMonitors[nextIndex];
-      navigate(`/monitors/${nextMonitor.Monitor.Id}`, { state: { from: location.pathname } });
-    }, cycleSeconds * 1000);
-
-    return () => window.clearInterval(intervalId);
-  }, [
-    currentIndex,
-    enabledMonitors,
-    location.pathname,
-    navigate,
-    settings.monitorDetailCycleSeconds,
-  ]);
-
-  // Force regenerate connKey when component mounts or monitor changes
-  useEffect(() => {
-    if (monitor) {
-      log.monitorDetail('Regenerating connkey', LogLevel.INFO, { monitorId: monitor.Monitor.Id });
-      const newKey = regenerateConnKey(monitor.Monitor.Id);
-      setConnKey(newKey);
-      setCacheBuster(Date.now());
-    }
-  }, [monitor?.Monitor.Id, regenerateConnKey]);
-
-  // Snapshot mode: periodic refresh
-  // Note: In MonitorDetail, we force streaming, so this effect is technically not needed for the main view,
-  // but we keep it in case we ever want to support snapshot mode here or for other side effects.
-  // However, since we are forcing streaming, we should probably disable this to avoid unnecessary re-renders/fetches if viewMode is snapshot.
-  // For now, let's disable it effectively by checking a condition that won't be met or just removing it.
-  // Actually, let's just remove it to be clean, as we are forcing streaming.
-  /*
-  useEffect(() => {
-    if (!monitor || settings.viewMode !== 'snapshot') return;
-
-    const interval = setInterval(() => {
-      setCacheBuster(Date.now());
-    }, settings.snapshotRefreshInterval * 1000);
-
-    return () => clearInterval(interval);
-  }, [monitor, settings.viewMode, settings.snapshotRefreshInterval]);
-  */
-
-  // Log monitor controllable status for debugging
-  useEffect(() => {
-    if (monitor?.Monitor) {
-      log.monitorDetail('Monitor loaded in Single View', LogLevel.INFO, {
-        id: monitor.Monitor.Id,
-        name: monitor.Monitor.Name,
-        controllable: monitor.Monitor.Controllable,
-        type: typeof monitor.Monitor.Controllable
-      });
-    }
-  }, [monitor]);
-
-  // Cleanup: abort image loading on unmount to release connection
-  useEffect(() => {
-    const currentImg = imgRef.current;
-    const monitorId = monitor?.Monitor.Id;
-    return () => {
-      if (currentImg && monitorId) {
-        log.monitorDetail('Cleaning up stream', LogLevel.DEBUG, { monitorId });
-        // Set to empty data URI to abort the connection
-        currentImg.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-      }
-    };
-  }, [monitor?.Monitor.Id]);
-
-  // Build stream URL
-  // Note: In MonitorDetail, we always force streaming mode (ignoring settings.viewMode)
-  // because we are viewing a single monitor and don't need to worry about browser connection limits
-  const streamUrl = currentProfile && monitor
-    ? getStreamUrl(currentProfile.cgiUrl, monitor.Monitor.Id, {
-      mode: streamMode,
-      scale,
-      maxfps: streamMode === 'jpeg' ? settings.streamMaxFps : undefined,
-      token: accessToken || undefined,
-      connkey: connKey,
-      cacheBuster: cacheBuster,
-      streamingBasePort: currentProfile.streamingBasePort,
-    })
-    : '';
-
-  // Preload images in snapshot mode to avoid flickering
-  // Note: Since we are forcing streaming, this effect is largely bypassed, but kept for safety
-  useEffect(() => {
-    if (!streamUrl) {
-      setDisplayedImageUrl('');
-      return;
-    }
-    setDisplayedImageUrl(streamUrl);
-  }, [streamUrl]);
-
+  // Loading state
   if (isLoading) {
     return (
       <div className="p-8 space-y-6">
@@ -440,14 +200,15 @@ export default function MonitorDetail() {
     );
   }
 
-  if (error || !monitor) {
+  // Error state
+  if (error || !monitor || !currentProfile) {
     return (
       <div className="p-8">
         <div className="p-4 bg-destructive/10 text-destructive rounded-lg flex items-center gap-2">
           <AlertTriangle className="h-5 w-5" />
           {t('monitor_detail.load_error')}
         </div>
-        <Button onClick={() => referrer ? navigate(referrer) : navigate(-1)} className="mt-4">
+        <Button onClick={goBack} className="mt-4">
           {t('common.go_back')}
         </Button>
       </div>
@@ -455,60 +216,87 @@ export default function MonitorDetail() {
   }
 
   return (
-    <div className="flex flex-col h-full bg-background">
-      {/* Header */}
+    <div className={cn(
+      'flex flex-col h-full',
+      isFullscreen ? 'fixed inset-0 z-50 bg-black' : 'bg-background'
+    )}>
+      {/* Header - Hidden in fullscreen */}
+      {!isFullscreen && (
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-2 sm:p-3 border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="flex items-center gap-2 sm:gap-3">
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => referrer ? navigate(referrer) : navigate(-1)}
+            onClick={goBack}
             aria-label={t('common.go_back')}
             className="h-8 w-8"
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onSwipeRight}
+            disabled={!hasPrev}
+            aria-label={t('common.previous')}
+            className="h-7 w-7"
+            data-testid="monitor-detail-prev"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
           <div>
-            <h1 className="text-sm sm:text-base font-semibold">{monitor.Monitor.Name}</h1>
-            <div className="flex items-center gap-1.5 text-[10px] sm:text-xs text-muted-foreground">
-              <span className={cn(
-                "w-1.5 h-1.5 rounded-full",
-                monitor.Monitor.Function !== 'None' ? "bg-green-500" : "bg-red-500"
-              )} />
-              <span className="hidden sm:inline">{monitor.Monitor.Function}</span>
+            <div className="flex items-center gap-1.5">
+              <span
+                className={cn(
+                  'w-1.5 h-1.5 rounded-full shrink-0',
+                  (is138Plus
+                    ? monitor.Monitor.Capturing !== 'None'
+                    : monitor.Monitor.Function !== 'None')
+                    ? 'bg-green-500' : 'bg-red-500'
+                )}
+              />
+              <h1 className="text-sm sm:text-base font-semibold">{monitor.Monitor.Name}</h1>
+            </div>
+            <div className="text-[10px] sm:text-xs text-muted-foreground ml-3">
+              {is138Plus ? monitor.Monitor.Capturing : monitor.Monitor.Function}
             </div>
           </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onSwipeLeft}
+            disabled={!hasNext}
+            aria-label={t('common.next')}
+            className="h-7 w-7"
+            data-testid="monitor-detail-next"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
         </div>
         <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-          <Button variant="outline" size="sm" onClick={() => navigate(`/events?monitorId=${monitor.Monitor.Id}`)} className="h-8 sm:h-9" title={t('monitor_detail.events')}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate(`/events?monitorId=${monitor.Monitor.Id}`)}
+            className="h-8 sm:h-9"
+            title={t('monitor_detail.events')}
+          >
             <Clock className="h-4 w-4 sm:mr-2" />
             <span className="hidden sm:inline">{t('monitor_detail.events')}</span>
           </Button>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground hidden md:inline">{t('monitor_detail.feed_fit')}</span>
-            <Select value={settings.monitorDetailFeedFit} onValueChange={handleFeedFitChange}>
-              <SelectTrigger className="h-8 sm:h-9 w-[170px]" data-testid="monitor-detail-fit-select">
-                <SelectValue placeholder={t('monitor_detail.feed_fit')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="contain" data-testid="monitor-detail-fit-contain">
-                  {t('monitor_detail.fit_contain')}
-                </SelectItem>
-                <SelectItem value="cover" data-testid="monitor-detail-fit-cover">
-                  {t('monitor_detail.fit_cover')}
-                </SelectItem>
-                <SelectItem value="fill" data-testid="monitor-detail-fit-fill">
-                  {t('monitor_detail.fit_fill')}
-                </SelectItem>
-                <SelectItem value="none" data-testid="monitor-detail-fit-none">
-                  {t('monitor_detail.fit_none')}
-                </SelectItem>
-                <SelectItem value="scale-down" data-testid="monitor-detail-fit-scale-down">
-                  {t('monitor_detail.fit_scale_down')}
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <Select value={settings.monitorDetailFeedFit} onValueChange={handleFeedFitChange}>
+            <SelectTrigger className="h-8 sm:h-9 w-[100px]" data-testid="monitor-detail-fit-select">
+              <SelectValue placeholder={t('monitor_detail.feed_fit')} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="contain" data-testid="monitor-detail-fit-contain">
+                {t('montage.fit_fit')}
+              </SelectItem>
+              <SelectItem value="cover" data-testid="monitor-detail-fit-cover">
+                {t('montage.fit_crop')}
+              </SelectItem>
+            </SelectContent>
+          </Select>
           <Button
             variant="ghost"
             size="icon"
@@ -521,100 +309,148 @@ export default function MonitorDetail() {
           </Button>
         </div>
       </div>
+      )}
+
+      {/* Fullscreen exit bar */}
+      {isFullscreen && (
+        <div
+          className="fixed top-0 left-0 right-0 z-50 bg-black/50 backdrop-blur-sm pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] pt-[env(safe-area-inset-top)]"
+          data-testid="monitor-detail-fullscreen-toolbar"
+        >
+          <div className="h-8 flex items-center justify-between px-3">
+            <span className="text-white/70 font-medium text-xs truncate min-w-0" title={monitor.Monitor.Name}>
+              {monitor.Monitor.Name}
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="bg-red-600/80 hover:bg-red-600 text-white h-7 px-2 text-xs"
+              onClick={handleToggleFullscreen}
+              aria-label={t('monitor_detail.exit_fullscreen')}
+              data-testid="monitor-detail-exit-fullscreen"
+            >
+              <Minimize2 className="h-3.5 w-3.5 mr-1" />
+              {t('monitor_detail.exit_fullscreen')}
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Main Content */}
-      <div className="flex-1 p-2 sm:p-3 md:p-4 flex flex-col items-center justify-center bg-muted/10">
+      <div className={cn(
+        'flex-1 flex flex-col items-center justify-center',
+        isFullscreen
+          ? 'pt-[calc(2rem+env(safe-area-inset-top))] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]'
+          : 'p-2 sm:p-3 md:p-4 bg-muted/10'
+      )}>
         <Card
-          {...swipeNavigation.bind()}
+          ref={zoomPan.ref}
           className={cn(
-            "relative w-full max-w-5xl aspect-video bg-black overflow-hidden shadow-2xl border-0 touch-none transition-shadow",
-            isSliding && "monitor-slide-in",
+            'relative bg-black overflow-hidden border-0 touch-none transition-shadow',
+            isFullscreen
+              ? 'w-full h-full rounded-none shadow-none'
+              : 'w-full max-w-5xl aspect-video shadow-2xl',
+            isSliding && 'monitor-slide-in',
             alarmBorderClass
           )}
         >
-          <img
-            ref={imgRef}
-            crossOrigin={corsAllowed ? "anonymous" : undefined}
-            src={displayedImageUrl || streamUrl}
-            alt={monitor.Monitor.Name}
-            className="w-full h-full"
-            style={{ objectFit: settings.monitorDetailFeedFit }}
-            data-testid="monitor-player"
-            onError={(e) => {
-              const img = e.target as HTMLImageElement;
-
-              // Check for CORS failure first
-              if (corsAllowed) {
-                log.monitorDetail('Image load failed with CORS enabled, disabling CORS and retrying', LogLevel.WARN);
-                setCorsAllowed(false);
-                setCacheBuster(Date.now()); // Force reload
-                return;
-              }
-
-              // Only retry if we haven't retried too recently
-              if (!img.dataset.retrying) {
-                img.dataset.retrying = "true";
-                log.monitorDetail('Stream failed, regenerating connkey', LogLevel.INFO);
-                regenerateConnKey(monitor.Monitor.Id);
-                toast.error(t('monitor_detail.stream_lost'));
-
-                setTimeout(() => {
-                  delete img.dataset.retrying;
-                }, 5000);
-              }
-            }}
-          />
-
-          {/* Controls Overlay */}
-          <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300">
-            <div className="flex items-center justify-between text-white">
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="text-white hover:bg-white/20"
-                  onClick={() => {
-                    if (imgRef.current) {
-                      downloadSnapshotFromElement(imgRef.current, monitor.Monitor.Name)
-                        .then(() => toast.success(t('monitor_detail.snapshot_saved', { name: monitor.Monitor.Name })))
-                        .catch(() => toast.error(t('monitor_detail.snapshot_failed')));
-                    }
-                  }}
-                  title={t('monitor_detail.save_snapshot')}
-                  aria-label={t('monitor_detail.save_snapshot')}
-                >
-                  <Download className="h-5 w-5" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="text-white hover:bg-white/20"
-                  onClick={() => navigate(`/events?monitorId=${monitor.Monitor.Id}`)}
-                  title={t('monitor_detail.view_events')}
-                  aria-label={t('monitor_detail.view_events')}
-                >
-                  <Clock className="h-5 w-5" />
-                </Button>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-white hover:bg-white/20 text-xs"
-                  onClick={() => setScale(scale === settings.streamScale ? 150 : settings.streamScale)}
-                >
-                  {scale}%
-                </Button>
-                <Button variant="ghost" size="icon" className="text-white hover:bg-white/20" aria-label={t('monitor_detail.maximize')}>
-                  <Maximize2 className="h-5 w-5" />
-                </Button>
-              </div>
-            </div>
+          <div ref={zoomPan.innerRef}>
+            <VideoPlayer
+              monitor={monitor.Monitor}
+              profile={currentProfile}
+              externalMediaRef={mediaRef}
+              objectFit={isFullscreen ? 'contain' : settings.monitorDetailFeedFit}
+              showStatus={true}
+              className="data-[testid=monitor-player]"
+            />
+            <ZoneOverlay
+              zones={zones}
+              monitorWidth={Number(monitor.Monitor.Width) || 1920}
+              monitorHeight={Number(monitor.Monitor.Height) || 1080}
+              rotation={parseMonitorRotation(monitor.Monitor.Orientation)}
+              monitorId={monitor.Monitor.Id}
+              visible={showZones && !isZonesLoading}
+            />
           </div>
+          <ZoomControls
+            onZoomIn={zoomPan.zoomIn}
+            onZoomOut={zoomPan.zoomOut}
+            onReset={zoomPan.reset}
+            onPanLeft={zoomPan.panLeft}
+            onPanRight={zoomPan.panRight}
+            onPanUp={zoomPan.panUp}
+            onPanDown={zoomPan.panDown}
+            isZoomed={zoomPan.isZoomed}
+            scale={zoomPan.scale}
+            className={cn(
+              'bottom-2 left-2',
+              isFullscreen && 'bottom-[calc(0.5rem+env(safe-area-inset-bottom))]'
+            )}
+          />
         </Card>
 
-        {/* PTZ Controls */}
-        {monitor.Monitor.Controllable === '1' && (
+        {/* Video Controls Bar - Hidden in fullscreen */}
+        {!isFullscreen && (
+        <div className="w-full max-w-5xl mt-2 px-2 flex items-center justify-between">
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => {
+                if (mediaRef.current) {
+                  downloadSnapshotFromElement(mediaRef.current, monitor.Monitor.Name)
+                    .then(() =>
+                      toast.success(t('monitor_detail.snapshot_saved', { name: monitor.Monitor.Name }))
+                    )
+                    .catch(() => toast.error(t('monitor_detail.snapshot_failed')));
+                }
+              }}
+              title={t('monitor_detail.save_snapshot')}
+              aria-label={t('monitor_detail.save_snapshot')}
+              data-testid="snapshot-button"
+            >
+              <Download className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => navigate(`/events?monitorId=${monitor.Monitor.Id}`)}
+              title={t('monitor_detail.view_events')}
+              aria-label={t('monitor_detail.view_events')}
+            >
+              <Clock className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={showZones ? 'secondary' : 'ghost'}
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setShowZones(!showZones)}
+              title={showZones ? t('monitor_detail.hide_zones') : t('monitor_detail.show_zones')}
+              aria-label={showZones ? t('monitor_detail.hide_zones') : t('monitor_detail.show_zones')}
+              data-testid="zone-toggle-button"
+            >
+              <Layers className={cn('h-4 w-4', isZonesLoading && 'animate-pulse')} />
+            </Button>
+          </div>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={handleToggleFullscreen}
+              aria-label={t('monitor_detail.maximize')}
+              data-testid="monitor-detail-maximize"
+            >
+              <Maximize2 className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+        )}
+
+        {/* PTZ Controls - Hidden in fullscreen */}
+        {!isFullscreen && monitor.Monitor.Controllable === '1' && (
           <div className="mt-8 w-full max-w-md flex flex-col items-center">
             <Button
               variant="ghost"
@@ -630,11 +466,7 @@ export default function MonitorDetail() {
               <div className="w-full flex flex-col items-center gap-4">
                 {controlData?.control.Control.CanMoveCon === '1' && (
                   <div className="flex items-center space-x-2">
-                    <Switch
-                      id="continuous-mode"
-                      checked={isContinuous}
-                      onCheckedChange={setIsContinuous}
-                    />
+                    <Switch id="continuous-mode" checked={isContinuous} onCheckedChange={setIsContinuous} />
                     <Label htmlFor="continuous-mode">{t('ptz.continuous_movement')}</Label>
                   </div>
                 )}
@@ -648,193 +480,37 @@ export default function MonitorDetail() {
           </div>
         )}
 
-        <div className="w-full max-w-5xl mt-8" data-testid="monitor-controls-card">
-          <Card className="border-muted/60 shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold">{t('monitor_detail.controls_title')}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4 text-sm">
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-muted-foreground">{t('monitor_detail.alarm_status')}</span>
-                <Badge variant={!hasAlarmStatus ? 'outline' : displayAlarmArmed ? 'destructive' : 'secondary'}>
-                  {isAlarmLoading && !isAlarmUpdating ? t('common.loading') : alarmStatusLabel}
-                </Badge>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <Label htmlFor="alarm-toggle" className="text-sm">
-                  {displayAlarmArmed ? t('monitor_detail.alarm_disarm_action') : t('monitor_detail.alarm_arm_action')}
-                </Label>
-                <Switch
-                  id="alarm-toggle"
-                  checked={displayAlarmArmed}
-                  onCheckedChange={handleAlarmToggle}
-                  disabled={isAlarmUpdating || isAlarmLoading}
-                  data-testid="monitor-alarm-toggle"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="monitor-mode">{t('monitor_detail.mode_label')}</Label>
-                <Select
-                  value={monitor.Monitor.Function}
-                  onValueChange={(value) => handleModeChange(value as typeof monitor.Monitor.Function)}
-                  disabled={isModeUpdating}
-                >
-                  <SelectTrigger id="monitor-mode" data-testid="monitor-mode-select">
-                    <SelectValue placeholder={t('monitor_detail.mode_label')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Monitor">{t('monitor_detail.mode_monitor')}</SelectItem>
-                    <SelectItem value="Modect">{t('monitor_detail.mode_modect')}</SelectItem>
-                    <SelectItem value="Record">{t('monitor_detail.mode_record')}</SelectItem>
-                    <SelectItem value="Mocord">{t('monitor_detail.mode_mocord')}</SelectItem>
-                    <SelectItem value="Nodect">{t('monitor_detail.mode_nodect')}</SelectItem>
-                    <SelectItem value="None">{t('monitor_detail.mode_none')}</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  {isModeUpdating ? t('monitor_detail.mode_updating') : t('monitor_detail.mode_help')}
-                </p>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {isAlarmUpdating ? t('monitor_detail.alarm_updating') : t('monitor_detail.alarm_help')}
-              </p>
-            </CardContent>
-          </Card>
+        {/* Monitor Controls Card - Hidden in fullscreen */}
+        {!isFullscreen && (
+        <div className="w-full max-w-5xl mt-8">
+          <MonitorControlsCard
+            zmVersion={zmVersion}
+            hasAlarmStatus={hasAlarmStatus}
+            displayAlarmArmed={displayAlarmArmed}
+            alarmStatusLabel={alarmStatusLabel}
+            isAlarmLoading={isAlarmLoading}
+            isAlarmUpdating={isAlarmUpdating}
+            onAlarmToggle={handleAlarmToggle}
+            currentFunction={monitor.Monitor.Function}
+            isModeUpdating={isModeUpdating}
+            onModeChange={handleModeChange}
+          />
         </div>
+        )}
       </div>
 
-      <Dialog open={showSettingsDialog} onOpenChange={setShowSettingsDialog}>
-        <DialogContent
-          className="max-w-3xl w-[calc(100%-1.5rem)] max-h-[90vh] overflow-y-auto"
-          data-testid="monitor-settings-dialog"
-        >
-          <DialogHeader>
-            <DialogTitle>{t('monitor_detail.settings_title')}</DialogTitle>
-            <DialogDescription>{t('monitor_detail.settings_desc')}</DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Card className="border-muted/60 shadow-sm sm:col-span-2">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-semibold">{t('monitor_detail.cycle_title')}</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm">
-                <div className="space-y-2" data-testid="monitor-detail-cycle-setting">
-                  <Label htmlFor="monitor-cycle-select" className="text-sm">
-                    {t('monitor_detail.cycle_label')}
-                  </Label>
-                  <Select
-                    value={String(settings.monitorDetailCycleSeconds)}
-                    onValueChange={handleCycleSecondsChange}
-                  >
-                    <SelectTrigger
-                      id="monitor-cycle-select"
-                      className="h-8"
-                      data-testid="monitor-detail-cycle-select"
-                    >
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="0" data-testid="monitor-detail-cycle-option-off">
-                        {t('monitor_detail.cycle_off')}
-                      </SelectItem>
-                      <SelectItem value="5" data-testid="monitor-detail-cycle-option-5">
-                        {t('monitor_detail.cycle_seconds', { seconds: 5 })}
-                      </SelectItem>
-                      <SelectItem value="10" data-testid="monitor-detail-cycle-option-10">
-                        {t('monitor_detail.cycle_seconds', { seconds: 10 })}
-                      </SelectItem>
-                      <SelectItem value="15" data-testid="monitor-detail-cycle-option-15">
-                        {t('monitor_detail.cycle_seconds', { seconds: 15 })}
-                      </SelectItem>
-                      <SelectItem value="30" data-testid="monitor-detail-cycle-option-30">
-                        {t('monitor_detail.cycle_seconds', { seconds: 30 })}
-                      </SelectItem>
-                      <SelectItem value="60" data-testid="monitor-detail-cycle-option-60">
-                        {t('monitor_detail.cycle_seconds', { seconds: 60 })}
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">
-                    {t('monitor_detail.cycle_help')}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-muted/60 shadow-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-semibold">{t('monitor_detail.overview_title')}</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">{t('monitors.id')}</span>
-                  <span className="font-medium">{monitor.Monitor.Id}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">{t('monitors.type')}</span>
-                  <span className="font-medium">{monitor.Monitor.Type}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">{t('monitors.function')}</span>
-                  <span className="font-medium">{monitor.Monitor.Function}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">{t('common.enabled')}</span>
-                  <Badge variant={monitor.Monitor.Enabled === '1' ? 'secondary' : 'outline'}>
-                    {monitor.Monitor.Enabled === '1' ? t('common.enabled') : t('common.disabled')}
-                  </Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">{t('monitors.controllable')}</span>
-                  <Badge variant={monitor.Monitor.Controllable === '1' ? 'secondary' : 'outline'}>
-                    {monitor.Monitor.Controllable === '1' ? t('common.yes') : t('common.no')}
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-muted/60 shadow-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-semibold">{t('monitor_detail.video_title')}</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">{t('monitors.resolution')}</span>
-                  <span className="font-medium">{orientedResolution}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">{t('monitors.colours')}</span>
-                  <span className="font-medium">{monitor.Monitor.Colours}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">{t('monitors.max_fps')}</span>
-                  <span className="font-medium">{monitor.Monitor.MaxFPS || t('monitors.unlimited')}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">{t('monitors.alarm_max_fps')}</span>
-                  <span className="font-medium">{monitor.Monitor.AlarmMaxFPS || t('monitors.same_as_max_fps')}</span>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-muted/60 shadow-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-semibold">{t('monitor_detail.rotation_label')}</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm">
-                <div className="flex items-center justify-between" data-testid="monitor-rotation">
-                  <span className="text-muted-foreground">{t('monitor_detail.rotation_label')}</span>
-                  <span className="font-medium">{rotationStatus}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">{t('monitor_detail.feed_fit')}</span>
-                  <span className="font-medium">{t(`monitor_detail.fit_${settings.monitorDetailFeedFit.replace('-', '_')}`)}</span>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Settings Dialog */}
+      <MonitorSettingsDialog
+        open={showSettingsDialog}
+        onOpenChange={setShowSettingsDialog}
+        monitor={monitor.Monitor}
+        zmVersion={zmVersion}
+        onSave={handleSaveSettings}
+        isSaving={isSavingSettings}
+        cycleSeconds={settings.monitorDetailCycleSeconds}
+        onCycleSecondsChange={handleCycleSecondsChange}
+        orientedResolution={orientedResolution}
+      />
     </div>
   );
 }

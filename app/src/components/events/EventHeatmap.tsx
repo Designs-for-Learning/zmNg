@@ -12,6 +12,7 @@
 
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useDateTimeFormat } from '../../hooks/useDateTimeFormat';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
@@ -44,6 +45,7 @@ export function EventHeatmap({
   showCard = true,
 }: EventHeatmapProps) {
   const { t } = useTranslation();
+  const { fmtTimeShort } = useDateTimeFormat();
   const [isExpanded, setIsExpanded] = useState(!collapsible);
 
   // Calculate time buckets and event density
@@ -109,14 +111,14 @@ export function EventHeatmap({
     // Always show first and last
     if (index === 0 || index === total - 1) {
       const daysDiff = startDate && endDate ? differenceInDays(endDate, startDate) : 0;
-      return daysDiff > 7 ? format(time, 'MMM d') : format(time, 'HH:mm');
+      return daysDiff > 7 ? format(time, 'MMM d') : fmtTimeShort(time);
     }
 
     // Show 3 intermediate labels
     const step = Math.floor(total / 4);
     if (step > 0 && index % step === 0 && index !== total - 1) {
       const daysDiff = startDate && endDate ? differenceInDays(endDate, startDate) : 0;
-      return daysDiff > 7 ? format(time, 'MMM d') : format(time, 'HH:mm');
+      return daysDiff > 7 ? format(time, 'MMM d') : fmtTimeShort(time);
     }
 
     return '';

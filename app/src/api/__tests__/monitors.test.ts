@@ -15,7 +15,7 @@ import {
 import { getApiClient } from '../client';
 import { validateApiResponse } from '../../lib/api-validator';
 import { getMonitorStreamUrl } from '../../lib/url-builder';
-import type { AxiosInstance } from 'axios';
+import type { ApiClient } from '../client';
 
 const mockGet = vi.fn();
 const mockPost = vi.fn();
@@ -45,7 +45,7 @@ describe('Monitors API', () => {
     vi.mocked(getApiClient).mockReturnValue({
       get: mockGet,
       post: mockPost,
-    } as unknown as AxiosInstance);
+    } as unknown as ApiClient);
   });
 
   it('fetches monitors list', async () => {
@@ -77,14 +77,13 @@ describe('Monitors API', () => {
   });
 
   it('updates monitor data', async () => {
-    mockPost.mockResolvedValue({ data: { monitor: { Monitor: { Id: '2', Name: 'Updated' } } } });
+    mockPost.mockResolvedValue({ data: { message: 'Saved' } });
 
-    const updated = await updateMonitor('2', { 'Monitor[Name]': 'Updated' });
+    await updateMonitor('2', { 'Monitor[Name]': 'Updated' });
 
     expect(mockPost).toHaveBeenCalledWith('/monitors/2.json', expect.any(URLSearchParams), expect.any(Object));
     const body = mockPost.mock.calls[0][1] as URLSearchParams;
     expect(body.get('Monitor[Name]')).toBe('Updated');
-    expect(updated.Monitor.Id).toBe('2');
   });
 
   it('changes monitor function', async () => {

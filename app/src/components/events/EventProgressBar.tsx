@@ -22,6 +22,8 @@ interface EventProgressBarProps {
   alarmFrames?: AlarmFrame[];
   onSeek: (frame: number) => void;
   className?: string;
+  /** Event duration in seconds. When provided, displays time instead of frame numbers. */
+  duration?: number;
 }
 
 export function EventProgressBar({
@@ -30,8 +32,20 @@ export function EventProgressBar({
   alarmFrames = [],
   onSeek,
   className,
+  duration,
 }: EventProgressBarProps) {
   const { t } = useTranslation();
+
+  const formatTime = useCallback((seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = Math.floor(seconds % 60);
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  }, []);
+
+  const frameToTime = useCallback((frame: number) => {
+    if (!duration || totalFrames <= 0) return '';
+    return formatTime((frame / totalFrames) * duration);
+  }, [duration, totalFrames, formatTime]);
   const progressRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [hoverPosition, setHoverPosition] = useState<number | null>(null);
@@ -152,15 +166,15 @@ export function EventProgressBar({
             style={{ left: `${(hoverPosition / totalFrames) * 100}%` }}
             data-testid="hover-tooltip"
           >
-            {t('events.frame_number', { number: hoverPosition })}
+            {duration ? frameToTime(hoverPosition) : t('events.frame_number', { number: hoverPosition })}
           </div>
         )}
       </div>
 
-      {/* Frame counter */}
+      {/* Time / Frame counter */}
       <div className="flex justify-between text-xs text-muted-foreground px-1" data-testid="frame-counter">
-        <span data-testid="current-frame">{t('events.frame_number', { number: currentFrame })}</span>
-        <span data-testid="total-frames">{t('events.total_frames', { count: totalFrames })}</span>
+        <span data-testid="current-frame">{duration ? frameToTime(currentFrame) : t('events.frame_number', { number: currentFrame })}</span>
+        <span data-testid="total-frames">{duration ? formatTime(duration) : t('events.total_frames', { count: totalFrames })}</span>
       </div>
     </div>
   );

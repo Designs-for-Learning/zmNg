@@ -5,14 +5,19 @@ import { Button } from '../components/ui/button';
 import { toast } from 'sonner';
 import { Activity, Check } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useCurrentProfile } from '../hooks/useCurrentProfile';
+import { useAuthStore } from '../stores/auth';
 
 export default function States() {
   const queryClient = useQueryClient();
   const { t } = useTranslation();
+  const { currentProfile } = useCurrentProfile();
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
   const { data: states, isLoading, error } = useQuery({
     queryKey: ['states'],
     queryFn: getStates,
+    enabled: !!currentProfile && isAuthenticated,
   });
 
   const changeMutation = useMutation({
@@ -29,7 +34,7 @@ export default function States() {
   if (isLoading) {
     return (
       <div className="p-8">
-        <h1 className="text-3xl font-bold mb-6">{t('states.title')}</h1>
+        <h1 className="text-lg font-bold mb-6">{t('states.title')}</h1>
         <p>{t('common.loading')}</p>
       </div>
     );
@@ -38,7 +43,7 @@ export default function States() {
   if (error) {
     return (
       <div className="p-8">
-        <h1 className="text-3xl font-bold mb-6">{t('states.title')}</h1>
+        <h1 className="text-lg font-bold mb-6">{t('states.title')}</h1>
         <div className="p-4 bg-destructive/10 text-destructive rounded-md">
           {t('states.load_error')}: {(error as Error).message}
         </div>
@@ -50,7 +55,7 @@ export default function States() {
     <div className="p-8">
       <div className="flex items-center gap-3 mb-6">
         <Activity className="h-8 w-8" />
-        <h1 className="text-3xl font-bold">{t('states.title')}</h1>
+        <h1 className="text-lg font-bold">{t('states.title')}</h1>
       </div>
 
       <p className="text-muted-foreground mb-6">
@@ -81,6 +86,7 @@ export default function States() {
                 disabled={state.IsActive === '1' || changeMutation.isPending}
                 className="w-full"
                 variant={state.IsActive === '1' ? 'secondary' : 'default'}
+                data-testid={`activate-state-${state.Id}`}
               >
                 {state.IsActive === '1' ? t('states.active') : t('states.activate')}
               </Button>

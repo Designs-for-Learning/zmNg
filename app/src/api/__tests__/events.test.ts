@@ -8,7 +8,7 @@ import {
 } from '../events';
 import { getApiClient } from '../client';
 import { validateApiResponse } from '../../lib/api-validator';
-import type { AxiosInstance } from 'axios';
+import type { ApiClient } from '../client';
 
 const mockGet = vi.fn();
 const mockPut = vi.fn();
@@ -79,7 +79,7 @@ describe('Events API', () => {
       get: mockGet,
       put: mockPut,
       delete: mockDelete,
-    } as unknown as AxiosInstance);
+    } as unknown as ApiClient);
   });
 
   it('fetches events across pages and deduplicates', async () => {
@@ -198,6 +198,23 @@ describe('Events API', () => {
 
     expect(mockGet).toHaveBeenCalledWith('/events/consoleEvents/1%20hour.json');
     expect(results).toEqual({ '1': 3, '2': 5 });
+  });
+
+  it('applies notesRegexp filter to events endpoint', async () => {
+    mockGet.mockResolvedValue({
+      data: {
+        events: [buildEventData(10)],
+        pagination: {
+          pageCount: 1, page: 1, current: 1, count: 1,
+          prevPage: false, nextPage: false, limit: 100,
+        },
+      },
+    });
+
+    await getEvents({ notesRegexp: 'detected:' });
+
+    const call = mockGet.mock.calls[0][0] as string;
+    expect(call).toContain('Notes%20REGEXP%3Adetected%3A');
   });
 
   it('validates responses through api-validator', async () => {

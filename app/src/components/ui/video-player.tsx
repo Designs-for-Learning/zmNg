@@ -17,6 +17,8 @@ import { cn } from '../../lib/utils';
 import { log, LogLevel } from '../../lib/logger';
 import type { VideoMarker } from '../../lib/video-markers';
 import type { MarkerConfig } from '../../types/videojs-markers';
+import { usePip } from '../../contexts/PipContext';
+import { Pip } from '../../plugins/pip';
 
 interface VideoPlayerProps {
   /** The source URL of the video stream */
@@ -42,7 +44,9 @@ interface VideoPlayerProps {
   /** Callback when player is ready */
   onReady?: (player: Player) => void;
   /** Callback on error */
-  onError?: (error: any) => void;
+  onError?: (error: unknown) => void;
+  /** Event ID for PiP persistence — when provided, enables PiP survival across navigation */
+  eventId?: string;
 }
 
 /**
@@ -61,6 +65,7 @@ interface VideoPlayerProps {
  * @param props.onMarkerClick - Marker click callback
  * @param props.onReady - Ready callback
  * @param props.onError - Error callback
+ * @param props.eventId - Event ID for PiP persistence
  */
 export function VideoPlayer({
   src,
@@ -74,19 +79,25 @@ export function VideoPlayer({
   markers,
   onMarkerClick,
   onReady,
-  onError
+  onError,
+  eventId
 }: VideoPlayerProps) {
   const videoRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<Player | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const { adoptForPip, reclaimFromPip, closePip, activePipEventId, enterAndroidPip, getAndroidPipPosition, isAndroid } = usePip();
+  const adoptedForPip = useRef(false);
+
   const updateMarkers = (player: Player, markers: VideoMarker[]) => {
     if (!player || player.isDisposed()) return;
 
     // Remove existing markers if the markers plugin is initialized
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- videojs-markers augments video.js Player interface but ReturnType<typeof videojs> does not pick up interface augmentation
     if (typeof (player as any).markers === 'function') {
       try {
         // Check if player has markers to remove
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- same reason as above
         (player as any).markers?.removeAll?.();
       } catch (err) {
         // Ignore - markers plugin might not be fully initialized
@@ -103,6 +114,7 @@ export function VideoPlayer({
         frameId: m.frameId,
       }));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- same reason as above
       (player as any).markers({
         markerTip: {
           display: true,
@@ -128,6 +140,29 @@ export function VideoPlayer({
     }
   };
 
+  // Handle PiP reclaim or close on mount
+  useEffect(() => {
+    if (!eventId) return;
+
+    if (activePipEventId === eventId) {
+      // Same event — reclaim the player from PiP portal
+      const reclaimed = reclaimFromPip();
+      if (reclaimed && videoRef.current) {
+        const wrapper = reclaimed.videoEl.closest('video-js') || reclaimed.videoEl.parentElement;
+        if (wrapper) {
+          videoRef.current.appendChild(wrapper);
+        }
+        playerRef.current = reclaimed.player;
+        adoptedForPip.current = false;
+      }
+    } else if (activePipEventId) {
+      // Different event — close existing PiP
+      closePip();
+    }
+    // Only run on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     // Make sure Video.js player is only initialized once
     if (!playerRef.current) {
@@ -135,6 +170,8 @@ export function VideoPlayer({
       const videoElement = document.createElement("video-js");
 
       videoElement.classList.add('vjs-big-play-centered');
+      videoElement.setAttribute('playsinline', '');
+      videoElement.setAttribute('webkit-playsinline', '');
 
       if (videoRef.current) {
         videoRef.current.appendChild(videoElement);
@@ -145,9 +182,15 @@ export function VideoPlayer({
         controls,
         responsive: true,
         fluid: true,
+        playsinline: true,
+        preferFullWindow: true,
         muted,
         aspectRatio,
         poster,
+        disablePictureInPicture: isAndroid,
+        controlBar: {
+          pictureInPictureToggle: !isAndroid,
+        },
         sources: [{
           src,
           type
@@ -197,11 +240,89 @@ export function VideoPlayer({
     }
   }, [markers, onMarkerClick]);
 
-  // Dispose the player on unmount
+  // Listen for PiP activation — browser API on desktop/iOS only
+  useEffect(() => {
+    const player = playerRef.current;
+    if (!player || !eventId || isAndroid) return;
+
+    let videoEl: HTMLVideoElement | null = null;
+    try {
+      videoEl = player.tech({ IWillNotUseThisInPlugins: true })?.el() as HTMLVideoElement;
+    } catch (error) {
+      log.videoPlayer('Video tech access failed', LogLevel.DEBUG, { error });
+      return;
+    }
+    if (!videoEl || !(videoEl instanceof HTMLVideoElement)) return;
+
+    const handleEnterPip = () => {
+      adoptForPip(player, videoEl!, eventId);
+      adoptedForPip.current = true;
+    };
+
+    videoEl.addEventListener('enterpictureinpicture', handleEnterPip);
+    return () => {
+      videoEl!.removeEventListener('enterpictureinpicture', handleEnterPip);
+    };
+  }, [playerRef.current, eventId, adoptForPip, isAndroid]);
+
+  // Android: add custom PiP button that triggers native ExoPlayer PiP
+  useEffect(() => {
+    if (!isAndroid || !playerRef.current || !eventId) return;
+    const player = playerRef.current;
+    let pipBtn: HTMLButtonElement | null = null;
+
+    Pip.isPipSupported().then(({ supported }) => {
+      if (!supported || !player || player.isDisposed()) return;
+
+      const controlBar = (player as unknown as { controlBar?: { el(): HTMLElement | undefined } }).controlBar?.el();
+      if (!controlBar) return;
+
+      pipBtn = document.createElement('button');
+      pipBtn.className = 'vjs-control vjs-button';
+      pipBtn.title = 'Picture-in-Picture';
+      pipBtn.setAttribute('aria-label', 'Picture-in-Picture');
+      pipBtn.innerHTML = '<span class="vjs-icon-placeholder" style="display:flex;align-items:center;justify-content:center;height:100%"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><rect x="12" y="9" width="8" height="6" rx="1" fill="currentColor" opacity="0.3"/></svg></span>';
+
+      pipBtn.addEventListener('click', async () => {
+        const currentTime = player.currentTime() || 0;
+        const videoSrc = player.currentSrc();
+        if (videoSrc) {
+          player.pause();
+          await enterAndroidPip(videoSrc, currentTime, eventId);
+          const returnedPosition = getAndroidPipPosition();
+          if (returnedPosition > 0) {
+            player.currentTime(returnedPosition);
+          }
+          player.play();
+        }
+      });
+
+      // Insert before fullscreen button
+      const fullscreenBtn = controlBar.querySelector('.vjs-fullscreen-control');
+      if (fullscreenBtn) {
+        controlBar.insertBefore(pipBtn, fullscreenBtn);
+      } else {
+        controlBar.appendChild(pipBtn);
+      }
+    });
+
+    return () => {
+      if (pipBtn?.parentNode) {
+        pipBtn.parentNode.removeChild(pipBtn);
+      }
+    };
+  }, [playerRef.current, eventId, isAndroid, enterAndroidPip, getAndroidPipPosition]);
+
+  // Dispose the player on unmount (skip if adopted for PiP)
   useEffect(() => {
     const player = playerRef.current;
 
     return () => {
+      if (adoptedForPip.current) {
+        // PiP is active — don't dispose, the PipProvider owns the player now
+        playerRef.current = null;
+        return;
+      }
       if (player && !player.isDisposed()) {
         player.dispose();
         playerRef.current = null;

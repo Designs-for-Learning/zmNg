@@ -10,7 +10,7 @@ import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useProfileStore } from './stores/profile';
-import { useSettingsStore } from './stores/settings';
+import { useCurrentProfile } from './hooks/useCurrentProfile';
 import { setQueryClient } from './stores/query-cache';
 import { Toaster } from './components/ui/toast';
 import { ThemeProvider } from './components/theme-provider';
@@ -19,7 +19,10 @@ import { RouteErrorBoundary } from './components/RouteErrorBoundary';
 import { useTokenRefresh } from './hooks/useTokenRefresh';
 import AppLayout from './components/layout/AppLayout';
 import { NotificationHandler } from './components/NotificationHandler';
+import { Button } from './components/ui/button';
+import { X } from 'lucide-react';
 import { log, LogLevel, logger } from './lib/logger';
+import { PipProvider } from './contexts/PipContext';
 
 // Lazy load route components for code splitting
 const ProfileForm = lazy(() => import('./pages/ProfileForm'));
@@ -64,41 +67,20 @@ setQueryClient(queryClient);
 
 function AppRoutes() {
   const profiles = useProfileStore((state) => state.profiles);
-  const currentProfile = useProfileStore((state) => state.currentProfile());
   const isInitialized = useProfileStore((state) => state.isInitialized);
-  const displayMode = useSettingsStore(
-    (state) => state.getProfileSettings(currentProfile?.id || '').displayMode
-  );
-  const logLevel = useSettingsStore(
-    (state) => state.getProfileSettings(currentProfile?.id || '').logLevel
-  );
-  const lastRoute = useSettingsStore(
-    (state) => state.getProfileSettings(currentProfile?.id || '').lastRoute
-  );
-
-  // Debug: Log last route on mount and when it changes
-  useEffect(() => {
-    log.app('Last route from settings', LogLevel.DEBUG, {
-      lastRoute,
-      currentProfileId: currentProfile?.id,
-      currentProfileName: currentProfile?.name,
-    });
-  }, [lastRoute, currentProfile?.id, currentProfile?.name]);
+  const { currentProfile, settings } = useCurrentProfile();
+  const { logLevel, lastRoute } = settings;
 
   // Enable automatic token refresh
   useTokenRefresh();
 
-  // Apply compact mode class to root element
+  // Always apply compact mode
   useEffect(() => {
     const root = document.getElementById('root');
     if (root) {
-      if (displayMode === 'compact') {
-        root.classList.add('compact-mode');
-      } else {
-        root.classList.remove('compact-mode');
-      }
+      root.classList.add('compact-mode');
     }
-  }, [displayMode]);
+  }, []);
 
   useEffect(() => {
     logger.setLevel(logLevel);
@@ -156,6 +138,8 @@ function AppRoutes() {
           element={
             currentProfile ? (
               <Navigate to={lastRoute || '/monitors'} replace />
+            ) : profiles.length > 0 ? (
+              <Navigate to="/profiles" replace />
             ) : (
               <Navigate to="/profiles/new" replace />
             )
@@ -294,37 +278,59 @@ function App() {
   const { t } = useTranslation();
   const isBootstrapping = useProfileStore((state) => state.isBootstrapping);
   const bootstrapStep = useProfileStore((state) => state.bootstrapStep);
+  const cancelBootstrap = useProfileStore((state) => state.cancelBootstrap);
+
+  const handleCancelBootstrap = () => {
+    log.app('Bootstrap cancelled by user', LogLevel.INFO);
+    cancelBootstrap();
+    // AppLayout will handle redirect to /profiles or /profiles/new
+  };
 
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <ThemeProvider defaultTheme="light">
-          <div
-            className={isBootstrapping ? 'pointer-events-none select-none' : ''}
-            aria-busy={isBootstrapping}
-          >
-            <HashRouter>
-              <NotificationHandler />
-              <AppRoutes />
-            </HashRouter>
-          </div>
-          <Toaster />
-          {isBootstrapping && (
+        <ThemeProvider defaultTheme="slate">
+          <PipProvider>
             <div
-              className="fixed inset-0 z-[9998] flex items-center justify-center bg-background/60 backdrop-blur-sm pointer-events-auto touch-none"
-              data-testid="app-init-blocker"
+              className={isBootstrapping ? 'pointer-events-none select-none' : ''}
+              aria-busy={isBootstrapping}
             >
-              <div className="w-[min(90vw,24rem)] rounded-lg border border-border bg-background/95 px-4 py-3 text-center shadow-lg">
-                <div className="flex flex-col items-center gap-2">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                  <div className="text-sm font-medium">{t('app_init.toast_title')}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {bootstrapStep ? t(`app_init.step_${bootstrapStep}`) : t('app_init.step_start')}
+              <HashRouter>
+                <NotificationHandler />
+                <AppRoutes />
+              </HashRouter>
+            </div>
+            <Toaster />
+            {isBootstrapping && (
+              <div
+                className="fixed inset-0 z-[9998] flex items-center justify-center bg-background/60 backdrop-blur-sm pointer-events-auto touch-none"
+                data-testid="app-init-blocker"
+              >
+                <div className="w-[min(90vw,24rem)] rounded-lg border border-border bg-background/95 px-4 py-4 text-center shadow-lg">
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                    <div className="text-sm font-medium">{t('app_init.toast_title')}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {bootstrapStep ? t(`app_init.step_${bootstrapStep}`) : t('app_init.step_start')}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleCancelBootstrap}
+                      className="mt-2"
+                      data-testid="cancel-bootstrap-button"
+                    >
+                      <X className="mr-1.5 h-3.5 w-3.5" />
+                      {t('common.cancel')}
+                    </Button>
+                    <div className="text-xs text-muted-foreground">
+                      {t('app_init.cancel_hint_single')}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+          </PipProvider>
         </ThemeProvider>
       </QueryClientProvider>
     </ErrorBoundary>

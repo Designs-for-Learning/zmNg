@@ -19,6 +19,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
+import { NotificationBadge } from '../components/NotificationBadge';
 
 export default function Dashboard() {
     const { t } = useTranslation();
@@ -51,8 +52,9 @@ export default function Dashboard() {
         <div className="flex flex-col h-full bg-background">
             <div className="flex items-center justify-between p-4 border-b">
                 <div className="flex items-center gap-2">
-                    <LayoutDashboard className="h-5 w-5 sm:h-6 sm:w-6" />
-                    <h1 className="text-lg sm:text-2xl font-bold">{t('dashboard.title')}</h1>
+                    <LayoutDashboard className="h-4 w-4 sm:h-5 sm:w-5" />
+                    <h1 className="text-base sm:text-lg font-bold">{t('dashboard.title')}</h1>
+                    <NotificationBadge />
                 </div>
                 <div className="flex items-center gap-2">
                     {widgets.length > 0 && (
@@ -63,6 +65,7 @@ export default function Dashboard() {
                                 onClick={handleRefresh}
                                 disabled={isRefreshing}
                                 title={t('common.refresh')}
+                                data-testid="dashboard-refresh-button"
                             >
                                 <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                             </Button>
@@ -72,6 +75,7 @@ export default function Dashboard() {
                                 onClick={toggleEditMode}
                                 className={isEditing ? "bg-green-600 hover:bg-green-700" : ""}
                                 title={isEditing ? t('dashboard.done') : t('dashboard.edit_layout')}
+                                data-testid="dashboard-edit-toggle"
                             >
                                 {isEditing ? (
                                     <>

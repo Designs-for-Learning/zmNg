@@ -6,7 +6,8 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useProfileStore } from '../stores/profile';
+import { useCurrentProfile } from '../hooks/useCurrentProfile';
+import { useBandwidthSettings } from '../hooks/useBandwidthSettings';
 import { useAuthStore } from '../stores/auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -38,56 +39,58 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../components/ui/select';
+import { NotificationBadge } from '../components/NotificationBadge';
 
 export default function Server() {
   const { t } = useTranslation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const currentProfile = useProfileStore((state) => state.currentProfile());
-  const { version, apiVersion } = useAuthStore();
+  const { currentProfile } = useCurrentProfile();
+  const bandwidth = useBandwidthSettings();
+  const { version, apiVersion, isAuthenticated } = useAuthStore();
   const [selectedAction, setSelectedAction] = useState<string>('');
 
   // Fetch server information
   const { data: servers, isLoading: serversLoading } = useQuery({
     queryKey: ['servers', currentProfile?.id],
     queryFn: getServers,
-    enabled: !!currentProfile,
+    enabled: !!currentProfile && isAuthenticated,
   });
 
   // Fetch daemon status
   const { data: isDaemonRunning, isLoading: daemonLoading } = useQuery({
     queryKey: ['daemon-check', currentProfile?.id],
     queryFn: getDaemonCheck,
-    enabled: !!currentProfile,
-    refetchInterval: 30000, // Check every 30 seconds
+    enabled: !!currentProfile && isAuthenticated,
+    refetchInterval: bandwidth.daemonCheckInterval,
   });
 
   // Fetch load average
   const { data: loadData, isLoading: loadLoading } = useQuery({
     queryKey: ['server-load', currentProfile?.id],
     queryFn: getLoad,
-    enabled: !!currentProfile,
+    enabled: !!currentProfile && isAuthenticated,
   });
 
   // Fetch disk usage
   const { data: diskData, isLoading: diskLoading } = useQuery({
     queryKey: ['disk-usage', currentProfile?.id],
     queryFn: getDiskPercent,
-    enabled: !!currentProfile,
+    enabled: !!currentProfile && isAuthenticated,
   });
 
   // Fetch states
   const { data: states, isLoading: statesLoading } = useQuery({
     queryKey: ['states', currentProfile?.id],
     queryFn: getStates,
-    enabled: !!currentProfile,
+    enabled: !!currentProfile && isAuthenticated,
   });
 
   // Fetch timezone
   const { data: timezone, isLoading: timezoneLoading } = useQuery({
     queryKey: ['timezone', currentProfile?.id],
     queryFn: () => getServerTimeZone(),
-    enabled: !!currentProfile,
+    enabled: !!currentProfile && isAuthenticated,
   });
 
   // Mutation for state change
@@ -148,12 +151,15 @@ export default function Server() {
   const diskUsageGB = diskData?.usage;
 
   return (
-    <div className="p-3 sm:p-4 md:p-6 max-w-7xl mx-auto space-y-4 sm:space-y-6">
+    <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">
-            {t('server.title')}
-          </h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-base sm:text-lg font-bold tracking-tight">
+              {t('server.title')}
+            </h1>
+            <NotificationBadge />
+          </div>
           <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 hidden sm:block">
             {t('server.subtitle')}
           </p>
@@ -164,6 +170,7 @@ export default function Server() {
           onClick={handleRefreshAll}
           disabled={isRefreshing}
           className="flex items-center gap-2"
+          data-testid="server-refresh-button"
         >
           <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
           <span className="hidden sm:inline">{t('common.refresh')}</span>
@@ -185,13 +192,13 @@ export default function Server() {
               <div className="text-sm font-medium text-muted-foreground">
                 {t('server.zm_version')}
               </div>
-              <div className="text-2xl font-bold mt-1">{version || t('common.unknown')}</div>
+              <div className="text-lg font-bold mt-1">{version || t('common.unknown')}</div>
             </div>
             <div className="p-4 rounded-lg bg-muted/50 border">
               <div className="text-sm font-medium text-muted-foreground">
                 {t('server.api_version')}
               </div>
-              <div className="text-2xl font-bold mt-1">{apiVersion || t('common.unknown')}</div>
+              <div className="text-lg font-bold mt-1">{apiVersion || t('common.unknown')}</div>
             </div>
             <div className="p-4 rounded-lg bg-muted/50 border">
               <div className="text-sm font-medium text-muted-foreground">
@@ -217,7 +224,7 @@ export default function Server() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">
+            <div className="text-2xl font-bold">
               {loadData?.load !== undefined
                 ? (Array.isArray(loadData.load)
                     ? loadData.load[0]
@@ -241,7 +248,7 @@ export default function Server() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">
+            <div className="text-2xl font-bold">
               {diskUsageGB !== undefined ? `${diskUsageGB.toFixed(1)} GB` : '--'}
             </div>
             <p className="text-xs text-muted-foreground mt-1">{t('server.disk_desc')}</p>
@@ -367,7 +374,7 @@ export default function Server() {
               </div>
               <div className="flex gap-2">
                 <Select value={selectedAction} onValueChange={setSelectedAction}>
-                  <SelectTrigger className="flex-1 [&>span]:!block [&>span]:!overflow-visible">
+                  <SelectTrigger className="flex-1 [&>span]:!block [&>span]:!overflow-visible" data-testid="server-state-select">
                     <SelectValue placeholder={t('server.select_state_or_action')} />
                   </SelectTrigger>
                   <SelectContent>
@@ -407,6 +414,7 @@ export default function Server() {
                   onClick={handleApply}
                   disabled={!selectedAction || changeStateMutation.isPending}
                   className="flex items-center gap-2"
+                  data-testid="server-apply-button"
                 >
                   {changeStateMutation.isPending ? (
                     <Loader2 className="h-4 w-4 animate-spin" />

@@ -21,7 +21,7 @@ import {
 } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Plus, Video, Clock, ChartGantt, TrendingUp } from 'lucide-react';
-import type { WidgetType } from '../../stores/dashboard';
+import type { DashboardWidget, WidgetType } from '../../stores/dashboard';
 import type { MonitorFeedFit } from '../../stores/settings';
 import { useDashboardStore } from '../../stores/dashboard';
 import { useProfileStore } from '../../stores/profile';
@@ -29,6 +29,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { useQuery } from '@tanstack/react-query';
 import { getMonitors } from '../../api/monitors';
 import { filterEnabledMonitors } from '../../lib/filters';
+import { GRID_LAYOUT } from '../../lib/zmninja-ng-constants';
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Input } from '../ui/input';
@@ -85,20 +86,20 @@ export function DashboardConfig() {
      * Includes minimum width/height constraints to prevent content overflow
      */
     const getDefaultLayout = (type: WidgetType, monitorCount: number = 1) => {
+        // All widgets start at full width. Users can resize narrower in edit mode.
+        // minW prevents resizing below a usable size for each widget type.
         switch (type) {
-            case 'monitor':
-                // Monitor widgets need more width for multiple monitors
-                // 1 monitor: 4 cols min, 2-4 monitors: 6 cols min, 5+ monitors: 8 cols min
+            case 'monitor': {
                 const monitorMinW = monitorCount === 1 ? 4 : monitorCount <= 4 ? 6 : 8;
-                return { w: monitorMinW, h: 2, minW: monitorMinW, minH: 2 };
+                return { w: GRID_LAYOUT.cols, h: 2, minW: monitorMinW, minH: 2 };
+            }
             case 'timeline':
-                return { w: 6, h: 3, minW: 6, minH: 3 };
+                return { w: GRID_LAYOUT.cols, h: 3, minW: 6, minH: 3 };
             case 'heatmap':
-                // Heatmap needs wider space for time range buttons and chart
-                return { w: 8, h: 3, minW: 6, minH: 3 };
+                return { w: GRID_LAYOUT.cols, h: 3, minW: 6, minH: 3 };
             case 'events':
             default:
-                return { w: 4, h: 2, minW: 3, minH: 2 };
+                return { w: GRID_LAYOUT.cols, h: 2, minW: 3, minH: 2 };
         }
     };
 
@@ -106,7 +107,7 @@ export function DashboardConfig() {
      * Get widget settings based on type and monitor selection
      */
     const getWidgetSettings = (type: WidgetType, monitors: string[], fit: MonitorFeedFit) => {
-        const settings: any = {};
+        const settings: DashboardWidget['settings'] = {};
 
         if (type === 'monitor') {
             settings.monitorIds = monitors;
@@ -258,19 +259,10 @@ export function DashboardConfig() {
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="contain" data-testid="dashboard-monitor-fit-contain">
-                                        {t('dashboard.fit_contain')}
+                                        {t('montage.fit_fit')}
                                     </SelectItem>
                                     <SelectItem value="cover" data-testid="dashboard-monitor-fit-cover">
-                                        {t('dashboard.fit_cover')}
-                                    </SelectItem>
-                                    <SelectItem value="fill" data-testid="dashboard-monitor-fit-fill">
-                                        {t('dashboard.fit_fill')}
-                                    </SelectItem>
-                                    <SelectItem value="none" data-testid="dashboard-monitor-fit-none">
-                                        {t('dashboard.fit_none')}
-                                    </SelectItem>
-                                    <SelectItem value="scale-down" data-testid="dashboard-monitor-fit-scale-down">
-                                        {t('dashboard.fit_scale_down')}
+                                        {t('montage.fit_crop')}
                                     </SelectItem>
                                 </SelectContent>
                             </Select>

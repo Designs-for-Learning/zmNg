@@ -9,13 +9,13 @@ import { getApiClient } from './client';
 import type { EventsResponse, EventData } from './types';
 import { EventsResponseSchema, EventResponseSchema, ConsoleEventsResponseSchema } from './types';
 import { log, LogLevel } from '../lib/logger';
-import { Platform } from '../lib/platform';
 import { validateApiResponse } from '../lib/api-validator';
 import {
   getEventImageUrl as buildEventImageUrl,
   getEventVideoUrl as buildEventVideoUrl,
   getEventZmsUrl as buildEventZmsUrl,
 } from '../lib/url-builder';
+import { wrapWithImageProxy } from '../lib/proxy-utils';
 
 export interface EventFilters {
   monitorId?: string;
@@ -23,6 +23,7 @@ export interface EventFilters {
   endDateTime?: string;
   archived?: boolean;
   minAlarmFrames?: number;
+  notesRegexp?: string; // REGEXP filter on Notes field (e.g., "detected:" for object detection)
   limit?: number;
   sort?: string;
   direction?: 'asc' | 'desc';
@@ -65,16 +66,20 @@ export async function getEvents(filters: EventFilters = {}): Promise<EventsRespo
   if (filters.minAlarmFrames) {
     addFilterSegment(`AlarmFrames >=:${filters.minAlarmFrames}`);
   }
+  if (filters.notesRegexp) {
+    addFilterSegment(`Notes REGEXP:${filters.notesRegexp}`);
+  }
 
   const filterPath = filterSegments.join('');
 
   // Use /events/index.json for both filtered and unfiltered requests
   const url = filterPath ? `/events/index${filterPath}.json` : '/events/index.json';
 
-  const desiredLimit = filters.limit || 300;
+  const desiredLimit = filters.limit || 100;
   const allEvents: EventData[] = [];
   let currentPage = 1;
   let hasMore = true;
+  let totalCount = 0; // Total events matching filters (from server)
   const maxPages = 10; // Limit to 10 pages (1000 events max) to prevent excessive API calls
 
   // Keep fetching pages until we have enough events, no more pages, or hit max pages
@@ -96,6 +101,11 @@ export async function getEvents(filters: EventFilters = {}): Promise<EventsRespo
       endpoint: url,
       method: 'GET',
     });
+
+    // Capture total count from first page (ZM returns total matching events in count)
+    if (currentPage === 1) {
+      totalCount = validated.pagination?.count ?? 0;
+    }
 
     // Add events from this page
     allEvents.push(...validated.events);
@@ -137,14 +147,81 @@ export async function getEvents(filters: EventFilters = {}): Promise<EventsRespo
     events: finalEvents,
     pagination: {
       page: 1,
-      pageCount: Math.ceil(allEvents.length / desiredLimit),
+      pageCount: Math.ceil(totalCount / desiredLimit),
       current: 1,
       count: finalEvents.length,
       prevPage: false,
-      nextPage: allEvents.length > desiredLimit,
+      nextPage: finalEvents.length < totalCount,
       limit: desiredLimit,
+      totalCount, // Total events matching filters (from server)
     },
   };
+}
+
+/**
+ * Fetch the next or previous event relative to a given timestamp.
+ * Uses the same filters as the events list to maintain consistency.
+ *
+ * Expects filters with already server-formatted dates (from Events page navigation state).
+ * Builds the ZM API filter path directly to use StartDateTime comparisons for both directions.
+ */
+export async function getAdjacentEvent(
+  direction: 'next' | 'prev',
+  currentStartDateTime: string,
+  filters: EventFilters = {}
+): Promise<EventData | null> {
+  const client = getApiClient();
+
+  // Build filter segments (same logic as getEvents, but with custom date handling)
+  const filterSegments: string[] = [];
+  const addSegment = (segment: string) => {
+    filterSegments.push(`/${encodeURIComponent(segment)}`);
+  };
+
+  // Apply monitor filter from original filters
+  if (filters.monitorId) {
+    const monitorIds = filters.monitorId.split(',');
+    monitorIds.forEach(id => addSegment(`MonitorId:${id.trim()}`));
+  }
+
+  // Apply alarm frames filter
+  if (filters.minAlarmFrames) {
+    addSegment(`AlarmFrames >=:${filters.minAlarmFrames}`);
+  }
+
+  // Apply notes filter
+  if (filters.notesRegexp) {
+    addSegment(`Notes REGEXP:${filters.notesRegexp}`);
+  }
+
+  // Use StartDateTime for adjacency (not the original date range filters)
+  if (direction === 'next') {
+    addSegment(`StartDateTime >:${currentStartDateTime}`);
+  } else {
+    addSegment(`StartDateTime <:${currentStartDateTime}`);
+  }
+
+  const filterPath = filterSegments.join('');
+  const url = `/events/index${filterPath}.json`;
+
+  const params: Record<string, string | number> = {
+    page: 1,
+    limit: 1,
+    sort: 'StartDateTime',
+    direction: direction === 'next' ? 'asc' : 'desc',
+  };
+
+  try {
+    const response = await client.get<EventsResponse>(url, { params });
+    const validated = validateApiResponse(EventsResponseSchema, response.data, {
+      endpoint: url,
+      method: 'GET',
+    });
+    return validated.events[0] || null;
+  } catch (err) {
+    log.api('Failed to fetch adjacent event', LogLevel.ERROR, { direction, error: err });
+    return null;
+  }
 }
 
 /**
@@ -258,13 +335,7 @@ export function getEventImageUrl(
   const fullUrl = buildEventImageUrl(portalUrl, eventId, frame, options);
 
   // In dev mode, use proxy server to avoid CORS issues
-  if (Platform.shouldUseProxy) {
-    const proxyParams = new URLSearchParams();
-    proxyParams.append('url', fullUrl);
-    return `http://localhost:3001/image-proxy?${proxyParams.toString()}`;
-  }
-
-  return fullUrl;
+  return wrapWithImageProxy(fullUrl);
 }
 
 /**

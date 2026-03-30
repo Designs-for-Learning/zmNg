@@ -6,380 +6,143 @@
  * It also handles the sidebar resizing logic and mobile drawer state.
  */
 
-import { Link, Outlet, useLocation, Navigate } from 'react-router-dom';
+import { Outlet, useLocation, Navigate } from 'react-router-dom';
+import { useCurrentProfile } from '../../hooks/useCurrentProfile';
 import { useProfileStore } from '../../stores/profile';
-import { useNotificationStore } from '../../stores/notifications';
 import { useSettingsStore } from '../../stores/settings';
-import { useShallow } from 'zustand/react/shallow';
 import { Button } from '../ui/button';
-import { ModeToggle } from '../mode-toggle';
 import { log, LogLevel } from '../../lib/logger';
-import { ProfileSwitcher } from '../profile-switcher';
-import { useToast } from '../../hooks/use-toast';
 import { useInsomnia } from '../../hooks/useInsomnia';
 import {
-  LayoutGrid,
-  Video,
-  Clock,
-  ChartGantt,
-  Settings,
   Menu,
-  Users,
-  Bell,
   ChevronLeft,
   ChevronRight,
-  FileText,
-  Globe,
-  LayoutDashboard,
-  Server,
   Eye,
-  EyeOff
+  EyeOff,
 } from 'lucide-react';
-import { cn } from '../../lib/utils';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Sheet, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from '../ui/sheet';
 import { useTranslation } from 'react-i18next';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '../ui/dropdown-menu';
+import { BackgroundTaskDrawer } from '../BackgroundTaskDrawer';
+import { CertTrustDialog } from '../CertTrustDialog';
+import { onCertTrustRequest, type PendingCertTrust } from '../../lib/cert-trust-event';
+import { useKioskStore } from '../../stores/kioskStore';
+import { KioskOverlay } from '../kiosk/KioskOverlay';
+import { LanguageSwitcher } from './LanguageSwitcher';
+import { SidebarContent } from './SidebarContent';
 
-interface SidebarContentProps {
-  onMobileClose?: () => void;
-  isCollapsed?: boolean;
-}
-
-/**
- * Language Switcher Component
- * Renders a dropdown to switch the application language.
- */
-function LanguageSwitcher({ collapsed = false }: { collapsed?: boolean }) {
-  const { i18n, t } = useTranslation();
-
-  const languages = [
-    { code: 'en', label: t('languages.en') },
-    { code: 'es', label: t('languages.es') },
-    { code: 'fr', label: t('languages.fr') },
-    { code: 'de', label: t('languages.de') },
-    { code: 'zh', label: t('languages.zh') },
-  ];
-
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="sm"
-          className={cn(
-            "h-8 px-2 gap-1 ml-1",
-            collapsed && "w-8 p-0 justify-center ml-0 mt-2"
-          )}
-          title={t('sidebar.switch_language')}
-          data-testid="language-switcher"
-        >
-          <Globe className="h-4 w-4" />
-          {!collapsed && (
-            <span className="text-xs uppercase font-medium">{i18n.language?.split('-')[0] || 'en'}</span>
-          )}
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start">
-        {languages.map((lang) => (
-          <DropdownMenuItem
-            key={lang.code}
-            onClick={() => i18n.changeLanguage(lang.code)}
-            className="text-xs"
-            data-testid={`language-option-${lang.code}`}
-          >
-            {lang.label}
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
-
-/**
- * Sidebar Content Component
- * Renders the navigation links and user controls within the sidebar.
- */
-function SidebarContent({ onMobileClose, isCollapsed }: SidebarContentProps) {
-  const location = useLocation();
-  const currentProfile = useProfileStore(
-    useShallow((state) => {
-      const { profiles, currentProfileId } = state;
-      return profiles.find((p) => p.id === currentProfileId) || null;
-    })
-  );
-  const { getUnreadCount, connectionState, getProfileSettings } = useNotificationStore(
-    useShallow((state) => ({
-      getUnreadCount: state.getUnreadCount,
-      connectionState: state.connectionState,
-      getProfileSettings: state.getProfileSettings,
-    }))
-  );
-  const { getProfileSettings: getSettings, updateProfileSettings } = useSettingsStore(
-    useShallow((state) => ({
-      getProfileSettings: state.getProfileSettings,
-      updateProfileSettings: state.updateProfileSettings,
-    }))
-  );
-
-  // Get notification data for current profile
-  const unreadCount = currentProfile ? getUnreadCount(currentProfile.id) : 0;
-  const settings = currentProfile ? getProfileSettings(currentProfile.id) : null;
-  const profileSettings = currentProfile ? getSettings(currentProfile.id) : null;
-
-  const { t } = useTranslation();
-  const { toast } = useToast();
-
-  const handleInsomniaToggle = () => {
-    if (currentProfile && profileSettings) {
-      const newValue = !profileSettings.insomnia;
-      updateProfileSettings(currentProfile.id, { insomnia: newValue });
-      toast({
-        description: t(newValue ? 'montage.insomnia_enabled' : 'montage.insomnia_disabled'),
-      });
-    }
-  };
-
-
-  const navItems = [
-    { path: '/dashboard', label: t('sidebar.dashboard'), icon: LayoutDashboard },
-    { path: '/monitors', label: t('sidebar.monitors'), icon: Video },
-    { path: '/montage', label: t('sidebar.montage'), icon: LayoutGrid },
-    { path: '/events', label: t('sidebar.events'), icon: Clock },
-    { path: '/timeline', label: t('sidebar.timeline'), icon: ChartGantt },
-    { path: '/notifications', label: t('sidebar.notifications'), icon: Bell },
-    { path: '/profiles', label: t('sidebar.profiles'), icon: Users },
-    { path: '/settings', label: t('sidebar.settings'), icon: Settings },
-    { path: '/server', label: t('sidebar.server'), icon: Server },
-    { path: '/logs', label: t('sidebar.logs'), icon: FileText },
-  ];
-
-  return (
-    <div className="flex flex-col h-full overflow-hidden">
-      <div className={cn("p-6 transition-all duration-300", isCollapsed && "p-2 flex flex-col items-center")}>
-        <div className={cn("flex items-center gap-2 mb-1", isCollapsed && "flex-col mb-2")}>
-          <img src="/logo.png" alt={t('app.logo_alt')} className="h-8 w-8 rounded-lg" />
-          {!isCollapsed && (
-            <>
-              <h1 className="text-xl font-bold tracking-tight whitespace-nowrap">{t('app.name')}</h1>
-              <LanguageSwitcher />
-            </>
-          )}
-        </div>
-        {isCollapsed && <LanguageSwitcher collapsed />}
-        {!isCollapsed && currentProfile && (
-          <p className="text-xs text-muted-foreground font-medium px-1 truncate">
-            {currentProfile.name}
-          </p>
-        )}
-      </div>
-
-      <div className="flex-1 px-3 py-2 overflow-y-auto">
-        <nav className="space-y-1">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = location.pathname === item.path;
-
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                onClick={() => onMobileClose?.()}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group relative",
-                  isActive
-                    ? "bg-primary text-primary-foreground shadow-md"
-                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
-                  isCollapsed && "justify-center px-2"
-                )}
-                title={isCollapsed ? item.label : undefined}
-                data-testid={`nav-item-${item.path.replace('/', '')}`}
-              >
-                <Icon className={cn("h-4 w-4 transition-transform group-hover:scale-110 flex-shrink-0", isActive && "text-primary-foreground")} />
-                {!isCollapsed && (
-                  <>
-                    <span className="truncate">{item.label}</span>
-                    
-                    {item.path === '/notifications' && (
-                      <div
-                        className={cn(
-                          "h-2 w-2 rounded-full ml-2 flex-shrink-0",
-                          !settings?.enabled ? "bg-muted-foreground/50" :
-                          connectionState === 'connected' ? "bg-green-500" :
-                          connectionState === 'disconnected' || connectionState === 'error' ? "bg-red-500" :
-                          "bg-orange-500 animate-pulse"
-                        )}
-                        title={
-                          !settings?.enabled ? t('notifications.status.disabled') :
-                          connectionState === 'connected' ? t('notifications.status.connected') :
-                          connectionState === 'disconnected' ? t('notifications.status.disconnected') :
-                          t('notifications.status.connecting')
-                        }
-                        data-testid="notification-status-indicator"
-                      />
-                    )}
-
-                    {item.path === '/notifications' && unreadCount > 0 && (
-                      <span className="ml-auto h-5 min-w-5 px-1.5 flex items-center justify-center text-xs font-bold rounded-full bg-destructive text-destructive-foreground flex-shrink-0">
-                        {unreadCount > 99 ? '99+' : unreadCount}
-                      </span>
-                    )}
-                  </>
-                )}
-              </Link>
-            );
-          })}
-        </nav>
-      </div>
-
-      <div className={cn("border-t bg-card/50 backdrop-blur-sm space-y-3 transition-all duration-300", isCollapsed ? "p-2" : "p-4")}>
-        {!isCollapsed ? (
-          <>
-            <div className="space-y-2">
-              <span className="text-xs font-medium text-muted-foreground px-1">{t('sidebar.profile')}</span>
-              <ProfileSwitcher />
-            </div>
-            <div className="flex items-center justify-between pt-2">
-              <span className="text-xs font-medium text-muted-foreground">{t('settings.theme')}</span>
-              <ModeToggle />
-            </div>
-            <div className="flex items-center justify-between pt-2">
-              <span className="text-xs font-medium text-muted-foreground">{t('monitor_detail.insomnia_label')}</span>
-              <Button
-                onClick={handleInsomniaToggle}
-                variant={profileSettings?.insomnia ? "default" : "outline"}
-                size="icon"
-                className="h-8 w-8"
-                title={profileSettings?.insomnia ? t('montage.insomnia_enabled') : t('montage.insomnia_disabled')}
-                data-testid="sidebar-insomnia-toggle"
-              >
-                {profileSettings?.insomnia ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-              </Button>
-            </div>
-          </>
-        ) : (
-          <Button
-            onClick={handleInsomniaToggle}
-            variant={profileSettings?.insomnia ? "default" : "outline"}
-            size="icon"
-            className="h-8 w-8"
-            title={profileSettings?.insomnia ? t('montage.insomnia_enabled') : t('montage.insomnia_disabled')}
-            data-testid="sidebar-insomnia-toggle-collapsed"
-          >
-            {profileSettings?.insomnia ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-          </Button>
-        )}
-      </div>
-    </div>
-  );
-}
 
 /**
  * AppLayout Component
  * The main layout wrapper that includes the sidebar and main content area.
  */
 export default function AppLayout() {
-  const currentProfile = useProfileStore((state) => state.currentProfile());
-  const settings = useSettingsStore(
-    useShallow((state) => state.getProfileSettings(currentProfile?.id || ''))
-  );
+  const { currentProfile, settings } = useCurrentProfile();
   const updateProfileSettings = useSettingsStore((state) => state.updateProfileSettings);
   const location = useLocation();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const [sidebarWidth, setSidebarWidth] = useState(256); // 256px = w-64
-  const [isDragging, setIsDragging] = useState(false);
-  const dragStartX = useRef(0);
-  const dragStartWidth = useRef(0);
-  const MIN_WIDTH = 60;
-  const MAX_WIDTH = 256;
+  const [isCollapsed, setIsCollapsed] = useState(() => (settings.sidebarWidth ?? 256) <= 80);
   const { t } = useTranslation();
 
   // Track route changes and save to settings
   useEffect(() => {
     if (!currentProfile?.id) return;
 
-    // Exclude setup/profile routes from being saved as lastRoute
+    // Exclude setup/profile routes and notification-opened pages from being saved as lastRoute
     const excludedRoutes = ['/profiles/new', '/setup', '/profiles'];
-    const shouldSave = !excludedRoutes.includes(location.pathname);
-
-    log.app('Route tracking', LogLevel.DEBUG, {
-      pathname: location.pathname,
-      profileId: currentProfile.id,
-      shouldSave,
-      excluded: excludedRoutes.includes(location.pathname),
-    });
+    const fromNotification = (location.state as Record<string, unknown>)?.fromNotification === true;
+    const shouldSave = !excludedRoutes.includes(location.pathname) && !fromNotification;
 
     if (shouldSave) {
       updateProfileSettings(currentProfile.id, { lastRoute: location.pathname });
-      log.app('Saved lastRoute to settings', LogLevel.DEBUG, {
-        lastRoute: location.pathname,
-        profileId: currentProfile.id,
-      });
+      log.app('Storing route', LogLevel.DEBUG, { route: location.pathname });
     }
   }, [location.pathname, currentProfile?.id, updateProfileSettings]);
 
   // Apply global insomnia setting
   useInsomnia({ enabled: settings.insomnia });
 
-  const handleMouseDown = (e: React.MouseEvent) => {
-    setIsDragging(true);
-    dragStartX.current = e.clientX;
-    dragStartWidth.current = sidebarWidth;
-  };
+  const { isLocked, previousInsomniaState } = useKioskStore();
 
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isDragging) return;
-
-      const delta = e.clientX - dragStartX.current;
-      const newWidth = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, dragStartWidth.current + delta));
-      setSidebarWidth(newWidth);
-    };
-
-    const handleMouseUp = () => {
-      setIsDragging(false);
-    };
-
-    if (isDragging) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
+    if (isLocked && !isCollapsed) {
+      setIsCollapsed(true);
     }
+  }, [isLocked]);
 
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [isDragging]);
+  const handleKioskUnlock = useCallback(() => {
+    if (currentProfile) {
+      updateProfileSettings(currentProfile.id, { insomnia: previousInsomniaState });
+    }
+  }, [currentProfile, previousInsomniaState, updateProfileSettings]);
+
+
+  const expandedWidth = 180;
+  const collapsedWidth = 60;
+  const sidebarWidth = isCollapsed ? collapsedWidth : expandedWidth;
+
+  const toggleSidebar = () => {
+    const next = !isCollapsed;
+    setIsCollapsed(next);
+    if (currentProfile) {
+      updateProfileSettings(currentProfile.id, { sidebarWidth: next ? collapsedWidth : expandedWidth });
+    }
+  };
+
+  // TOFU certificate trust migration dialog — hooks must be above any early return
+  const [pendingCert, setPendingCert] = useState<PendingCertTrust | null>(null);
+
+  useEffect(() => {
+    return onCertTrustRequest((pending) => {
+      setPendingCert(pending);
+    });
+  }, []);
+
+  const handleCertTrust = useCallback(async () => {
+    if (!pendingCert) return;
+    const { profileId, certInfo } = pendingCert;
+    setPendingCert(null);
+
+    updateProfileSettings(profileId, { trustedCertFingerprint: certInfo.fingerprint });
+    const { applySSLTrustSetting } = await import('../../lib/ssl-trust');
+    await applySSLTrustSetting(true, certInfo.fingerprint);
+    log.app('Certificate trusted via TOFU migration', LogLevel.INFO);
+  }, [pendingCert, updateProfileSettings]);
+
+  const handleCertCancel = useCallback(async () => {
+    if (!pendingCert) return;
+    const { profileId } = pendingCert;
+    setPendingCert(null);
+
+    // Disable self-signed certs since user rejected the certificate
+    updateProfileSettings(profileId, { allowSelfSignedCerts: false, trustedCertFingerprint: null });
+    const { applySSLTrustSetting } = await import('../../lib/ssl-trust');
+    await applySSLTrustSetting(false);
+    log.app('Certificate rejected, disabling self-signed cert support', LogLevel.INFO);
+  }, [pendingCert, updateProfileSettings]);
 
   // Check for profile after all hooks are called to avoid hooks violation
   if (!currentProfile) {
-    return <Navigate to="/setup" replace />;
+    if (location.pathname === '/profiles') {
+      // Allow access to profiles page without a current profile
+    } else {
+      const profiles = useProfileStore.getState().profiles;
+      return <Navigate to={profiles.length > 0 ? "/profiles" : "/profiles/new"} replace />;
+    }
   }
-
-  const toggleSidebar = () => {
-    setSidebarWidth(sidebarWidth > MIN_WIDTH + 20 ? MIN_WIDTH : MAX_WIDTH);
-  };
-
-  const isCollapsed = sidebarWidth <= MIN_WIDTH + 20;
 
   return (
     <div className="flex h-[100dvh] bg-background overflow-hidden pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]">
-      {/* Desktop Sidebar - Draggable */}
+      {/* Desktop Sidebar */}
       <aside
-        className="hidden md:flex flex-col border-r bg-card/50 backdrop-blur-xl z-20 transition-all duration-300 relative group"
+        className="hidden md:flex flex-col border-r bg-card/50 backdrop-blur-xl z-20 transition-all duration-300 relative group pt-[env(safe-area-inset-top)]"
         style={{ width: `${sidebarWidth}px` }}
       >
         <SidebarContent isCollapsed={isCollapsed} />
 
-        {/* Draggable Handle with Toggle Button */}
+        {/* Toggle Button */}
         <div
-          className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-5 h-12 bg-primary hover:bg-primary/90 rounded-full flex items-center justify-center cursor-col-resize shadow-lg z-50 transition-all duration-200 group-hover:w-6"
-          onMouseDown={handleMouseDown}
+          className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-5 h-10 bg-primary hover:bg-primary/90 rounded-full flex items-center justify-center cursor-pointer shadow-lg z-50 transition-all duration-200 opacity-0 group-hover:opacity-100"
           onClick={toggleSidebar}
           title={isCollapsed ? t('sidebar.expand') : t('sidebar.collapse')}
           data-testid="sidebar-toggle"
@@ -393,18 +156,37 @@ export default function AppLayout() {
       </aside>
 
       {/* Mobile Header */}
-      <div className="md:hidden fixed top-0 left-0 right-0 h-[calc(3rem+env(safe-area-inset-top))] pt-[env(safe-area-inset-top)] border-b bg-background/80 backdrop-blur-md z-30 flex items-center px-3 justify-between">
+      {!isLocked && (
+      <div className="md:hidden fixed top-0 left-0 right-0 h-[calc(3rem+env(safe-area-inset-top))] pt-[env(safe-area-inset-top)] border-b bg-background z-30 flex items-center px-3 justify-between">
         <div className="flex items-center gap-2">
           <img src="/logo.png" alt={t('app.logo_alt')} className="h-8 w-8 rounded-lg" />
           <span className="font-bold">{t('app.name')}</span>
           <LanguageSwitcher />
         </div>
-        <Sheet open={isMobileOpen} onOpenChange={setIsMobileOpen}>
-          <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" data-testid="mobile-menu-button">
-              <Menu className="h-5 w-5" />
+        <div className="flex items-center gap-1">
+          {location.pathname === '/montage' && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                if (currentProfile) {
+                  updateProfileSettings(currentProfile.id, {
+                    montageShowToolbar: !settings.montageShowToolbar,
+                  });
+                }
+              }}
+              title={t('montage.toggle_toolbar')}
+              data-testid="montage-toolbar-toggle"
+            >
+              {settings.montageShowToolbar ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
             </Button>
-          </SheetTrigger>
+          )}
+          <Sheet open={isMobileOpen} onOpenChange={setIsMobileOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" data-testid="mobile-menu-button">
+                <Menu className="h-5 w-5" />
+              </Button>
+            </SheetTrigger>
           <SheetContent side="left" className="p-0 w-64 sm:w-72 flex flex-col pt-[env(safe-area-inset-top)]">
             <SheetTitle className="sr-only">{t('app.navigation_menu')}</SheetTitle>
             <SheetDescription className="sr-only">{t('app.navigation_menu_desc')}</SheetDescription>
@@ -412,16 +194,33 @@ export default function AppLayout() {
               <SidebarContent onMobileClose={() => setIsMobileOpen(false)} />
             </div>
           </SheetContent>
-        </Sheet>
+          </Sheet>
+        </div>
       </div>
+      )}
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto overflow-x-hidden relative w-full pt-[calc(3rem+env(safe-area-inset-top))] md:pt-0 pb-[env(safe-area-inset-bottom)]">
+      <main className="flex-1 overflow-y-auto overflow-x-hidden relative w-full pt-[calc(3rem+env(safe-area-inset-top))] md:pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
         {/* Background gradient blob for visual interest */}
         <div className="absolute top-0 left-0 w-full h-96 bg-gradient-to-b from-primary/5 to-transparent -z-10 pointer-events-none" />
 
         <Outlet />
       </main>
+
+      {/* Global Background Task Drawer */}
+      <BackgroundTaskDrawer />
+
+
+      {/* TOFU certificate trust migration dialog */}
+      <CertTrustDialog
+        open={!!pendingCert}
+        certInfo={pendingCert?.certInfo ?? null}
+        isChanged={false}
+        onTrust={handleCertTrust}
+        onCancel={handleCertCancel}
+      />
+
+      <KioskOverlay onUnlock={handleKioskUnlock} />
     </div>
   );
 }

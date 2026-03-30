@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback, memo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { getEvents } from '../../../api/events';
@@ -18,34 +18,52 @@ import {
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { useTheme } from '../../theme-provider';
 import { useTranslation } from 'react-i18next';
+import { useDateTimeFormat } from '../../../hooks/useDateTimeFormat';
 import { Button } from '../../ui/button';
+import { useBandwidthSettings } from '../../../hooks/useBandwidthSettings';
 
 type TimeRange = '24h' | '48h' | '1w' | '2w' | '1m';
 
-export function TimelineWidget() {
+export const TimelineWidget = memo(function TimelineWidget() {
     const { theme } = useTheme();
     const { t } = useTranslation();
+    const { fmtTimeShort } = useDateTimeFormat();
     const navigate = useNavigate();
-    const now = new Date();
-    const [start, setStart] = useState(subHours(now, 24));
+    const bandwidth = useBandwidthSettings();
+    const [start, setStart] = useState(() => subHours(new Date(), 24));
     const [selectedRange, setSelectedRange] = useState<TimeRange>('24h');
     const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
     const containerRef = useRef<HTMLDivElement>(null);
+    
+    // Use ref for "now" to avoid infinite re-renders - updated when range changes
+    const nowRef = useRef(new Date());
+    const now = nowRef.current;
 
-    // Track container resize to force chart re-render
+    // Track container resize to force chart re-render (debounced to prevent infinite loops)
     useEffect(() => {
         if (!containerRef.current) return;
 
+        let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
         const resizeObserver = new ResizeObserver((entries) => {
-            for (const entry of entries) {
-                const { width, height } = entry.contentRect;
-                setContainerSize({ width, height });
-            }
+            // Debounce resize events to prevent rapid state updates
+            if (timeoutId) clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => {
+                for (const entry of entries) {
+                    const { width, height } = entry.contentRect;
+                    setContainerSize(prev => {
+                        // Only update if size actually changed
+                        if (prev.width === width && prev.height === height) return prev;
+                        return { width, height };
+                    });
+                }
+            }, 100);
         });
 
         resizeObserver.observe(containerRef.current);
 
         return () => {
+            if (timeoutId) clearTimeout(timeoutId);
             resizeObserver.disconnect();
         };
     }, []);
@@ -56,19 +74,21 @@ export function TimelineWidget() {
             startDateTime: formatForServer(start),
             limit: 1000,
         }),
-        refetchInterval: 60000,
+        refetchInterval: bandwidth.timelineHeatmapInterval,
     });
 
-    // Quick range handlers
-    const setRange = (hours: number, range: TimeRange) => {
-        setStart(subHours(new Date(), hours));
+    // Quick range handlers - update nowRef when range changes
+    const setRange = useCallback((hours: number, range: TimeRange) => {
+        nowRef.current = new Date();
+        setStart(subHours(nowRef.current, hours));
         setSelectedRange(range);
-    };
+    }, []);
 
-    const setRangeDays = (days: number, range: TimeRange) => {
-        setStart(subDays(new Date(), days));
+    const setRangeDays = useCallback((days: number, range: TimeRange) => {
+        nowRef.current = new Date();
+        setStart(subDays(nowRef.current, days));
         setSelectedRange(range);
-    };
+    }, []);
 
     // Intelligently aggregate events and format x-axis based on time range and widget width
     const { data, tickFormatter, tickInterval } = useMemo(() => {
@@ -98,7 +118,7 @@ export function TimelineWidget() {
                 } else if (hour === 12) {
                     timeLabel = '12pm';
                 } else {
-                    timeLabel = format(interval, 'ha');
+                    timeLabel = fmtTimeShort(interval);
                 }
 
                 return {
@@ -135,7 +155,7 @@ export function TimelineWidget() {
                 } else if (hour === 12) {
                     timeLabel = '12pm';
                 } else {
-                    timeLabel = format(interval, 'ha');
+                    timeLabel = fmtTimeShort(interval);
                 }
 
                 return {
@@ -253,10 +273,27 @@ export function TimelineWidget() {
 
             return { data: chartData, tickFormatter, tickInterval };
         }
-    }, [start, now, events, containerSize.width]);
+    // Use events?.events (the array) for more stable dependency - only recalc when events actually change
+    }, [start, now, events?.events, containerSize.width, fmtTimeShort]);
+
+    // Memoize tooltip styles to prevent re-renders
+    const tooltipContentStyle = useMemo(() => ({
+        backgroundColor: theme === 'cream' ? '#ece5d8' : theme === 'light' ? '#ffffff' : theme === 'slate' ? '#1e293b' : theme === 'amber' ? '#262320' : '#1f2937',
+        borderColor: theme === 'cream' ? '#d4c9b8' : theme === 'light' ? '#e5e7eb' : theme === 'slate' ? '#334155' : theme === 'amber' ? '#3d3731' : '#374151',
+        borderRadius: '0.5rem',
+        fontSize: '12px'
+    }), [theme]);
+
+    const tooltipLabelFormatter = useCallback((value: string, payload: readonly any[]) => {
+        if (payload && payload[0]) {
+            return payload[0].payload.fullTime;
+        }
+        return value;
+    }, []);
 
     // Handle bar click - navigate to events with time filter
-    const handleBarClick = (data: any) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- recharts onClick payload is untyped
+    const handleBarClick = useCallback((data: any) => {
         if (data && data.intervalStart && data.intervalEnd) {
             const formatDateTime = (date: Date) => {
                 // Format as YYYY-MM-DDTHH:mm for datetime-local input
@@ -267,7 +304,7 @@ export function TimelineWidget() {
                 state: { from: '/dashboard' }
             });
         }
-    };
+    }, [navigate]);
 
     return (
         <div ref={containerRef} className="w-full h-full flex flex-col p-2 gap-2">
@@ -314,7 +351,7 @@ export function TimelineWidget() {
                 </Button>
             </div>
             <div className="flex-1 min-h-0">
-                <ResponsiveContainer width="100%" height="100%" key={`${containerSize.width}-${containerSize.height}`}>
+                <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={data}>
                     <XAxis
                         dataKey="time"
@@ -336,18 +373,8 @@ export function TimelineWidget() {
                         allowDecimals={false}
                     />
                     <Tooltip
-                        contentStyle={{
-                            backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
-                            borderColor: theme === 'dark' ? '#374151' : '#e5e7eb',
-                            borderRadius: '0.5rem',
-                            fontSize: '12px'
-                        }}
-                        labelFormatter={(value, payload) => {
-                            if (payload && payload[0]) {
-                                return payload[0].payload.fullTime;
-                            }
-                            return value;
-                        }}
+                        contentStyle={tooltipContentStyle}
+                        labelFormatter={tooltipLabelFormatter}
                     />
                     <Bar
                         dataKey="count"
@@ -361,4 +388,4 @@ export function TimelineWidget() {
             </div>
         </div>
     );
-}
+});

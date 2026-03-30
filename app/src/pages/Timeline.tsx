@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useMemo, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { getEvents } from '../api/events';
@@ -7,10 +7,11 @@ import { Card, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import { RefreshCw, Filter, Activity, AlertCircle, Clock } from 'lucide-react';
+import { Switch } from '../components/ui/switch';
+import { RefreshCw, Filter, Activity, AlertCircle, Clock, ScanSearch, X } from 'lucide-react';
 import { format, subDays } from 'date-fns';
 import { filterEnabledMonitors } from '../lib/filters';
-import { ZM_CONSTANTS } from '../lib/constants';
+import { TIMELINE } from '../lib/zmninja-ng-constants';
 import { escapeHtml } from '../lib/utils';
 import { formatForServer } from '../lib/time';
 import { Timeline as VisTimeline } from 'vis-timeline/standalone';
@@ -26,6 +27,8 @@ import { useTranslation } from 'react-i18next';
 import { QuickDateRangeButtons } from '../components/ui/quick-date-range-buttons';
 import { MonitorFilterPopoverContent } from '../components/filters/MonitorFilterPopover';
 import { EmptyState } from '../components/ui/empty-state';
+import { NotificationBadge } from '../components/NotificationBadge';
+import { useTimelineFilters } from '../hooks/useTimelineFilters';
 
 interface TimelineGroup {
   id: string;
@@ -39,11 +42,19 @@ export default function Timeline() {
   const timelineRef = useRef<HTMLDivElement>(null);
   const timelineInstance = useRef<VisTimeline | null>(null);
 
-  const [startDate, setStartDate] = useState(
-    format(subDays(new Date(), 1), 'yyyy-MM-dd')
-  );
-  const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const [selectedMonitorIds, setSelectedMonitorIds] = useState<string[]>([]);
+  const {
+    selectedMonitorIds, startDateInput, endDateInput, onlyDetectedObjects,
+    setSelectedMonitorIds, setStartDateInput, setEndDateInput, setOnlyDetectedObjects,
+    clearFilters, activeFilterCount,
+  } = useTimelineFilters();
+
+  // Stable default dates — computed once, not every render
+  const defaultDates = useRef({
+    start: format(subDays(new Date(), 1), "yyyy-MM-dd'T'HH:mm"),
+    end: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
+  });
+  const startDate = startDateInput || defaultDates.current.start;
+  const endDate = endDateInput || defaultDates.current.end;
 
   // Fetch monitors
   const { data: monitorsData } = useQuery({
@@ -65,16 +76,17 @@ export default function Timeline() {
     return selectedMonitorIds.join(',');
   }, [selectedMonitorIds]);
 
-  const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['timeline-events', startDate, endDate, monitorFilter],
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['timeline-events', startDate, endDate, monitorFilter, onlyDetectedObjects],
     queryFn: () =>
       getEvents({
-        startDateTime: formatForServer(new Date(`${startDate} 00:00:00`)),
-        endDateTime: formatForServer(new Date(`${endDate} 23:59:59`)),
+        startDateTime: formatForServer(new Date(startDate)),
+        endDateTime: formatForServer(new Date(endDate)),
         monitorId: monitorFilter,
+        notesRegexp: onlyDetectedObjects ? 'detected:' : undefined,
         sort: 'StartDateTime',
         direction: 'desc',
-        limit: 500, // Reduced from 1000 to minimize API calls (5 instead of 10)
+        limit: 500,
       }),
   });
 
@@ -160,10 +172,14 @@ export default function Timeline() {
       })
     );
 
-    // Timeline options
+    // Timeline options — set start/end so vis-timeline opens at the filter range
+    const windowStart = new Date(startDate);
+    const windowEnd = new Date(endDate);
     const options = {
       width: '100%',
       height: '600px',
+      start: windowStart,
+      end: windowEnd,
       margin: {
         item: {
           horizontal: 10,
@@ -177,8 +193,8 @@ export default function Timeline() {
       showCurrentTime: true,
       showMajorLabels: true,
       showMinorLabels: true,
-      zoomMin: ZM_CONSTANTS.timelineZoomMin, // 1 minute
-      zoomMax: ZM_CONSTANTS.timelineZoomMax, // 1 week
+      zoomMin: TIMELINE.zoomMin, // 1 minute
+      zoomMax: 1000 * 60 * 60 * 24 * 90, // 90 days — supports month+ ranges
       moveable: true,
       zoomable: true,
       selectable: true,
@@ -191,42 +207,39 @@ export default function Timeline() {
       },
     };
 
-    // Create or update timeline
-    if (!timelineInstance.current) {
-      timelineInstance.current = new VisTimeline(timelineRef.current, items, groups, options);
-
-      // Handle event click
-      timelineInstance.current.on('select', (properties) => {
-        if (properties.items && properties.items.length > 0) {
-          const eventId = properties.items[0];
-          navigate(`/events/${eventId}`);
-        }
-      });
-    } else {
-      timelineInstance.current.setItems(items);
-      timelineInstance.current.setGroups(groups);
+    // Destroy previous instance and recreate — vis-timeline doesn't reliably
+    // update when items + window change simultaneously
+    if (timelineInstance.current) {
+      timelineInstance.current.destroy();
+      timelineInstance.current = null;
     }
 
-    // Cleanup
-    return () => {
-      // Don't destroy the instance on every render, only when component unmounts
-    };
-  }, [data, enabledMonitors, navigate]);
+    timelineInstance.current = new VisTimeline(timelineRef.current, items, groups, options);
 
-  // Cleanup on unmount
-  useEffect(() => {
+    // Handle event click
+    timelineInstance.current.on('select', (properties) => {
+      if (properties.items && properties.items.length > 0) {
+        const eventId = properties.items[0];
+        navigate(`/events/${eventId}`);
+      }
+    });
+
+
+
     return () => {
       if (timelineInstance.current) {
         timelineInstance.current.destroy();
         timelineInstance.current = null;
       }
     };
-  }, []);
+  }, [data, enabledMonitors, navigate, startDate, endDate]);
+
+  // Note: cleanup on unmount is handled by the effect above (its return fn)
 
   if (error) {
     return (
       <div className="p-8">
-        <h1 className="text-3xl font-bold mb-6">{t('timeline.title')}</h1>
+        <h1 className="text-lg font-bold mb-6">{t('timeline.title')}</h1>
         <div className="p-4 bg-destructive/10 text-destructive rounded-md">
           {t('timeline.load_error')}: {(error as Error).message}
         </div>
@@ -235,50 +248,55 @@ export default function Timeline() {
   }
 
   return (
-    <div className="p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4 md:space-y-6">
+    <div className="p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4 md:space-y-6" data-testid="timeline-page">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div>
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">{t('timeline.title')}</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-base sm:text-lg font-bold tracking-tight">{t('timeline.title')}</h1>
+            <NotificationBadge />
+          </div>
           <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 hidden sm:block">
             <span className="hidden sm:inline">{t('timeline.subtitle')}</span>
             {selectedMonitorIds.length > 0 && ` (${t('timeline.cameras_selected', { count: selectedMonitorIds.length })})`}
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button onClick={() => refetch()} variant="outline" size="sm" className="h-8 sm:h-9">
+          <Button onClick={() => { clearFilters(); defaultDates.current = { start: format(subDays(new Date(), 1), "yyyy-MM-dd'T'HH:mm"), end: format(new Date(), "yyyy-MM-dd'T'HH:mm") }; }} variant="outline" size="sm" className="h-8 sm:h-9" data-testid="timeline-reset-button">
             <RefreshCw className="h-4 w-4 sm:mr-2" />
-            <span className="hidden sm:inline">{t('common.refresh')}</span>
+            <span className="hidden sm:inline">{t('common.reset')}</span>
           </Button>
         </div>
       </div>
 
       {/* Filters */}
       <Card>
-        <CardContent className="pt-6">
+        <CardContent className="pt-6 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <Label htmlFor="startDate">{t('timeline.start_date')}</Label>
+              <Label htmlFor="startDate" className="text-xs">{t('timeline.start_date')}</Label>
               <Input
                 id="startDate"
-                type="date"
+                type="datetime-local"
                 value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
+                onChange={(e) => setStartDateInput(e.target.value)}
+                data-testid="timeline-start-date"
               />
             </div>
             <div>
-              <Label htmlFor="endDate">{t('timeline.end_date')}</Label>
+              <Label htmlFor="endDate" className="text-xs">{t('timeline.end_date')}</Label>
               <Input
                 id="endDate"
-                type="date"
+                type="datetime-local"
                 value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
+                onChange={(e) => setEndDateInput(e.target.value)}
+                data-testid="timeline-end-date"
               />
             </div>
             <div>
-              <Label>{t('timeline.monitors')}</Label>
+              <Label className="text-xs">{t('timeline.monitors')}</Label>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-full justify-between">
+                  <Button variant="outline" className="w-full justify-between" data-testid="timeline-monitor-filter">
                     {selectedMonitorIds.length === 0
                       ? t('timeline.all_monitors')
                       : t('timeline.monitors_selected', { count: selectedMonitorIds.length })}
@@ -297,15 +315,39 @@ export default function Timeline() {
             </div>
           </div>
 
-          {/* Quick Date Ranges */}
-          <div className="space-y-2 mt-4">
-            <Label className="text-sm text-muted-foreground">{t('events.quick_ranges')}</Label>
-            <QuickDateRangeButtons
-              onRangeSelect={({ start, end }) => {
-                setStartDate(format(start, 'yyyy-MM-dd'));
-                setEndDate(format(end, 'yyyy-MM-dd'));
-              }}
+          {/* Object Detection Filter */}
+          <div className="flex items-center justify-between p-3 rounded-md border bg-card">
+            <div className="flex items-center gap-2">
+              <ScanSearch className="h-4 w-4 text-muted-foreground" />
+              <Label htmlFor="timeline-only-detected" className="cursor-pointer">
+                {t('events.filter.onlyDetectedObjects')}
+              </Label>
+            </div>
+            <Switch
+              id="timeline-only-detected"
+              checked={onlyDetectedObjects}
+              onCheckedChange={setOnlyDetectedObjects}
+              data-testid="timeline-detected-objects-toggle"
             />
+          </div>
+
+          {/* Quick Date Ranges + Clear */}
+          <div className="flex items-center gap-3">
+            <div className="flex-1">
+              <Label className="text-xs text-muted-foreground">{t('events.quick_ranges')}</Label>
+              <QuickDateRangeButtons
+                onRangeSelect={({ start, end }) => {
+                  setStartDateInput(format(start, "yyyy-MM-dd'T'HH:mm"));
+                  setEndDateInput(format(end, "yyyy-MM-dd'T'HH:mm"));
+                }}
+              />
+            </div>
+            {activeFilterCount > 0 && (
+              <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground" data-testid="timeline-clear-filters">
+                <X className="h-4 w-4 mr-1" />
+                {t('common.clear')}
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -314,12 +356,12 @@ export default function Timeline() {
       <Card className="shadow-lg">
         <CardContent className="p-0">
           {isLoading ? (
-            <div className="flex flex-col items-center justify-center h-[600px] gap-4">
+            <div className="flex flex-col items-center justify-center h-[600px] gap-4" data-testid="timeline-loading">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
               <div className="text-muted-foreground">{t('timeline.loading')}</div>
             </div>
           ) : data?.events && data.events.length === 0 ? (
-            <div className="h-[600px] flex items-center justify-center">
+            <div className="h-[600px] flex items-center justify-center" data-testid="timeline-empty-state">
               <EmptyState
                 icon={Clock}
                 title={t('timeline.no_events_found')}
@@ -327,9 +369,9 @@ export default function Timeline() {
               />
             </div>
           ) : (
-            <div className="p-6">
+            <div className="p-6" data-testid="timeline-content">
               <div className="mb-4 flex items-center justify-between">
-                <div className="text-sm text-muted-foreground">
+                <div className="text-sm text-muted-foreground" data-testid="timeline-events-count">
                   {t('timeline.showing_events', { count: data?.events.length })}
                 </div>
                 <div className="text-xs text-muted-foreground">
@@ -339,6 +381,7 @@ export default function Timeline() {
               <div
                 ref={timelineRef}
                 className="vis-timeline-custom"
+                data-testid="timeline-container"
                 style={{
                   border: '1px solid hsl(var(--border))',
                   borderRadius: '8px',
@@ -353,12 +396,12 @@ export default function Timeline() {
 
       {/* Event Statistics */}
       {data?.events && data.events.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" data-testid="timeline-statistics">
           <Card className="border-l-4 border-l-blue-500 hover:shadow-md transition-shadow">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-3xl font-bold text-blue-600">{data.events.length}</div>
+                  <div className="text-2xl font-bold text-blue-600">{data.events.length}</div>
                   <p className="text-xs text-muted-foreground mt-1 font-medium">{t('timeline.total_events')}</p>
                 </div>
                 <div className="h-12 w-12 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
@@ -371,7 +414,7 @@ export default function Timeline() {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-3xl font-bold text-green-600">
+                  <div className="text-2xl font-bold text-green-600">
                     {new Set(data.events.map(e => e.Event.MonitorId)).size}
                   </div>
                   <p className="text-xs text-muted-foreground mt-1 font-medium">{t('timeline.active_monitors')}</p>
@@ -386,7 +429,7 @@ export default function Timeline() {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-3xl font-bold text-amber-600">
+                  <div className="text-2xl font-bold text-amber-600">
                     {data.events.reduce((sum, e) => sum + parseInt(e.Event.AlarmFrames || '0'), 0).toLocaleString()}
                   </div>
                   <p className="text-xs text-muted-foreground mt-1 font-medium">{t('timeline.alarm_frames')}</p>
@@ -401,7 +444,7 @@ export default function Timeline() {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-3xl font-bold text-purple-600">
+                  <div className="text-2xl font-bold text-purple-600">
                     {Math.round(data.events.reduce((sum, e) => sum + parseFloat(e.Event.Length || '0'), 0) / 60)}m
                   </div>
                   <p className="text-xs text-muted-foreground mt-1 font-medium">{t('timeline.total_duration')}</p>

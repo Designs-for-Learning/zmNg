@@ -4,17 +4,17 @@ for your environment (especially linux, which is well known for breaking glibc a
 See [README](README.md)
 
 ### macOS
-- **Unsigned Build**: This app is not code-signed. On first launch, you may see a "damaged" error.
-- **Solution**: Use [Sentinel](https://github.com/alienator88/Sentinel) to bypass Gatekeeper
+- The macOS build is signed using ZoneMinder certs. You may need to allow running external apps if prompted
+- (You should no longer need Sentinel to bypass Gatekeeer)
 
 ### Windows
 - **Unsigned Build**: SmartScreen may warn about an unrecognized app
 - **Solution**: Click "More info" → "Run anyway"
 
 ### Linux
-- **AppImage**: Make executable with `chmod +x zmNg-*.AppImage`, then run
-- **DEB Package**: Install with `sudo dpkg -i zmNg-*.deb`
-- **RPM Package**: Install with `sudo rpm -i zmNg-*.rpm`
+- **AppImage**: Make executable with `chmod +x zmNinjaNG-*.AppImage`, then run
+- **DEB Package**: Install with `sudo dpkg -i zmNinjaNG-*.deb`
+- **RPM Package**: Install with `sudo rpm -i zmNinjaNG-*.rpm`
 
 ### Android
 - **Debug APK (signed)**: Enable "Install from Unknown Sources" in device settings
@@ -22,12 +22,11 @@ See [README](README.md)
 
 ## Important Notes
 
-- **Self-signed certificates are not supported**. Use Let's Encrypt or other trusted certificates.
-- **Push notifications**: Require building the mobile apps yourself with your own FCM credentials. See [Android](ANDROID_BUILD.md) and [iOS](IOS_BUILD.md) build guides.
-- **Event Server**: For push notifications, use a newer [Event Server](https://github.com/pliablepixels/zm_docker_macos) with direct FCM support.
+- **Push notifications**: Now works for iOS and Android
+- **Event Server**: zmNinjaNG needs the new [EventServer 7+](https://zmeventnotificationv7.readthedocs.io/en/latest/). It may work with the old one. 
 
 ## Support
 
-This is personal software with no official support. For issues or contributions, see the [GitHub repository](https://github.com/pliablepixels/zmNg).
+This is personal software with no official support. For issues or contributions, see the [GitHub repository](https://github.com/pliablepixels/zmNinjaNG).
 
 ---

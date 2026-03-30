@@ -8,12 +8,14 @@
  * - Click to navigate to Events page with time filter
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, memo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getEvents } from '../../../api/events';
-import { useProfileStore } from '../../../stores/profile';
+import { useCurrentProfile } from '../../../hooks/useCurrentProfile';
+import { useBandwidthSettings } from '../../../hooks/useBandwidthSettings';
+import { useAuthStore } from '../../../stores/auth';
 import { Card, CardHeader, CardTitle, CardContent } from '../../ui/card';
 import { Button } from '../../ui/button';
 import { Loader2, Activity } from 'lucide-react';
@@ -27,12 +29,14 @@ interface HeatmapWidgetProps {
 
 type TimeRange = '24h' | '48h' | '7d' | '14d' | '30d';
 
-export function HeatmapWidget({ title }: HeatmapWidgetProps) {
+export const HeatmapWidget = memo(function HeatmapWidget({ title }: HeatmapWidgetProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
+  const bandwidth = useBandwidthSettings();
   const [timeRange, setTimeRange] = useState<TimeRange>('7d');
-  const currentProfile = useProfileStore((state) => state.currentProfile());
+  const { currentProfile } = useCurrentProfile();
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
   // Calculate date range based on selection
   const { startDate, endDate } = useMemo(() => {
@@ -73,8 +77,8 @@ export function HeatmapWidget({ title }: HeatmapWidgetProps) {
         endDateTime: formatForServer(endDate),
         limit: 1000,
       }),
-    enabled: !!currentProfile,
-    refetchInterval: 60000, // Refresh every minute
+    enabled: !!currentProfile && isAuthenticated,
+    refetchInterval: bandwidth.timelineHeatmapInterval,
   });
 
   const events = eventsData?.events || [];
@@ -168,4 +172,4 @@ export function HeatmapWidget({ title }: HeatmapWidgetProps) {
       </CardContent>
     </Card>
   );
-}
+});

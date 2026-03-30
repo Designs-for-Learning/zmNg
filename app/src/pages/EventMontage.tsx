@@ -7,10 +7,9 @@
 
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useShallow } from 'zustand/react/shallow';
 import { getEvents } from '../api/events';
 import { getMonitors } from '../api/monitors';
-import { useProfileStore } from '../stores/profile';
+import { useCurrentProfile } from '../hooks/useCurrentProfile';
 import { useAuthStore } from '../stores/auth';
 import { useSettingsStore } from '../stores/settings';
 import { useEventPagination } from '../hooks/useEventPagination';
@@ -28,14 +27,8 @@ import { log, LogLevel } from '../lib/logger';
 
 export default function EventMontage() {
   const { t } = useTranslation();
-  // Use direct selector to ensure proper reactivity when profile updates
-  const currentProfile = useProfileStore((state) =>
-    state.profiles.find((p) => p.id === state.currentProfileId) || null
-  );
+  const { currentProfile, settings } = useCurrentProfile();
   const accessToken = useAuthStore((state) => state.accessToken);
-  const settings = useSettingsStore(
-    useShallow((state) => state.getProfileSettings(currentProfile?.id || ''))
-  );
   const normalizedThumbnailFit =
     settings.eventsThumbnailFit === 'fill' ? 'contain' : settings.eventsThumbnailFit;
   const updateSettings = useSettingsStore((state) => state.updateProfileSettings);
@@ -77,7 +70,7 @@ export default function EventMontage() {
       params.endDateTime = new Date(endDate).toISOString();
     }
 
-    params.limit = settings.defaultEventLimit || 300;
+    params.limit = settings.defaultEventLimit || 100;
     params.sort = 'StartDateTime';
     params.direction = 'desc';
 
@@ -94,11 +87,9 @@ export default function EventMontage() {
 
   const events = eventsData?.events || [];
 
-  // Use pagination hook
-  const { eventLimit, isLoadingMore, loadNextPage } = useEventPagination({
-    defaultLimit: settings.defaultEventLimit || 300,
-    eventCount: events.length,
-    containerRef,
+  // Use pagination hook for manual "Load More" button
+  const { batchSize, isLoadingMore, loadNextPage } = useEventPagination({
+    defaultLimit: settings.defaultEventLimit || 100,
   });
 
   // Use grid management hook
@@ -202,7 +193,7 @@ export default function EventMontage() {
     return (
       <div className="p-8">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold tracking-tight">{t('eventMontage.title')}</h1>
+          <h1 className="text-lg font-bold tracking-tight">{t('eventMontage.title')}</h1>
         </div>
         <div className="p-4 bg-destructive/10 text-destructive rounded-lg flex items-center gap-2">
           <AlertCircle className="h-5 w-5" />
@@ -220,8 +211,8 @@ export default function EventMontage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div>
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight flex items-center gap-2">
-            <LayoutGrid className="h-5 w-5 sm:h-6 sm:w-6 md:h-7 md:w-7" />
+          <h1 className="text-base sm:text-lg font-bold tracking-tight flex items-center gap-2">
+            <LayoutGrid className="h-4 w-4 sm:h-5 sm:w-5" />
             {t('eventMontage.title')}
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
@@ -240,10 +231,8 @@ export default function EventMontage() {
                 <SelectValue placeholder={t('events.thumbnail_fit')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="contain">{t('events.fit_contain')}</SelectItem>
-                <SelectItem value="cover">{t('events.fit_cover')}</SelectItem>
-                <SelectItem value="none">{t('events.fit_none')}</SelectItem>
-                <SelectItem value="scale-down">{t('events.fit_scale_down')}</SelectItem>
+                <SelectItem value="contain">{t('montage.fit_fit')}</SelectItem>
+                <SelectItem value="cover">{t('montage.fit_crop')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -304,7 +293,8 @@ export default function EventMontage() {
           thumbnailFit={normalizedThumbnailFit}
           portalUrl={currentProfile?.portalUrl || ''}
           accessToken={accessToken || undefined}
-          eventLimit={eventLimit}
+          batchSize={batchSize}
+          totalCount={eventsData?.pagination?.totalCount}
           isLoadingMore={isLoadingMore}
           onLoadMore={loadNextPage}
         />

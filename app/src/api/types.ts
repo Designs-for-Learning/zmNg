@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { log, LogLevel } from '../lib/logger';
+import type { EventFilters } from './events';
 
 // Authentication types
 export const LoginResponseSchema = z.object({
@@ -65,15 +66,6 @@ export const HostTimeZoneResponseSchema = z.object({
 
 export type HostTimeZoneResponse = z.infer<typeof HostTimeZoneResponseSchema>;
 
-// Streaming port configuration schema
-export const StreamingPortResponseSchema = z.object({
-  config: z.object({
-    Value: z.string(),
-  }),
-});
-
-export type StreamingPortResponse = z.infer<typeof StreamingPortResponseSchema>;
-
 // Monitor types
 export const MonitorStatusSchema = z.object({
   MonitorId: z.coerce.string().nullable(),
@@ -92,6 +84,10 @@ export const MonitorSchema = z.object({
   StorageId: z.coerce.string().nullable(),
   Type: z.string(),
   Function: z.enum(['None', 'Monitor', 'Modect', 'Record', 'Mocord', 'Nodect']),
+  // ZM 1.38+ fields (replace Function with independent controls)
+  Capturing: z.enum(['None', 'Ondemand', 'Always']).optional(),
+  Analysing: z.enum(['None', 'Always']).optional(),
+  Recording: z.enum(['None', 'OnMotion', 'Always']).optional(),
   Enabled: z.coerce.string(),
   LinkedMonitors: z.string().nullable(),
   Triggers: z.string().nullable(),
@@ -127,6 +123,8 @@ export const MonitorSchema = z.object({
   Hue: z.coerce.number().nullable(),
   Colour: z.coerce.number().nullable(),
   EventPrefix: z.string().nullable(),
+  EventStartCommand: z.string().nullable().optional(),
+  EventEndCommand: z.string().nullable().optional(),
   LabelFormat: z.string().nullable(),
   LabelX: z.coerce.string().nullable(),
   LabelY: z.coerce.string().nullable(),
@@ -174,6 +172,29 @@ export const MonitorSchema = z.object({
   RTSPServer: z.coerce.string().nullable(),
   RTSPStreamName: z.string().nullable(),
   Importance: z.string().nullable(),
+  // Go2RTC fields (ZoneMinder 1.37+)
+  Go2RTCEnabled: z.coerce.boolean().optional().default(false),
+  Go2RTCType: z.preprocess(
+    (val) => {
+      // Transform any falsy value (including '', 0, false, null, undefined) to null
+      // Also handle whitespace-only strings
+      if (!val || (typeof val === 'string' && !val.trim())) return null;
+      return val;
+    },
+    z.enum(['WebRTC', 'MSE', 'HLS']).nullable().optional()
+  ),
+  RTSP2WebEnabled: z.coerce.boolean().optional().default(false),
+  RTSP2WebType: z.preprocess(
+    (val) => {
+      // Transform any falsy value (including '', 0, false, null, undefined) to null
+      // Also handle whitespace-only strings
+      if (!val || (typeof val === 'string' && !val.trim())) return null;
+      return val;
+    },
+    z.enum(['HLS', 'MSE', 'WebRTC']).nullable().optional()
+  ),
+  JanusEnabled: z.coerce.boolean().optional().default(false),
+  DefaultPlayer: z.string().nullable().optional(),
 });
 
 export const MonitorDataSchema = z.object({
@@ -189,13 +210,6 @@ export type Monitor = z.infer<typeof MonitorSchema>;
 export type MonitorStatus = z.infer<typeof MonitorStatusSchema>;
 export type MonitorData = z.infer<typeof MonitorDataSchema>;
 export type MonitorsResponse = z.infer<typeof MonitorsResponseSchema>;
-
-// Monitor update response (for updateMonitor endpoint)
-export const MonitorUpdateResponseSchema = z.object({
-  monitor: MonitorDataSchema,
-});
-
-export type MonitorUpdateResponse = z.infer<typeof MonitorUpdateResponseSchema>;
 
 // Monitor alarm status response (for getAlarmStatus and alarm control endpoints)
 // ZM alarm() function returns different structures based on command and success/failure:
@@ -339,6 +353,7 @@ export const EventsResponseSchema = z.object({
     prevPage: z.boolean(),
     nextPage: z.boolean(),
     limit: z.coerce.number(),
+    totalCount: z.coerce.number().optional(), // Total events matching filters (from server)
   }),
 });
 
@@ -366,19 +381,19 @@ export type ConsoleEventsResponse = z.infer<typeof ConsoleEventsResponseSchema>;
 
 // Config types
 export const ConfigSchema = z.object({
-  Id: z.string(),
+  Id: z.coerce.string(),
   Name: z.string(),
   Value: z.string(),
   Type: z.string(),
-  DefaultValue: z.string(),
-  Hint: z.string().nullable(),
-  Pattern: z.string().nullable(),
-  Format: z.string().nullable(),
-  Prompt: z.string().nullable(),
-  Help: z.string().nullable(),
+  DefaultValue: z.string().nullable().optional(),
+  Hint: z.string().nullable().optional(),
+  Pattern: z.string().nullable().optional(),
+  Format: z.string().nullable().optional(),
+  Prompt: z.string().nullable().optional(),
+  Help: z.string().nullable().optional(),
   Category: z.string(),
-  Readonly: z.string().nullable(),
-  Requires: z.string().nullable(),
+  Readonly: z.coerce.string().nullable().optional(),
+  Requires: z.string().nullable().optional(),
 });
 
 export const ConfigDataSchema = z.object({
@@ -401,6 +416,24 @@ export const ZmsPathResponseSchema = z.object({
 });
 
 export type ZmsPathResponse = z.infer<typeof ZmsPathResponseSchema>;
+
+// Min Streaming Port response schema for fetching ZM_MIN_STREAMING_PORT config
+export const MinStreamingPortResponseSchema = z.object({
+  config: z.object({
+    Value: z.string(),
+  }),
+});
+
+export type MinStreamingPortResponse = z.infer<typeof MinStreamingPortResponseSchema>;
+
+// Go2RTC Path response schema for fetching ZM_GO2RTC_PATH config
+export const Go2RTCPathResponseSchema = z.object({
+  config: z.object({
+    Value: z.string(),
+  }),
+});
+
+export type Go2RTCPathResponse = z.infer<typeof Go2RTCPathResponseSchema>;
 
 // ZoneMinder server log types
 export const ZMLogSchema = z.object({
@@ -482,14 +515,8 @@ export interface Profile {
   createdAt: number;
   lastUsed?: number;
   timezone?: string;
-  streamingBasePort?: number; // ZM_MIN_STREAMING_PORT - per-monitor streaming ports start here
-}
-
-// Error types
-export interface ApiError {
-  message: string;
-  code?: string;
-  status?: number;
+  minStreamingPort?: number; // ZM_MIN_STREAMING_PORT from server config
+  go2rtcUrl?: string; // ZM_GO2RTC_PATH from server config (full URL)
 }
 
 // Stream options types
@@ -503,13 +530,6 @@ export interface StreamOptions {
   token?: string;
   connkey?: number;
   cacheBuster?: number;
-}
-
-// Image options types
-export interface ImageOptions {
-  token?: string;
-  width?: number;
-  height?: number;
 }
 
 // Component prop types
@@ -527,14 +547,129 @@ export interface EventCardProps {
   objectFit?: React.CSSProperties['objectFit'];
   thumbnailWidth: number;
   thumbnailHeight: number;
+  tags?: Tag[];
+  eventFilters?: EventFilters;
 }
+
+// Zone types
+export const ZoneTypeEnum = z.enum(['Active', 'Inclusive', 'Exclusive', 'Preclusive', 'Inactive', 'Privacy']);
+
+export const ZoneSchema = z.object({
+  Id: z.coerce.number(),
+  MonitorId: z.coerce.number(),
+  Name: z.string(),
+  Type: ZoneTypeEnum,
+  Units: z.string().optional(),
+  NumCoords: z.coerce.number(),
+  Coords: z.string(),
+  Area: z.coerce.number().optional(),
+  AlarmRGB: z.coerce.number().optional(),
+  CheckMethod: z.string().optional(),
+  MinPixelThreshold: z.coerce.number().nullable().optional(),
+  MaxPixelThreshold: z.coerce.number().nullable().optional(),
+  MinAlarmPixels: z.coerce.number().nullable().optional(),
+  MaxAlarmPixels: z.coerce.number().nullable().optional(),
+  FilterX: z.coerce.number().nullable().optional(),
+  FilterY: z.coerce.number().nullable().optional(),
+  MinFilterPixels: z.coerce.number().nullable().optional(),
+  MaxFilterPixels: z.coerce.number().nullable().optional(),
+  MinBlobPixels: z.coerce.number().nullable().optional(),
+  MaxBlobPixels: z.coerce.number().nullable().optional(),
+  MinBlobs: z.coerce.number().nullable().optional(),
+  MaxBlobs: z.coerce.number().nullable().optional(),
+  OverloadFrames: z.coerce.number().nullable().optional(),
+  ExtendAlarmFrames: z.coerce.number().nullable().optional(),
+});
+
+export const ZoneDataSchema = z.object({
+  Zone: ZoneSchema,
+});
+
+export const ZonesResponseSchema = z.object({
+  zones: z.array(ZoneDataSchema),
+});
+
+export type Zone = z.infer<typeof ZoneSchema>;
+export type ZoneType = z.infer<typeof ZoneTypeEnum>;
+export type ZoneData = z.infer<typeof ZoneDataSchema>;
+export type ZonesResponse = z.infer<typeof ZonesResponseSchema>;
+
+// Group types
+export const GroupSchema = z.object({
+  Id: z.coerce.string(),
+  Name: z.string(),
+  ParentId: z.coerce.string().nullable(),
+});
+
+// Monitor reference within a group (subset of full Monitor)
+export const GroupMonitorRefSchema = z.object({
+  Id: z.coerce.string(),
+  Name: z.string().optional(),
+});
+
+export const GroupDataSchema = z.object({
+  Group: GroupSchema,
+  Monitor: z.array(GroupMonitorRefSchema).optional().default([]),
+});
+
+export const GroupsResponseSchema = z.object({
+  groups: z.array(GroupDataSchema),
+});
+
+export type Group = z.infer<typeof GroupSchema>;
+export type GroupMonitorRef = z.infer<typeof GroupMonitorRefSchema>;
+export type GroupData = z.infer<typeof GroupDataSchema>;
+export type GroupsResponse = z.infer<typeof GroupsResponseSchema>;
 
 // Montage layout types
-import type { LayoutItem } from 'react-grid-layout/legacy';
-
 export interface MontageLayout {
-  lg?: LayoutItem[];
-  md?: LayoutItem[];
-  sm?: LayoutItem[];
-  xs?: LayoutItem[];
+  lg?: ReactGridLayout.Layout[];
+  md?: ReactGridLayout.Layout[];
+  sm?: ReactGridLayout.Layout[];
+  xs?: ReactGridLayout.Layout[];
 }
+
+// Import for ReactGridLayout namespace
+import type * as ReactGridLayout from 'react-grid-layout';
+
+// Tag types
+export const TagSchema = z.object({
+  Id: z.coerce.string(),
+  Name: z.string(),
+  CreateDate: z.string().nullable().optional(),
+  CreatedBy: z.coerce.string().nullable().optional(),
+  LastAssignedDate: z.string().nullable().optional(),
+});
+
+// Schema for tag data without event association (used for available tags list)
+export const TagDataSchema = z.object({
+  Tag: TagSchema,
+});
+
+// Schema for tag-event mapping from the API
+// The API returns: { tags: [{ Tag: {...}, Events_Tags: {EventId: 1} }] }
+// Each tag-event association is a separate entry in the array
+export const TagEventMappingSchema = z.object({
+  Tag: TagSchema,
+  Events_Tags: z.object({
+    EventId: z.coerce.string(),
+  }).optional(),
+});
+
+// Response schema for GET /api/tags.json
+// This returns all tags with their event associations
+export const TagsResponseSchema = z.object({
+  tags: z.array(TagEventMappingSchema),
+});
+
+// Response schema for GET /api/tags/index/Events.Id:1,2,3.json
+// Same format as TagsResponseSchema
+export const EventTagsResponseSchema = z.object({
+  tags: z.array(TagEventMappingSchema),
+});
+
+export type Tag = z.infer<typeof TagSchema>;
+export type TagData = z.infer<typeof TagDataSchema>;
+export type TagEventMapping = z.infer<typeof TagEventMappingSchema>;
+export type TagsResponse = z.infer<typeof TagsResponseSchema>;
+export type EventTagsResponse = z.infer<typeof EventTagsResponseSchema>;

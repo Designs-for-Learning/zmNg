@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.pliablepixels.zmng',
-  appName: 'zmNg',
+  appId: 'com.zoneminder.zmNinjaNG',
+  appName: 'zmNinjaNG',
   webDir: 'dist',
   server: {
     cleartext: true,
@@ -13,7 +13,9 @@ const config: CapacitorConfig = {
     allowNavigation: ['*']
   },
   ios: {
-    contentInset: 'automatic',
+    contentInset: 'never',
+    backgroundColor: '#020817',
+    allowsInlineMediaPlayback: true,
   },
   plugins: {
     SplashScreen: {
@@ -22,7 +24,10 @@ const config: CapacitorConfig = {
       backgroundColor: '#000000',
       showSpinner: false,
       fadeOutDuration: 200,
-    }
+    },
+    FirebaseMessaging: {
+      presentationOptions: ['alert', 'badge', 'sound'],
+    },
   }
 };
 

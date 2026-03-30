@@ -7,13 +7,14 @@
 
 import { getApiClient } from './client';
 import type { MonitorsResponse, MonitorData, ControlData, AlarmStatusResponse, DaemonStatusResponse } from './types';
-import { MonitorsResponseSchema, MonitorDataSchema, ControlDataSchema, MonitorUpdateResponseSchema, AlarmStatusResponseSchema, DaemonStatusResponseSchema } from './types';
-import { Platform } from '../lib/platform';
+import { MonitorsResponseSchema, MonitorDataSchema, ControlDataSchema, AlarmStatusResponseSchema, DaemonStatusResponseSchema } from './types';
 import { validateApiResponse } from '../lib/api-validator';
 import {
   getMonitorStreamUrl as buildMonitorStreamUrl,
   getMonitorControlUrl as buildMonitorControlUrl,
 } from '../lib/url-builder';
+import { log, LogLevel } from '../lib/logger';
+import { wrapWithImageProxy } from '../lib/proxy-utils';
 
 /**
  * Get all monitors.
@@ -23,14 +24,23 @@ import {
  * @returns Promise resolving to MonitorsResponse containing array of monitors
  */
 export async function getMonitors(): Promise<MonitorsResponse> {
+  log.api('Fetching monitors list', LogLevel.INFO);
+
   const client = getApiClient();
   const response = await client.get<MonitorsResponse>('/monitors.json');
 
   // Validate response with Zod
-  return validateApiResponse(MonitorsResponseSchema, response.data, {
+  const validated = validateApiResponse(MonitorsResponseSchema, response.data, {
     endpoint: '/monitors.json',
     method: 'GET',
   });
+
+  // Exclude deleted monitors at the API boundary so they never enter the app
+  validated.monitors = validated.monitors.filter(
+    ({ Monitor }) => Monitor.Deleted !== true
+  );
+
+  return validated;
 }
 
 /**
@@ -40,6 +50,8 @@ export async function getMonitors(): Promise<MonitorsResponse> {
  * @returns Promise resolving to MonitorData
  */
 export async function getMonitor(monitorId: string): Promise<MonitorData> {
+  log.api('Fetching monitor details', LogLevel.INFO, { monitorId });
+
   const client = getApiClient();
   const response = await client.get<{ monitor: MonitorData }>(`/monitors/${monitorId}.json`);
   // Validate and coerce types (e.g. Controllable number -> string)
@@ -56,6 +68,8 @@ export async function getMonitor(monitorId: string): Promise<MonitorData> {
  * @returns Promise resolving to ControlData
  */
 export async function getControl(controlId: string): Promise<ControlData> {
+  log.api('Fetching control capabilities', LogLevel.INFO, { controlId });
+
   const client = getApiClient();
   const response = await client.get(`/controls/${controlId}.json`);
   return validateApiResponse(ControlDataSchema, response.data, {
@@ -76,26 +90,21 @@ export async function getControl(controlId: string): Promise<ControlData> {
 export async function updateMonitor(
   monitorId: string,
   updates: Record<string, unknown>
-): Promise<MonitorData> {
+): Promise<void> {
+  log.api('Updating monitor settings', LogLevel.INFO, { monitorId, updates });
+
   const client = getApiClient();
   const body = new URLSearchParams();
   Object.entries(updates).forEach(([key, value]) => {
     if (value === undefined || value === null) return;
     body.set(key, String(value));
   });
-  const response = await client.post(`/monitors/${monitorId}.json`, body, {
+  await client.post(`/monitors/${monitorId}.json`, body, {
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
     },
   });
-
-  // Validate response with Zod
-  const validated = validateApiResponse(MonitorUpdateResponseSchema, response.data, {
-    endpoint: `/monitors/${monitorId}.json`,
-    method: 'POST',
-  });
-
-  return validated.monitor;
+  // ZM returns {"message":"Saved"} — callers refetch monitor data separately
 }
 
 /**
@@ -110,23 +119,54 @@ export async function updateMonitor(
 export async function changeMonitorFunction(
   monitorId: string,
   func: 'None' | 'Monitor' | 'Modect' | 'Record' | 'Mocord' | 'Nodect'
-): Promise<MonitorData> {
-  return updateMonitor(monitorId, {
+): Promise<void> {
+  log.api('Changing monitor function', LogLevel.INFO, { monitorId, function: func });
+
+  await updateMonitor(monitorId, {
     'Monitor[Function]': func,
   });
 }
 
 /**
+ * Update monitor capture settings (ZM 1.38+).
+ *
+ * Sets Capturing, Analysing, and/or Recording fields independently.
+ * Only sends fields that are provided.
+ *
+ * @param monitorId - The ID of the monitor
+ * @param settings - Object with optional Capturing, Analysing, Recording values
+ * @returns Promise resolving to updated MonitorData
+ */
+export async function updateMonitorCapture(
+  monitorId: string,
+  settings: {
+    Capturing?: 'None' | 'Ondemand' | 'Always';
+    Analysing?: 'None' | 'Always';
+    Recording?: 'None' | 'OnMotion' | 'Always';
+  }
+): Promise<void> {
+  log.api('Updating monitor capture settings', LogLevel.INFO, { monitorId, settings });
+
+  const params: Record<string, string> = {};
+  if (settings.Capturing !== undefined) params['Monitor[Capturing]'] = settings.Capturing;
+  if (settings.Analysing !== undefined) params['Monitor[Analysing]'] = settings.Analysing;
+  if (settings.Recording !== undefined) params['Monitor[Recording]'] = settings.Recording;
+  await updateMonitor(monitorId, params);
+}
+
+/**
  * Enable or disable a monitor.
- * 
+ *
  * Helper wrapper around updateMonitor for toggling enabled state.
- * 
+ *
  * @param monitorId - The ID of the monitor
  * @param enabled - True to enable, false to disable
  * @returns Promise resolving to updated MonitorData
  */
-export async function setMonitorEnabled(monitorId: string, enabled: boolean): Promise<MonitorData> {
-  return updateMonitor(monitorId, {
+export async function setMonitorEnabled(monitorId: string, enabled: boolean): Promise<void> {
+  log.api('Setting monitor enabled state', LogLevel.INFO, { monitorId, enabled });
+
+  await updateMonitor(monitorId, {
     'Monitor[Enabled]': enabled ? '1' : '0',
   });
 }
@@ -140,6 +180,8 @@ export async function setMonitorEnabled(monitorId: string, enabled: boolean): Pr
  * @throws Error if alarm trigger fails (ZM returns status: 'false' with error)
  */
 export async function triggerAlarm(monitorId: string): Promise<void> {
+  log.api('Triggering monitor alarm', LogLevel.INFO, { monitorId });
+
   const client = getApiClient();
   const response = await client.get(`/monitors/alarm/id:${monitorId}/command:on.json`);
 
@@ -164,6 +206,8 @@ export async function triggerAlarm(monitorId: string): Promise<void> {
  * @throws Error if alarm cancel fails (ZM returns status: 'false' with error)
  */
 export async function cancelAlarm(monitorId: string): Promise<void> {
+  log.api('Cancelling monitor alarm', LogLevel.INFO, { monitorId });
+
   const client = getApiClient();
   const response = await client.get(`/monitors/alarm/id:${monitorId}/command:off.json`);
 
@@ -188,6 +232,8 @@ export async function cancelAlarm(monitorId: string): Promise<void> {
  * @returns Promise resolving to object with status string
  */
 export async function getAlarmStatus(monitorId: string): Promise<AlarmStatusResponse> {
+  log.api('Fetching alarm status', LogLevel.INFO, { monitorId });
+
   const client = getApiClient();
   const response = await client.get(`/monitors/alarm/id:${monitorId}/command:status.json`);
 
@@ -213,6 +259,8 @@ export async function getDaemonStatus(
   monitorId: string,
   daemon: 'zmc' | 'zma'
 ): Promise<DaemonStatusResponse> {
+  log.api('Fetching daemon status', LogLevel.INFO, { monitorId, daemon });
+
   const client = getApiClient();
   const response = await client.get(`/monitors/daemonStatus/id:${monitorId}/daemon:${daemon}.json`);
 
@@ -230,9 +278,6 @@ export async function getDaemonStatus(
  *
  * Generates the URL for the ZMS CGI script to stream video or images.
  * In development mode on web, routes through proxy to avoid CORS issues.
- *
- * If streamingBasePort is provided, each monitor streams on its own port
- * (basePort + monitorId) which bypasses the browser's 6-connection limit.
  *
  * @param cgiUrl - Base CGI URL (e.g. https://zm.example.com/cgi-bin)
  * @param monitorId - The ID of the monitor
@@ -252,35 +297,15 @@ export function getStreamUrl(
     token?: string;
     connkey?: number;
     cacheBuster?: number;
-    streamingBasePort?: number;
+    minStreamingPort?: number;
   } = {}
+
 ): string {
-  const { streamingBasePort, ...streamOptions } = options;
-
-  // If per-monitor streaming ports are configured, modify the CGI URL to use the monitor's port
-  let effectiveCgiUrl = cgiUrl;
-  if (streamingBasePort && streamingBasePort > 0) {
-    try {
-      const url = new URL(cgiUrl);
-      const monitorPort = streamingBasePort + parseInt(monitorId, 10);
-      url.port = monitorPort.toString();
-      effectiveCgiUrl = url.toString();
-    } catch {
-      // URL parsing failed, fall back to original cgiUrl
-    }
-  }
-
-  const fullUrl = buildMonitorStreamUrl(effectiveCgiUrl, monitorId, streamOptions);
+  const fullUrl = buildMonitorStreamUrl(cgiUrl, monitorId, options);
 
   // In dev mode on web, use proxy server to avoid CORS issues
   // Native platforms and production can access directly
-  if (Platform.shouldUseProxy) {
-    const proxyParams = new URLSearchParams();
-    proxyParams.append('url', fullUrl);
-    return `http://localhost:3001/image-proxy?${proxyParams.toString()}`;
-  }
-
-  return fullUrl;
+  return wrapWithImageProxy(fullUrl);
 }
 
 /**
@@ -297,20 +322,17 @@ export async function controlMonitor(
   command: string,
   token?: string
 ): Promise<void> {
-  let url = buildMonitorControlUrl(portalUrl, monitorId, command, { token });
+  log.api('Sending PTZ control command', LogLevel.INFO, { monitorId, command });
+
+  const url = buildMonitorControlUrl(portalUrl, monitorId, command, { token });
 
   // In dev mode on web, use proxy server to avoid CORS issues
-  if (Platform.shouldUseProxy) {
-    const proxyParams = new URLSearchParams();
-    proxyParams.append('url', url);
-    url = `http://localhost:3001/image-proxy?${proxyParams.toString()}`;
-  }
+  const proxiedUrl = wrapWithImageProxy(url);
 
   const client = getApiClient();
-  // We use the client to take advantage of the native adapter if needed,
-  // but we pass the full URL which overrides the baseURL.
+  // Use the unified client for cross-platform HTTP while keeping the full URL override.
   // We skip auth interceptor because we manually added the token to the URL
-  await client.get(url, {
+  await client.get(proxiedUrl, {
     headers: {
       'Skip-Auth': 'true'
     }

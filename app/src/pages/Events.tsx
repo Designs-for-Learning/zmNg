@@ -6,51 +6,62 @@
  */
 
 import { useMemo, useRef, useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useShallow } from 'zustand/react/shallow';
 import { getEvents } from '../api/events';
+import type { EventFilters } from '../api/events';
+import type { EventData } from '../api/types';
 import { getMonitors } from '../api/monitors';
-import { useProfileStore } from '../stores/profile';
+import { useCurrentProfile } from '../hooks/useCurrentProfile';
 import { useAuthStore } from '../stores/auth';
 import { useSettingsStore } from '../stores/settings';
-import { useEventFilters } from '../hooks/useEventFilters';
+import { useEventFilters, ALL_TAGS_FILTER_ID } from '../hooks/useEventFilters';
 import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import { useEventPagination } from '../hooks/useEventPagination';
 import { useEventMontageGrid } from '../hooks/useEventMontageGrid';
+import { useEventTags, useEventTagMapping } from '../hooks/useEventTags';
 import { PullToRefreshIndicator } from '../components/ui/pull-to-refresh-indicator';
 import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
-import { Label } from '../components/ui/label';
 import { RefreshCw, Filter, AlertCircle, ArrowLeft, LayoutGrid, List, Clock } from 'lucide-react';
-import { getEnabledMonitorIds, filterEnabledMonitors } from '../lib/filters';
-import { Popover, PopoverContent, PopoverTrigger } from '../components/ui/popover';
+import { filterMonitorsByGroup } from '../lib/filters';
+import { useGroupFilter } from '../hooks/useGroupFilter';
+import { GroupFilterSelect } from '../components/filters/GroupFilterSelect';
+import { Popover, PopoverTrigger } from '../components/ui/popover';
 import { EventHeatmap } from '../components/events/EventHeatmap';
 import { EventMontageView } from '../components/events/EventMontageView';
 import { EventListView } from '../components/events/EventListView';
 import { EventMontageGridControls } from '../components/events/EventMontageGridControls';
+import { EventsFilterPopover } from '../components/events/EventsFilterPopover';
 import { useTranslation } from 'react-i18next';
 import { formatForServer, formatLocalDateTime } from '../lib/time';
-import { QuickDateRangeButtons } from '../components/ui/quick-date-range-buttons';
-import { MonitorFilterPopoverContent } from '../components/filters/MonitorFilterPopover';
 import { EmptyState } from '../components/ui/empty-state';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { useEventFavoritesStore } from '../stores/eventFavorites';
+import { NotificationBadge } from '../components/NotificationBadge';
 
 export default function Events() {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
-  const currentProfile = useProfileStore((state) => state.currentProfile());
-  const settings = useSettingsStore(
-    useShallow((state) => state.getProfileSettings(currentProfile?.id || ''))
-  );
+  const { currentProfile, settings } = useCurrentProfile();
   const normalizedThumbnailFit = settings.eventsThumbnailFit === 'fill'
     ? 'contain'
     : settings.eventsThumbnailFit;
   const updateSettings = useSettingsStore((state) => state.updateProfileSettings);
   const accessToken = useAuthStore((state) => state.accessToken);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const { isFilterActive: isGroupFilterActive, filteredMonitorIds: groupMonitorIds } = useGroupFilter();
+
+  // Subscribe to the actual favorites data, not just the getter function
+  // Use shallow comparison to avoid infinite re-renders from new array references
+  const favoriteIds = useEventFavoritesStore(
+    useShallow((state) =>
+      currentProfile ? state.getFavorites(currentProfile.id) : []
+    )
+  );
+
   const parentRef = useRef<HTMLDivElement>(null);
-  const [parentElement, setParentElement] = useState<HTMLDivElement | null>(null);
   const { t } = useTranslation();
 
   // Check if user came from another page (navigation state tracking)
@@ -68,15 +79,28 @@ export default function Events() {
   const {
     filters,
     selectedMonitorIds,
+    selectedTagIds,
     startDateInput,
     endDateInput,
+    favoritesOnly,
     setSelectedMonitorIds,
+    setSelectedTagIds,
     setStartDateInput,
     setEndDateInput,
+    setFavoritesOnly,
+    onlyDetectedObjects,
+    setOnlyDetectedObjects,
     applyFilters,
     clearFilters,
     activeFilterCount,
   } = useEventFilters();
+
+  // Fetch available tags and check if tags are supported
+  const {
+    availableTags,
+    tagsSupported,
+    isLoadingTags,
+  } = useEventTags();
 
   const [viewMode, setViewMode] = useState<'list' | 'montage'>(() => {
     const paramView = searchParams.get('view');
@@ -86,42 +110,78 @@ export default function Events() {
     return settings.eventsViewMode;
   });
 
-  // Fetch monitors to filter by enabled ones
+  // Fetch monitors for display in filter UI
   const { data: monitorsData } = useQuery({
     queryKey: ['monitors'],
     queryFn: getMonitors,
+    enabled: !!currentProfile && isAuthenticated,
   });
 
-  // Memoize enabled monitor IDs and monitors (before events query)
-  const enabledMonitorIds = useMemo(
-    () => (monitorsData?.monitors ? getEnabledMonitorIds(monitorsData.monitors) : []),
-    [monitorsData]
-  );
+  // All monitors (for filter popover display)
+  const allMonitors = monitorsData?.monitors || [];
 
-  const enabledMonitors = useMemo(
-    () => (monitorsData?.monitors ? filterEnabledMonitors(monitorsData.monitors) : []),
-    [monitorsData]
-  );
+  // Monitors filtered by group (for filter popover when group is active)
+  const displayMonitors = useMemo(() => {
+    if (!isGroupFilterActive) return allMonitors;
+    return filterMonitorsByGroup(allMonitors, groupMonitorIds);
+  }, [allMonitors, isGroupFilterActive, groupMonitorIds]);
 
-  // Use pagination hook (will be updated with event count later)
-  const { eventLimit, isLoadingMore, loadNextPage } = useEventPagination({
-    defaultLimit: settings.defaultEventLimit || 300,
-    eventCount: 0, // Temporary - updated via useEffect below
-    containerRef: parentRef,
-  });
+  // Compute effective monitor IDs for API call:
+  // 1. If user selected specific monitors in filter → use those
+  // 2. Else if group filter is active → use group monitor IDs
+  // 3. Else → undefined (fetch all)
+  const effectiveMonitorId = useMemo(() => {
+    // User's explicit filter takes priority
+    if (filters.monitorId) {
+      return filters.monitorId;
+    }
+    // Group filter - pass group monitor IDs to API
+    if (isGroupFilterActive && groupMonitorIds.length > 0) {
+      return groupMonitorIds.join(',');
+    }
+    // No filter - fetch all
+    return undefined;
+  }, [filters.monitorId, isGroupFilterActive, groupMonitorIds]);
+
+  // Build filters with server-formatted dates for passing to EventDetail
+  const serverFilters: EventFilters = useMemo(() => ({
+    ...filters,
+    startDateTime: filters.startDateTime ? formatForServer(new Date(filters.startDateTime)) : undefined,
+    endDateTime: filters.endDateTime ? formatForServer(new Date(filters.endDateTime)) : undefined,
+    monitorId: effectiveMonitorId,
+  }), [filters, effectiveMonitorId]);
 
   // Fetch events with configured limit
-  const { data: eventsData, isLoading, error, refetch } = useQuery({
-    queryKey: ['events', filters, eventLimit],
+  // Include effectiveMonitorId and group filter state in query key for proper cache invalidation
+  const [currentEventLimit, setCurrentEventLimit] = useState(settings.defaultEventLimit || 100);
+  const { data: eventsData, isLoading, isFetching, error, refetch } = useQuery({
+    queryKey: ['events', filters, currentEventLimit, effectiveMonitorId, isGroupFilterActive],
     queryFn: () =>
       getEvents({
         ...filters,
+        // Use effective monitor ID (user filter or group filter)
+        monitorId: effectiveMonitorId,
         // Convert local time inputs to server time for the API
         startDateTime: filters.startDateTime ? formatForServer(new Date(filters.startDateTime)) : undefined,
         endDateTime: filters.endDateTime ? formatForServer(new Date(filters.endDateTime)) : undefined,
-        limit: eventLimit,
+        limit: currentEventLimit,
       }),
+    enabled: !!currentProfile && isAuthenticated,
+    // Keep showing previous data while fetching more (prevents UI flash during pagination)
+    placeholderData: keepPreviousData,
   });
+
+  // Use pagination hook for manual "Load More" button
+  const { eventLimit, batchSize, isLoadingMore, loadNextPage } = useEventPagination({
+    defaultLimit: settings.defaultEventLimit || 100,
+  });
+
+  // Sync pagination limit with query when it changes
+  useEffect(() => {
+    if (eventLimit !== currentEventLimit) {
+      setCurrentEventLimit(eventLimit);
+    }
+  }, [eventLimit, currentEventLimit]);
 
   // Pull-to-refresh gesture
   const pullToRefresh = usePullToRefresh({
@@ -131,13 +191,43 @@ export default function Events() {
     enabled: true,
   });
 
-  // Memoize filtered events
+  // Get event IDs for tag fetching
+  const eventIdsForTagFetch = useMemo(() =>
+    (eventsData?.events || []).map(({ Event }: EventData) => Event.Id),
+    [eventsData?.events]
+  );
+
+  // Fetch tags for displayed events
+  const { eventTagMap } = useEventTagMapping({
+    eventIds: eventIdsForTagFetch,
+    enabled: tagsSupported && eventIdsForTagFetch.length > 0,
+  });
+
+  // Memoize filtered events (server already filtered by monitor/group, apply client-side filters here)
   const allEvents = useMemo(() => {
-    const filtered = (eventsData?.events || []).filter(({ Event }: any) =>
-      enabledMonitorIds.includes(Event.MonitorId)
-    );
+    let filtered = eventsData?.events || [];
+
+    // Apply favorites filter if enabled (client-side only - favorites stored locally)
+    if (favoritesOnly) {
+      filtered = filtered.filter(({ Event }: EventData) => favoriteIds.includes(Event.Id));
+    }
+
+    // Apply tag filter if tags are selected (client-side)
+    if (selectedTagIds.length > 0 && eventTagMap.size > 0) {
+      const isAllTagsFilter = selectedTagIds.includes(ALL_TAGS_FILTER_ID);
+      filtered = filtered.filter(({ Event }: EventData) => {
+        const eventTags = eventTagMap.get(Event.Id) || [];
+        if (isAllTagsFilter) {
+          // "All" = show events that have at least one tag
+          return eventTags.length > 0;
+        }
+        // Otherwise event must have at least one of the selected tags
+        return eventTags.some(tag => selectedTagIds.includes(tag.Id));
+      });
+    }
+
     return filtered;
-  }, [eventsData?.events, enabledMonitorIds]);
+  }, [eventsData?.events, favoritesOnly, favoriteIds, selectedTagIds, eventTagMap]);
 
   // Use grid management hook (only active when in montage mode)
   const gridControls = useEventMontageGrid({
@@ -222,7 +312,6 @@ export default function Events() {
         ref={(el) => {
           parentRef.current = el;
           pullToRefresh.containerRef.current = el;
-          setParentElement(el); // Trigger re-render when ref is set (iOS fix)
         }}
         {...pullToRefresh.bind()}
         className="h-full overflow-auto p-3 sm:p-4 md:p-6 relative touch-pan-y"
@@ -247,12 +336,16 @@ export default function Events() {
                 </Button>
               )}
               <div>
-                <h1 className="text-xl sm:text-2xl font-bold tracking-tight">{t('events.title')}</h1>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-base sm:text-lg font-bold tracking-tight">{t('events.title')}</h1>
+                  <NotificationBadge />
+                </div>
                 <p className="text-xs text-muted-foreground hidden sm:block">{t('events.subtitle')}</p>
               </div>
             </div>
 
             <div className="flex items-center gap-2">
+              <GroupFilterSelect />
               <Button
                 variant="outline"
                 size="icon"
@@ -263,23 +356,16 @@ export default function Events() {
                 {viewMode === 'list' ? <LayoutGrid className="h-4 w-4" /> : <List className="h-4 w-4" />}
               </Button>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground hidden md:inline">{t('events.thumbnail_fit')}</span>
                 <Select value={normalizedThumbnailFit} onValueChange={handleThumbnailFitChange}>
-                  <SelectTrigger className="h-8 sm:h-9 w-[160px]" data-testid="events-thumbnail-fit-select">
+                  <SelectTrigger className="h-8 sm:h-9 w-[100px]" data-testid="events-thumbnail-fit-select">
                     <SelectValue placeholder={t('events.thumbnail_fit')} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="contain" data-testid="events-thumbnail-fit-contain">
-                      {t('events.fit_contain')}
+                      {t('montage.fit_fit')}
                     </SelectItem>
                     <SelectItem value="cover" data-testid="events-thumbnail-fit-cover">
-                      {t('events.fit_cover')}
-                    </SelectItem>
-                    <SelectItem value="none" data-testid="events-thumbnail-fit-none">
-                      {t('events.fit_none')}
-                    </SelectItem>
-                    <SelectItem value="scale-down" data-testid="events-thumbnail-fit-scale-down">
-                      {t('events.fit_scale_down')}
+                      {t('montage.fit_crop')}
                     </SelectItem>
                   </SelectContent>
                 </Select>
@@ -310,70 +396,30 @@ export default function Events() {
                     )}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent
-                  className="w-[calc(100vw-2rem)] sm:w-80 max-w-sm max-h-[80vh] overflow-y-auto no-scrollbar"
-                  data-testid="events-filter-panel"
-                >
-                  <MonitorFilterPopoverContent
-                    monitors={enabledMonitors}
-                    selectedMonitorIds={selectedMonitorIds}
-                    onSelectionChange={setSelectedMonitorIds}
-                    idPrefix="events"
-                  />
-                  <div className="grid gap-4 mt-4">
-                    <div className="grid gap-2">
-                      <div className="grid gap-2">
-                        <Label htmlFor="start-date">
-                          {t('events.date_range')} ({t('events.start')})
-                        </Label>
-                        <Input
-                          id="start-date"
-                          type="datetime-local"
-                          value={startDateInput}
-                          onChange={(e) => setStartDateInput(e.target.value)}
-                          step="1"
-                          data-testid="events-start-date"
-                        />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="end-date">
-                          {t('events.date_range')} ({t('events.end')})
-                        </Label>
-                        <Input
-                          id="end-date"
-                          type="datetime-local"
-                          value={endDateInput}
-                          onChange={(e) => setEndDateInput(e.target.value)}
-                          step="1"
-                          data-testid="events-end-date"
-                        />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label className="text-xs text-muted-foreground">{t('events.quick_ranges')}</Label>
-                        <QuickDateRangeButtons
-                          onRangeSelect={({ start, end }) => {
-                            setStartDateInput(formatLocalDateTime(start));
-                            setEndDateInput(formatLocalDateTime(end));
-                          }}
-                        />
-                      </div>
-                      <div className="flex gap-2">
-                        <Button onClick={applyFilters} size="sm" className="flex-1" data-testid="events-apply-filters">
-                          {t('common.filter')}
-                        </Button>
-                        <Button
-                          onClick={clearFilters}
-                          size="sm"
-                          variant="outline"
-                          className="flex-1"
-                          data-testid="events-clear-filters"
-                        >
-                          {t('common.clear')}
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </PopoverContent>
+                <EventsFilterPopover
+                  monitors={displayMonitors}
+                  selectedMonitorIds={selectedMonitorIds}
+                  onMonitorSelectionChange={setSelectedMonitorIds}
+                  favoritesOnly={favoritesOnly}
+                  onFavoritesOnlyChange={setFavoritesOnly}
+                  startDateInput={startDateInput}
+                  onStartDateChange={setStartDateInput}
+                  endDateInput={endDateInput}
+                  onEndDateChange={setEndDateInput}
+                  onQuickRangeSelect={({ start, end }) => {
+                    setStartDateInput(formatLocalDateTime(start));
+                    setEndDateInput(formatLocalDateTime(end));
+                  }}
+                  onApplyFilters={applyFilters}
+                  onClearFilters={clearFilters}
+                  tagsSupported={tagsSupported}
+                  availableTags={availableTags}
+                  selectedTagIds={selectedTagIds}
+                  onTagSelectionChange={setSelectedTagIds}
+                  isLoadingTags={isLoadingTags}
+                  onlyDetectedObjects={onlyDetectedObjects}
+                  onOnlyDetectedObjectsChange={setOnlyDetectedObjects}
+                />
               </Popover>
 
               <Button
@@ -443,27 +489,33 @@ export default function Events() {
         ) : viewMode === 'montage' ? (
           <EventMontageView
             events={allEvents}
-            monitors={enabledMonitors}
+            monitors={displayMonitors}
             gridCols={gridControls.gridCols}
             thumbnailFit={normalizedThumbnailFit}
             portalUrl={currentProfile?.portalUrl || ''}
             accessToken={accessToken || undefined}
-            eventLimit={eventLimit}
+            batchSize={batchSize}
+            totalCount={eventsData?.pagination?.totalCount}
             isLoadingMore={isLoadingMore}
+            isFetching={isFetching}
             onLoadMore={loadNextPage}
+            eventTagMap={eventTagMap}
+            eventFilters={serverFilters}
           />
         ) : (
           <EventListView
             events={allEvents}
-            monitors={enabledMonitors}
+            monitors={displayMonitors}
             thumbnailFit={normalizedThumbnailFit}
             portalUrl={currentProfile?.portalUrl || ''}
             accessToken={accessToken || undefined}
-            eventLimit={eventLimit}
+            batchSize={batchSize}
+            totalCount={eventsData?.pagination?.totalCount}
             isLoadingMore={isLoadingMore}
+            isFetching={isFetching}
             onLoadMore={loadNextPage}
-            parentRef={parentRef}
-            parentElement={parentElement}
+            eventTagMap={eventTagMap}
+            eventFilters={serverFilters}
           />
         )}
       </div>

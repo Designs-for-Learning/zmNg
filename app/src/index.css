@@ -16,6 +16,26 @@
   .monitor-slide-in {
     animation: monitor-slide-in 0.45s ease-out;
   }
+  /* Prevent native drag ghost image inside zoom/pan containers */
+  .no-native-drag img,
+  .no-native-drag video,
+  .no-native-drag a {
+    -webkit-user-drag: none;
+    user-drag: none;
+    -webkit-touch-callout: none;
+  }
+}
+
+@keyframes ring {
+  0% { transform: rotate(0deg) scale(1); }
+  10% { transform: rotate(25deg) scale(1.15); }
+  20% { transform: rotate(-20deg) scale(1.15); }
+  30% { transform: rotate(18deg) scale(1.1); }
+  40% { transform: rotate(-14deg) scale(1.1); }
+  50% { transform: rotate(10deg) scale(1.05); }
+  60% { transform: rotate(-6deg) scale(1.05); }
+  75% { transform: rotate(3deg) scale(1); }
+  100% { transform: rotate(0deg) scale(1); }
 }
 
 @keyframes monitor-slide-in {
@@ -33,6 +53,87 @@
   .monitor-slide-in {
     animation: none;
   }
+}
+
+/* Event slide animations for prev/next navigation */
+.event-slide-left {
+  animation: event-slide-left 0.3s ease-out;
+}
+.event-slide-right {
+  animation: event-slide-right 0.3s ease-out;
+}
+
+@keyframes event-slide-left {
+  from {
+    transform: translateX(8%);
+    opacity: 0.7;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes event-slide-right {
+  from {
+    transform: translateX(-8%);
+    opacity: 0.7;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .event-slide-left,
+  .event-slide-right {
+    animation: none;
+  }
+}
+
+/* Montage grid: resize handles for all corners — use handle div borders directly, skip ::after */
+.react-grid-item > .react-resizable-handle {
+  position: absolute !important;
+  width: 16px !important;
+  height: 16px !important;
+  z-index: 40 !important;
+  background: transparent !important;
+  border-style: solid !important;
+  border-color: rgba(250, 204, 21, 0.8) !important;
+  border-width: 0 !important;
+}
+.react-grid-item > .react-resizable-handle::after {
+  display: none !important;
+}
+.react-grid-item > .react-resizable-handle-se {
+  bottom: 0 !important; right: 0 !important;
+  cursor: se-resize !important;
+  transform: none !important;
+  border-width: 0 3px 3px 0 !important;
+}
+.react-grid-item > .react-resizable-handle-sw {
+  bottom: 0 !important; left: 0 !important;
+  cursor: sw-resize !important;
+  transform: none !important;
+  border-width: 0 0 3px 3px !important;
+}
+.react-grid-item > .react-resizable-handle-ne {
+  top: 0 !important; right: 0 !important;
+  cursor: ne-resize !important;
+  transform: none !important;
+  border-width: 3px 3px 0 0 !important;
+}
+.react-grid-item > .react-resizable-handle-nw {
+  top: 0 !important; left: 0 !important;
+  cursor: nw-resize !important;
+  transform: none !important;
+  border-width: 3px 0 0 3px !important;
+}
+
+/* Hide resize handle on pinned montage monitors */
+.pin-locked > .react-resizable-handle {
+  display: none !important;
 }
 
 @layer base {
@@ -80,6 +181,72 @@
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
   }
+
+  .slate {
+    --background: 220 20% 12%;
+    --foreground: 210 30% 95%;
+    --card: 220 20% 14%;
+    --card-foreground: 210 30% 95%;
+    --popover: 220 20% 14%;
+    --popover-foreground: 210 30% 95%;
+    --primary: 210 40% 98%;
+    --primary-foreground: 220 20% 12%;
+    --secondary: 220 16% 20%;
+    --secondary-foreground: 210 30% 95%;
+    --muted: 220 16% 20%;
+    --muted-foreground: 215 15% 60%;
+    --accent: 220 16% 22%;
+    --accent-foreground: 210 30% 95%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 30% 95%;
+    --border: 220 14% 22%;
+    --input: 220 14% 22%;
+    --ring: 215 25% 75%;
+  }
+
+  .amber {
+    --background: 30 4% 11%;
+    --foreground: 40 10% 92%;
+    --card: 30 4% 14%;
+    --card-foreground: 40 10% 92%;
+    --popover: 30 4% 14%;
+    --popover-foreground: 40 10% 92%;
+    --primary: 41 90% 47%;
+    --primary-foreground: 30 4% 11%;
+    --secondary: 30 4% 18%;
+    --secondary-foreground: 40 10% 92%;
+    --muted: 30 4% 18%;
+    --muted-foreground: 30 5% 55%;
+    --accent: 41 20% 20%;
+    --accent-foreground: 40 10% 92%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 40 10% 92%;
+    --border: 30 4% 20%;
+    --input: 30 4% 20%;
+    --ring: 41 90% 47%;
+  }
+
+  .cream {
+    --background: 36 33% 95%;
+    --foreground: 28 25% 18%;
+    --card: 37 35% 92%;
+    --card-foreground: 28 25% 18%;
+    --popover: 37 35% 92%;
+    --popover-foreground: 28 25% 18%;
+    --primary: 28 40% 25%;
+    --primary-foreground: 36 33% 95%;
+    --secondary: 35 25% 87%;
+    --secondary-foreground: 28 25% 18%;
+    --muted: 35 25% 87%;
+    --muted-foreground: 28 12% 48%;
+    --accent: 35 25% 87%;
+    --accent-foreground: 28 25% 18%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 36 33% 95%;
+    --border: 32 20% 82%;
+    --input: 32 20% 82%;
+    --ring: 28 40% 25%;
+  }
 }
 
 @layer base {
@@ -90,137 +257,341 @@
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
     font-family: system-ui, -apple-system, sans-serif;
-    overflow-x: hidden; /* Prevent horizontal scroll */
+    overflow: hidden; /* App uses flex layout with internal scroll containers */
     width: 100%;
+    overscroll-behavior: none; /* Prevent iOS rubber-band bounce that shifts fixed elements */
     -webkit-tap-highlight-color: transparent; /* Remove tap highlight on mobile */
   }
-  
+
   html {
-    overflow-x: hidden;
+    overflow: hidden;
+    overscroll-behavior: none;
+    background-color: hsl(var(--background));
   }
 }
 
-/* Compact mode styles */
+/* ==========================================================================
+   Compact mode — dense, utilitarian layout
+   Targets: typography (one step down), spacing (halved), card padding (halved),
+   button heights (standardized), and structural tightening.
+   Applied via .compact-mode on <html> when displayMode === 'compact'.
+   ========================================================================== */
+
+/* --- Typography: demote every size one step, tight line-height --- */
 .compact-mode {
-  --compact-scale: 0.85;
-  font-size: calc(1rem * var(--compact-scale));
+  font-size: 0.8125rem; /* 13px base instead of 16px */
+  line-height: 1.3;
 }
-
-.compact-mode h1 {
-  font-size: calc(1.875rem * var(--compact-scale));
-}
-
-.compact-mode h2 {
-  font-size: calc(1.125rem * var(--compact-scale));
-}
-
-.compact-mode h3 {
-  font-size: calc(1.25rem * var(--compact-scale));
-}
-
+.compact-mode h1 { font-size: 1rem; line-height: 1.2; }
+.compact-mode h2 { font-size: 0.9375rem; line-height: 1.2; margin-bottom: 0.25rem; }
+.compact-mode h3 { font-size: 0.875rem; line-height: 1.2; margin-bottom: 0.25rem; }
 .compact-mode h4,
 .compact-mode h5,
-.compact-mode h6 {
-  font-size: calc(1.125rem * var(--compact-scale));
+.compact-mode h6 { font-size: 0.8125rem; line-height: 1.25; }
+.compact-mode p { font-size: 0.8125rem; line-height: 1.3; }
+.compact-mode .text-3xl { font-size: 1.25rem; line-height: 1.2; }
+.compact-mode .text-2xl { font-size: 1.125rem; line-height: 1.2; }
+.compact-mode .text-xl { font-size: 1rem; line-height: 1.25; }
+.compact-mode .text-lg { font-size: 0.875rem; line-height: 1.25; }
+.compact-mode .text-base { font-size: 0.8125rem; line-height: 1.3; }
+.compact-mode .text-sm { font-size: 0.75rem; line-height: 1.3; }
+.compact-mode .text-xs { font-size: 0.6875rem; line-height: 1.3; }
+.compact-mode .text-\[10px\] { font-size: 9px; line-height: 1.2; }
+/* Labels, spans, divs — catch anything Tailwind doesn't class */
+.compact-mode label { line-height: 1.3; }
+.compact-mode span { line-height: inherit; }
+.compact-mode .leading-none { line-height: 1; }
+.compact-mode .leading-tight { line-height: 1.15; }
+
+/* --- Padding: flatten aggressively --- */
+.compact-mode .p-2 { padding: 0.25rem; }
+.compact-mode .p-3 { padding: 0.375rem; }
+.compact-mode .p-4 { padding: 0.5rem; }
+.compact-mode .p-6 { padding: 0.625rem; }
+.compact-mode .p-8 { padding: 0.75rem; }
+.compact-mode .px-2 { padding-left: 0.25rem; padding-right: 0.25rem; }
+.compact-mode .px-3 { padding-left: 0.375rem; padding-right: 0.375rem; }
+.compact-mode .px-4 { padding-left: 0.5rem; padding-right: 0.5rem; }
+.compact-mode .px-6 { padding-left: 0.625rem; padding-right: 0.625rem; }
+.compact-mode .py-2 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
+.compact-mode .py-4 { padding-top: 0.375rem; padding-bottom: 0.375rem; }
+.compact-mode .py-6 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+.compact-mode .py-16 { padding-top: 2rem; padding-bottom: 2rem; }
+.compact-mode .pt-0 { padding-top: 0; }
+
+/* Responsive padding overrides (md:p-6 → tighter) */
+@media (min-width: 768px) {
+  .compact-mode .md\:p-4 { padding: 0.5rem; }
+  .compact-mode .md\:p-6 { padding: 0.625rem; }
+}
+@media (min-width: 640px) {
+  .compact-mode .sm\:p-3 { padding: 0.375rem; }
+  .compact-mode .sm\:p-4 { padding: 0.5rem; }
+  .compact-mode .sm\:p-6 { padding: 0.5rem; }
 }
 
-.compact-mode p {
-  font-size: calc(0.875rem * var(--compact-scale));
+/* --- Gaps: tighten grid and flex gaps --- */
+.compact-mode .gap-1 { gap: 0.125rem; }
+.compact-mode .gap-1\.5 { gap: 0.1875rem; }
+.compact-mode .gap-2 { gap: 0.25rem; }
+.compact-mode .gap-3 { gap: 0.375rem; }
+.compact-mode .gap-4 { gap: 0.5rem; }
+.compact-mode .gap-6 { gap: 0.5rem; }
+@media (min-width: 640px) {
+  .compact-mode .sm\:gap-2 { gap: 0.25rem; }
+  .compact-mode .sm\:gap-4 { gap: 0.375rem; }
+  .compact-mode .sm\:gap-6 { gap: 0.5rem; }
 }
 
-.compact-mode .text-xs {
-  font-size: calc(0.75rem * var(--compact-scale));
+/* --- Vertical spacing: compress section gaps --- */
+.compact-mode .space-y-1 > * + * { margin-top: 0.125rem; }
+.compact-mode .space-y-2 > * + * { margin-top: 0.25rem; }
+.compact-mode .space-y-3 > * + * { margin-top: 0.375rem; }
+.compact-mode .space-y-4 > * + * { margin-top: 0.375rem; }
+.compact-mode .space-y-6 > * + * { margin-top: 0.5rem; }
+@media (min-width: 640px) {
+  .compact-mode .sm\:space-y-4 > * + * { margin-top: 0.375rem; }
+  .compact-mode .sm\:space-y-6 > * + * { margin-top: 0.5rem; }
 }
 
-.compact-mode .text-sm {
-  font-size: calc(0.875rem * var(--compact-scale));
+/* --- Margins: reduce vertical margins --- */
+.compact-mode .mt-1 { margin-top: 0.125rem; }
+.compact-mode .mt-2 { margin-top: 0.25rem; }
+.compact-mode .mt-4 { margin-top: 0.375rem; }
+.compact-mode .mt-8 { margin-top: 0.5rem; }
+.compact-mode .mb-2 { margin-bottom: 0.25rem; }
+.compact-mode .mb-3 { margin-bottom: 0.25rem; }
+.compact-mode .mb-4 { margin-bottom: 0.375rem; }
+.compact-mode .mb-6 { margin-bottom: 0.5rem; }
+
+/* --- Card structure: halve internal padding --- */
+.compact-mode [class*="rounded-lg"][class*="border"][class*="bg-card"] {
+  /* Card root — tighter rounding */
+  border-radius: 0.375rem;
+}
+/* CardHeader: p-6 → p-2.5 */
+.compact-mode [class*="space-y-1.5"][class*="p-6"] {
+  padding: 0.625rem;
+}
+.compact-mode [class*="space-y-1.5"][class*="p-6"] > * + * {
+  margin-top: 0.25rem;
+}
+/* CardContent: p-6 pt-0 → p-2.5 pt-0 */
+.compact-mode [class*="p-6"][class*="pt-0"] {
+  padding: 0.625rem;
+  padding-top: 0;
+}
+/* CardFooter: p-6 pt-0 → p-2.5 pt-0 */
+.compact-mode [class*="items-center"][class*="p-6"][class*="pt-0"] {
+  padding: 0.625rem;
+  padding-top: 0;
 }
 
-.compact-mode .text-base {
-  font-size: calc(1rem * var(--compact-scale));
+/* --- Buttons: smaller, tighter --- */
+.compact-mode button,
+.compact-mode [role="button"] {
+  font-size: 0.75rem;
+}
+.compact-mode .h-7 { height: 1.5rem; }
+.compact-mode .h-8 { height: 1.75rem; }
+.compact-mode .h-9 { height: 1.875rem; }
+.compact-mode .h-10 { height: 2rem; }
+.compact-mode .h-11 { height: 2rem; }
+.compact-mode .h-12 { height: 2.25rem; }
+.compact-mode .h-11.w-11 { width: 2rem; }
+@media (min-width: 640px) {
+  .compact-mode .sm\:h-9 { height: 1.875rem; }
+  .compact-mode .sm\:h-10 { height: 2rem; }
 }
 
-.compact-mode .text-lg {
-  font-size: calc(1.125rem * var(--compact-scale));
+/* --- Inputs: tighter padding in compact --- */
+.compact-mode input,
+.compact-mode textarea {
+  padding: 0.25rem 0.5rem;
 }
 
-.compact-mode .text-xl {
-  font-size: calc(1.25rem * var(--compact-scale));
+/* --- Icons: one step down --- */
+.compact-mode .h-5.w-5 { height: 1rem; width: 1rem; }
+.compact-mode .h-12.w-12 { height: 2rem; width: 2rem; }
+.compact-mode .h-16.w-16 { height: 2.5rem; width: 2.5rem; }
+
+/* --- Notification history images: smaller --- */
+.compact-mode [data-testid="notification-history"] .h-32 { height: 5rem; }
+
+/* --- Badge: tighter --- */
+.compact-mode [class*="rounded-full"][class*="bg-destructive"] {
+  font-size: 0.5625rem;
+  padding: 0 0.25rem;
+  min-width: 0.875rem;
+  height: 0.875rem;
 }
 
-.compact-mode .text-2xl {
-  font-size: calc(1.5rem * var(--compact-scale));
+/* --- Dialogs/Sheets: tighter internal layout --- */
+.compact-mode [role="dialog"] {
+  font-size: 0.8125rem;
+}
+.compact-mode [role="dialog"] h2 {
+  font-size: 0.9375rem;
 }
 
-.compact-mode .text-3xl {
-  font-size: calc(1.875rem * var(--compact-scale));
+/* --- Select dropdowns: compact triggers --- */
+.compact-mode [role="combobox"] {
+  font-size: 0.75rem;
+  height: 1.75rem;
+  padding: 0.25rem 0.5rem;
+}
+.compact-mode [role="option"] {
+  padding: 0.25rem 0.5rem 0.25rem 1.75rem;
+  font-size: 0.75rem;
 }
 
-.compact-mode .p-2 {
-  padding: calc(0.5rem * var(--compact-scale));
+/* --- Switches: smaller track and thumb --- */
+.compact-mode [role="switch"] {
+  height: 1.5rem;
+  width: 2.75rem;
+}
+.compact-mode [role="switch"] > [data-state] {
+  height: 1.25rem;
+  width: 1.25rem;
+}
+.compact-mode [role="switch"] > [data-state="checked"] {
+  transform: translateX(1.25rem);
 }
 
-.compact-mode .p-3 {
-  padding: calc(0.75rem * var(--compact-scale));
+/* --- Grid overrides for settings/card grids (scoped to avoid montage/event grids) --- */
+.compact-mode [data-testid="notification-settings"] .grid,
+.compact-mode [data-testid="events-filter-panel"] .grid {
+  gap: 0.5rem;
 }
 
-.compact-mode .p-4 {
-  padding: calc(0.75rem * var(--compact-scale));
+/* --- Borders: thinner --- */
+.compact-mode .border-b {
+  border-bottom-width: 0.5px;
+}
+.compact-mode .border {
+  border-width: 0.5px;
 }
 
-.compact-mode .p-6 {
-  padding: calc(1rem * var(--compact-scale));
+/* --- Subtitles / descriptions: hide in compact mode --- */
+/* Page subtitles: any <p> with muted text that's a sibling or near-child of a heading */
+.compact-mode h1 + p[class*="text-muted-foreground"],
+.compact-mode h1 ~ p[class*="text-muted-foreground"],
+.compact-mode div:has(> h1) + p[class*="text-muted-foreground"],
+.compact-mode div:has(> h1) > p[class*="text-muted-foreground"] {
+  display: none;
+}
+/* CardDescription inside CardHeader (space-y-1.5 is the CardHeader default) */
+.compact-mode [class*="space-y-1.5"] > [class*="text-muted-foreground"]:last-child {
+  display: none;
 }
 
-.compact-mode .px-2 {
-  padding-left: calc(0.5rem * var(--compact-scale));
-  padding-right: calc(0.5rem * var(--compact-scale));
+/* --- Page headers: force single row, reduce vertical impact --- */
+.compact-mode .flex.flex-col.sm\:flex-row {
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+}
+/* Reduce page-level vertical spacing between header and content */
+.compact-mode > .space-y-4 > :first-child,
+.compact-mode .space-y-4 > :first-child {
+  margin-bottom: 0;
 }
 
-.compact-mode .px-4 {
-  padding-left: calc(0.5rem * var(--compact-scale));
-  padding-right: calc(0.5rem * var(--compact-scale));
+/* --- Cards in lists: flatten for density --- */
+.compact-mode [class*="shadow-sm"] {
+  box-shadow: none;
+  border-radius: 0.25rem;
 }
 
-.compact-mode .py-2 {
-  padding-top: calc(0.5rem * var(--compact-scale));
-  padding-bottom: calc(0.5rem * var(--compact-scale));
+/* --- List-item cards: minimal internal spacing --- */
+/* Target space-y containers holding multiple cards (notification list, monitor list) */
+.compact-mode .space-y-4 > [class*="rounded"][class*="border"][class*="bg-card"],
+.compact-mode .space-y-3 > [class*="rounded"][class*="border"][class*="bg-card"] {
+  padding: 0.375rem;
+}
+/* Reduce gap between list cards */
+.compact-mode .space-y-4 > [class*="border"] + [class*="border"] {
+  margin-top: 0.25rem;
+}
+.compact-mode .space-y-3 > [class*="border"] + [class*="border"] {
+  margin-top: 0.25rem;
 }
 
-.compact-mode .py-4 {
-  padding-top: calc(0.5rem * var(--compact-scale));
-  padding-bottom: calc(0.5rem * var(--compact-scale));
+/* --- Collapsible cards (settings sections): tighter --- */
+.compact-mode [class*="space-y-6"] > [class*="p-4"][class*="rounded-lg"][class*="border"] {
+  padding: 0.375rem 0.5rem;
 }
 
-.compact-mode .gap-2 {
-  gap: calc(0.5rem * var(--compact-scale));
+/* --- Stat/metric values in cards: keep readable but compact --- */
+.compact-mode .text-2xl.font-bold,
+.compact-mode .text-3xl.font-bold {
+  font-size: 1.125rem;
+  line-height: 1.2;
 }
 
-.compact-mode .gap-3 {
-  gap: calc(0.75rem * var(--compact-scale));
+/* Sidebar compact spacing handled in JSX via isCompact flag */
+
+/* --- Strip decorative fluff: shadows, blurs, gradients --- */
+.compact-mode [class*="shadow-sm"],
+.compact-mode [class*="shadow-md"],
+.compact-mode [class*="shadow-lg"],
+.compact-mode [class*="shadow-xl"],
+.compact-mode [class*="shadow-2xl"] {
+  box-shadow: none !important;
+}
+.compact-mode [class*="backdrop-blur"] {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+/* Remove the decorative gradient blob in main content */
+.compact-mode [class*="from-primary\\/5"] {
+  display: none;
+}
+/* Remove ring decorations on cards */
+.compact-mode [class*="ring-1"] {
+  --tw-ring-shadow: none !important;
 }
 
-.compact-mode .gap-4 {
-  gap: calc(0.75rem * var(--compact-scale));
+/* --- Flatten card nesting: sub-cards inside cards lose their border --- */
+.compact-mode [class*="bg-card"] [class*="rounded-lg"][class*="border"][class*="bg-muted"] {
+  border: none;
+  border-radius: 0;
+  padding: 0.25rem 0;
+  background: transparent;
 }
 
-.compact-mode .gap-6 {
-  gap: calc(1rem * var(--compact-scale));
+/* Responsive hidden/show classes should work naturally in compact mode.
+   Do NOT force-show hidden.sm:inline or hidden.sm:block — it breaks patterns
+   where two elements provide mobile vs desktop variants of the same content. */
+
+/* --- Event cards: tighter rows --- */
+.compact-mode [data-testid="event-card"] {
+  padding: 0.375rem !important;
+}
+.compact-mode [data-testid="event-card"] [class*="gap-3"] {
+  gap: 0.375rem;
+}
+.compact-mode [data-testid="event-card"] [class*="gap-4"] {
+  gap: 0.5rem;
 }
 
-.compact-mode .space-y-4 > * + * {
-  margin-top: calc(0.5rem * var(--compact-scale));
+/* --- Monitor cards: remove decorative hover effects --- */
+.compact-mode [data-testid*="monitor-card"] {
+  box-shadow: none !important;
+  --tw-ring-shadow: none !important;
 }
 
-.compact-mode .space-y-6 > * + * {
-  margin-top: calc(0.75rem * var(--compact-scale));
+/* --- Uppercase section headers: remove tracking-wider waste --- */
+.compact-mode [class*="uppercase"][class*="tracking-wider"] {
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: 0.6875rem;
+  font-weight: 600;
 }
 
-/* Tighter card spacing */
-.compact-mode .grid {
-  gap: calc(0.75rem * var(--compact-scale)) !important;
-}
-
-.compact-mode [class*="gap-"] {
-  gap: calc(0.5rem * var(--compact-scale)) !important;
+/* --- Description text under labels: smaller --- */
+.compact-mode p[class*="text-muted-foreground"] {
+  font-size: 0.6875rem;
+  line-height: 1.3;
+  margin-top: 0.125rem;
 }

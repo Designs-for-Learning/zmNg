@@ -70,6 +70,36 @@ vi.mock('../../lib/version', () => ({
   getAppVersion: () => '1.0.0',
 }));
 
+vi.mock('../../components/NotificationBadge', () => ({
+  NotificationBadge: () => null,
+}));
+
+vi.mock('../../hooks/useCurrentProfile', () => ({
+  useCurrentProfile: () => ({
+    currentProfile: { id: 'profile-1', name: 'Test Profile', apiUrl: 'https://api.test' },
+    settings: { logLevel: 1 },
+    hasProfile: true,
+  }),
+}));
+
+vi.mock('../../stores/settings', () => ({
+  DEFAULT_SETTINGS: {
+    viewMode: 'snapshot',
+    displayMode: 'normal',
+    theme: 'light',
+    logLevel: 1,
+  },
+  useSettingsStore: vi.fn((selector: any) => {
+    if (typeof selector === 'function') {
+      return selector({
+        profileSettings: {},
+        updateProfileSettings: vi.fn(),
+      });
+    }
+    return vi.fn();
+  }),
+}));
+
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string) => key,

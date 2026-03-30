@@ -8,6 +8,7 @@ const useQueryMock = vi.fn();
 
 vi.mock('@tanstack/react-query', () => ({
   useQuery: (options: { queryKey: (string | object)[] }) => useQueryMock(options),
+  keepPreviousData: (previousData: unknown) => previousData,
 }));
 
 vi.mock('@tanstack/react-virtual', () => ({
@@ -30,6 +31,14 @@ vi.mock('../../stores/auth', () => ({
 }));
 
 vi.mock('../../stores/settings', () => ({
+  DEFAULT_SETTINGS: {
+    viewMode: 'snapshot',
+    displayMode: 'normal',
+    theme: 'light',
+    defaultEventLimit: 50,
+    eventsViewMode: 'list',
+    eventMontageGridCols: 3,
+  },
   useSettingsStore: (selector: (state: { getProfileSettings: (id: string) => { defaultEventLimit: number; eventsViewMode: 'list'; eventMontageGridCols: number } }) => unknown) =>
     selector({ getProfileSettings: () => ({ defaultEventLimit: 50, eventsViewMode: 'list', eventMontageGridCols: 3 }) }),
 }));
@@ -38,14 +47,19 @@ const applyFilters = vi.fn();
 const clearFilters = vi.fn();
 
 vi.mock('../../hooks/useEventFilters', () => ({
+  ALL_TAGS_FILTER_ID: '__all_tags__',
   useEventFilters: () => ({
     filters: {},
     selectedMonitorIds: [],
+    selectedTagIds: [],
     startDateInput: '',
     endDateInput: '',
+    favoritesOnly: false,
     setSelectedMonitorIds: vi.fn(),
+    setSelectedTagIds: vi.fn(),
     setStartDateInput: vi.fn(),
     setEndDateInput: vi.fn(),
+    setFavoritesOnly: vi.fn(),
     applyFilters,
     clearFilters,
     activeFilterCount: 0,
@@ -73,6 +87,10 @@ vi.mock('../../components/events/EventCard', () => ({
 
 vi.mock('../../components/events/EventHeatmap', () => ({
   EventHeatmap: () => <div data-testid="event-heatmap" />,
+}));
+
+vi.mock('../../components/events/EventMontageView', () => ({
+  EventMontageView: () => <div data-testid="events-montage-grid" />,
 }));
 
 vi.mock('../../components/filters/MonitorFilterPopover', () => ({
@@ -127,7 +145,13 @@ describe('Events Page', () => {
       if (queryKey[0] === 'events') {
         return { data: { events: [] }, isLoading: false, error: null, refetch: vi.fn() };
       }
-      return { data: {}, isLoading: false, error: null, refetch: vi.fn() };
+      if (queryKey[0] === 'tags') {
+        return { data: { tags: [] }, isLoading: false, error: null, refetch: vi.fn() };
+      }
+      if (queryKey[0] === 'eventTags') {
+        return { data: new Map(), isLoading: false, error: null, refetch: vi.fn() };
+      }
+      return { data: null, isLoading: false, error: null, refetch: vi.fn() };
     });
 
     render(<Events />);
@@ -166,7 +190,13 @@ describe('Events Page', () => {
           refetch: vi.fn(),
         };
       }
-      return { data: {}, isLoading: false, error: null, refetch: vi.fn() };
+      if (queryKey[0] === 'tags') {
+        return { data: { tags: [] }, isLoading: false, error: null, refetch: vi.fn() };
+      }
+      if (queryKey[0] === 'eventTags') {
+        return { data: new Map(), isLoading: false, error: null, refetch: vi.fn() };
+      }
+      return { data: null, isLoading: false, error: null, refetch: vi.fn() };
     });
 
     render(<Events />);
@@ -183,7 +213,13 @@ describe('Events Page', () => {
       if (queryKey[0] === 'events') {
         return { data: { events: [] }, isLoading: false, error: null, refetch: vi.fn() };
       }
-      return { data: {}, isLoading: false, error: null, refetch: vi.fn() };
+      if (queryKey[0] === 'tags') {
+        return { data: { tags: [] }, isLoading: false, error: null, refetch: vi.fn() };
+      }
+      if (queryKey[0] === 'eventTags') {
+        return { data: new Map(), isLoading: false, error: null, refetch: vi.fn() };
+      }
+      return { data: null, isLoading: false, error: null, refetch: vi.fn() };
     });
 
     render(<Events />);

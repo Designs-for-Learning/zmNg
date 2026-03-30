@@ -1,8 +1,11 @@
 import { create } from 'zustand';
+import { LOGGING } from '../lib/zmninja-ng-constants';
 
 export interface LogEntry {
     id: string;
     timestamp: string;
+    /** Epoch ms — used to format at display time with user's date/time settings */
+    rawTimestamp?: number;
     level: string;
     message: string;
     context?: Record<string, unknown>;
@@ -20,8 +23,8 @@ export const useLogStore = create<LogState>((set) => ({
     addLog: (entry) =>
         set((state) => {
             const newLog = { ...entry, id: crypto.randomUUID() };
-            // Keep last 1000 logs
-            const newLogs = [newLog, ...state.logs].slice(0, 1000);
+            // Keep last N logs as configured
+            const newLogs = [newLog, ...state.logs].slice(0, LOGGING.maxLogEntries);
             return { logs: newLogs };
         }),
     clearLogs: () => set({ logs: [] }),

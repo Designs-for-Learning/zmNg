@@ -8,14 +8,19 @@
 
 import { memo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { format } from 'date-fns';
+import { useDateTimeFormat } from '../../hooks/useDateTimeFormat';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { SecureImage } from '../ui/secure-image';
-import { Video, Calendar, Clock } from 'lucide-react';
+import { Video, Calendar, Clock, Star } from 'lucide-react';
+import { getEventCauseIcon } from '../../lib/event-icons';
+import { getObjectClassIconFromList } from '../../lib/object-class-icons';
 import type { EventCardProps } from '../../api/types';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../lib/utils';
+import { useEventFavoritesStore } from '../../stores/eventFavorites';
+import { useCurrentProfile } from '../../hooks/useCurrentProfile';
+import { TagChipList } from './TagChip';
 
 /**
  * EventCard component.
@@ -26,14 +31,31 @@ import { cn } from '../../lib/utils';
  * @param props.monitorName - Name of the monitor that recorded the event
  * @param props.thumbnailUrl - URL for the event thumbnail image
  */
-function EventCardComponent({ event, monitorName, thumbnailUrl, objectFit = 'contain', thumbnailWidth, thumbnailHeight }: EventCardProps) {
+function EventCardComponent({ event, monitorName, thumbnailUrl, objectFit = 'contain', thumbnailWidth, thumbnailHeight, tags, eventFilters }: EventCardProps) {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const { fmtDate, fmtTime } = useDateTimeFormat();
+  const { currentProfile } = useCurrentProfile();
+  const toggleFavorite = useEventFavoritesStore((state) => state.toggleFavorite);
+
+  // Subscribe to the specific favorite state for this event
+  // This ensures re-renders when favorite status changes
+  const isFav = useEventFavoritesStore((state) =>
+    currentProfile ? state.isFavorited(currentProfile.id, event.Id) : false
+  );
+
   const startTime = new Date(event.StartDateTime.replace(' ', 'T'));
 
   // Calculate aspect ratio from thumbnail dimensions
   // (thumbnailWidth/Height are already swapped for rotated monitors)
   const aspectRatio = thumbnailWidth / thumbnailHeight;
+
+  const handleFavoriteClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent card navigation
+    if (currentProfile) {
+      toggleFavorite(currentProfile.id, event.Id);
+    }
+  };
 
   /**
    * Handles image load errors by replacing the source with a fallback SVG.
@@ -46,8 +68,17 @@ function EventCardComponent({ event, monitorName, thumbnailUrl, objectFit = 'con
 
   return (
     <Card
-      className="group overflow-hidden cursor-pointer hover:shadow-lg transition-all duration-200 hover:ring-2 hover:ring-primary/50"
-      onClick={() => navigate(`/events/${event.Id}`, { state: { from: '/events' } })}
+      className="group overflow-hidden cursor-pointer hover:shadow-lg transition-all duration-200 hover:ring-2 hover:ring-primary/50 focus:outline-none focus:ring-2 focus:ring-primary"
+      onClick={() => navigate(`/events/${event.Id}`, { state: { from: '/events', eventFilters } })}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          navigate(`/events/${event.Id}`, { state: { from: '/events', eventFilters } });
+        }
+      }}
+      role="button"
+      tabIndex={0}
+      aria-label={`${t('common.view')}: ${event.Name}`}
       data-testid="event-card"
     >
       <div className="flex gap-2 sm:gap-3 p-2 sm:p-3">
@@ -81,9 +112,35 @@ function EventCardComponent({ event, monitorName, thumbnailUrl, objectFit = 'con
               <h3 className="font-semibold text-sm sm:text-base truncate" title={event.Name}>
                 {event.Name}
               </h3>
-              <Badge variant="outline" className="shrink-0 text-[10px] sm:text-xs">
-                {event.Cause}
-              </Badge>
+              <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+                <button
+                  onClick={handleFavoriteClick}
+                  className={cn(
+                    "p-1 rounded-full hover:bg-accent transition-colors",
+                    "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                  )}
+                  aria-label={isFav ? t('events.unfavorite') : t('events.favorite')}
+                  data-testid="event-favorite-button"
+                >
+                  <Star
+                    className={cn(
+                      "h-4 w-4 sm:h-5 sm:w-5 transition-colors",
+                      isFav
+                        ? "fill-yellow-500 stroke-yellow-500"
+                        : "stroke-muted-foreground hover:stroke-yellow-500"
+                    )}
+                  />
+                </button>
+                {(() => {
+                  const CauseIcon = getEventCauseIcon(event.Cause);
+                  return (
+                    <Badge variant="outline" className="text-[10px] sm:text-xs gap-1">
+                      <CauseIcon className="h-3 w-3" />
+                      {event.Cause}
+                    </Badge>
+                  );
+                })()}
+              </div>
             </div>
 
             <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
@@ -95,12 +152,11 @@ function EventCardComponent({ event, monitorName, thumbnailUrl, objectFit = 'con
               </div>
               <div className="flex items-center gap-1 sm:gap-1.5">
                 <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
-                <span className="hidden sm:inline">{format(startTime, 'MMM d, yyyy')}</span>
-                <span className="sm:hidden">{format(startTime, 'MMM d')}</span>
+                {fmtDate(startTime)}
               </div>
               <div className="flex items-center gap-1 sm:gap-1.5">
                 <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
-                {format(startTime, 'HH:mm:ss')}
+                {fmtTime(startTime)}
               </div>
             </div>
           </div>
@@ -122,6 +178,31 @@ function EventCardComponent({ event, monitorName, thumbnailUrl, objectFit = 'con
               </>
             )}
           </div>
+
+          {/* Detection notes (strip everything after | which is redundant motion info) */}
+          {event.Notes && (() => {
+            const noteText = event.Notes.split('|')[0].trim();
+            const isDetection = noteText.startsWith('detected:');
+            const classList = isDetection ? noteText.slice('detected:'.length) : '';
+            const NoteIcon = isDetection && classList ? getObjectClassIconFromList(classList) : null;
+            return (
+              <div className="flex items-center gap-1 text-[10px] sm:text-xs text-muted-foreground truncate mt-1" title={event.Notes}>
+                {NoteIcon && <NoteIcon className="h-3 w-3 shrink-0" />}
+                <span className="truncate">{noteText}</span>
+              </div>
+            );
+          })()}
+
+          {/* Tags */}
+          {tags && tags.length > 0 && (
+            <TagChipList
+              tags={tags}
+              maxVisible={4}
+              size="sm"
+              className="mt-1.5"
+              overflowText={(count) => t('events.tags.moreCount', { count })}
+            />
+          )}
         </div>
       </div>
     </Card>

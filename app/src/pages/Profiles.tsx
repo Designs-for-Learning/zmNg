@@ -5,9 +5,10 @@
  * Allows adding, editing, deleting, and switching between ZoneMinder servers.
  */
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProfileStore } from '../stores/profile';
+import { useCurrentProfile } from '../hooks/useCurrentProfile';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Label } from '../components/ui/label';
@@ -35,9 +36,10 @@ import { Badge } from '../components/ui/badge';
 import type { Profile } from '../api/types';
 import { useToast } from '../hooks/use-toast';
 import { toast as sonnerToast } from 'sonner';
-import { createApiClient, setApiClient } from '../api/client';
-import { discoverZoneminder, DiscoveryError } from '../lib/discovery';
+import { setApiClient } from '../api/client';
+import { discoverUrls } from '../lib/discovery';
 import { useTranslation } from 'react-i18next';
+import { NotificationBadge } from '../components/NotificationBadge';
 
 export default function Profiles() {
   const navigate = useNavigate();
@@ -45,7 +47,7 @@ export default function Profiles() {
   const { t } = useTranslation();
 
   const profiles = useProfileStore((state) => state.profiles);
-  const currentProfile = useProfileStore((state) => state.currentProfile());
+  const { currentProfile } = useCurrentProfile();
   const updateProfile = useProfileStore((state) => state.updateProfile);
   const deleteProfile = useProfileStore((state) => state.deleteProfile);
   const deleteAllProfiles = useProfileStore((state) => state.deleteAllProfiles);
@@ -69,23 +71,6 @@ export default function Profiles() {
 
   const [showPassword, setShowPassword] = useState(false);
 
-  // Check server connection and discover URLs
-  const discoverUrls = async (portal: string) => {
-    try {
-      const result = await discoverZoneminder(portal);
-
-      // Initialize client with found API
-      const client = createApiClient(result.apiUrl);
-      setApiClient(client);
-
-      return result;
-    } catch (e) {
-      if (e instanceof DiscoveryError) {
-        throw e;
-      }
-      throw new Error(t('setup.discovery_failed'));
-    }
-  };
 
   const handleOpenEditDialog = async (profile: Profile) => {
     setSelectedProfile(profile);
@@ -148,7 +133,15 @@ export default function Profiles() {
 
       // If URLs are empty, discover working URLs
       if (!apiUrl || !cgiUrl) {
-        const discovered = await discoverUrls(portalUrl);
+        const credentials = formData.username && formData.password
+          ? { username: formData.username, password: formData.password }
+          : undefined;
+        const discovered = await discoverUrls(portalUrl, {
+          credentials,
+          onClientCreated: (client) => {
+            setApiClient(client);
+          },
+        });
         apiUrl = discovered.apiUrl;
         cgiUrl = discovered.cgiUrl;
         // Update portalUrl to match the discovered confirmed one
@@ -256,24 +249,36 @@ export default function Profiles() {
     }
   };
 
-  const handleSwitchProfile = async (profileId: string) => {
-    if (profileId === currentProfile?.id) return;
+  const switchAbortRef = useRef<AbortController | null>(null);
 
+  const handleSwitchProfile = async (profileId: string) => {
     const profile = profiles.find((p) => p.id === profileId);
     if (!profile) return;
 
+    // Abort any in-flight switch attempt
+    if (switchAbortRef.current) {
+      switchAbortRef.current.abort();
+    }
+    const abort = new AbortController();
+    switchAbortRef.current = abort;
+
+    // Clear previous state
+    sonnerToast.dismiss();
     setSwitchingProfileId(profileId);
-    const loadingToast = sonnerToast.loading(t('profiles.switching', { name: profile.name }));
+    const loadingToast = sonnerToast.loading(t('profiles.switching_to', { name: profile.name }));
 
     try {
       await switchProfile(profileId);
 
+      // If this switch was aborted (user clicked another profile), bail
+      if (abort.signal.aborted) return;
+
       sonnerToast.dismiss(loadingToast);
       sonnerToast.success(t('profiles.switched_to', { name: profile.name }));
-
-      // Navigate to monitors to show the new server's data
+      setSwitchingProfileId(null);
       navigate('/monitors');
     } catch {
+      if (abort.signal.aborted) return;
       sonnerToast.dismiss(loadingToast);
       sonnerToast.error(t('profiles.switch_failed'));
       setSwitchingProfileId(null);
@@ -282,9 +287,12 @@ export default function Profiles() {
 
   return (
     <>
-      <div className="p-3 sm:p-4 md:p-6 max-w-5xl mx-auto space-y-4 sm:space-y-6">
+      <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
         <div>
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">{t('profiles.title')}</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-base sm:text-lg font-bold tracking-tight">{t('profiles.title')}</h1>
+            <NotificationBadge />
+          </div>
           <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 hidden sm:block">
             {t('profiles.subtitle')}
           </p>
@@ -305,7 +313,7 @@ export default function Profiles() {
                   </CardDescription>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button onClick={() => navigate('/profiles/new?returnTo=/profiles')} className="h-9 sm:h-10">
+                  <Button onClick={() => navigate('/profiles/new?returnTo=/profiles')} className="h-9 sm:h-10" data-testid="profiles-add-button">
                     <Plus className="h-4 w-4 sm:mr-2" />
                     <span className="hidden sm:inline">{t('profiles.add_profile')}</span>
                   </Button>
@@ -314,6 +322,7 @@ export default function Profiles() {
                       onClick={() => setIsDeleteAllDialogOpen(true)}
                       variant="destructive"
                       className="h-9 sm:h-10"
+                      data-testid="profiles-delete-all-button"
                     >
                       <Trash2 className="h-4 w-4 sm:mr-2" />
                       <span className="hidden sm:inline">{t('profiles.delete_all')}</span>
@@ -374,7 +383,6 @@ export default function Profiles() {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleSwitchProfile(profile.id)}
-                          disabled={switchingProfileId === profile.id}
                           data-testid={`profile-switch-button-${profile.id}`}
                         >
                           {switchingProfileId === profile.id ? (
@@ -391,7 +399,6 @@ export default function Profiles() {
                         variant="ghost"
                         size="icon"
                         onClick={() => handleOpenEditDialog(profile)}
-                        disabled={!!switchingProfileId}
                         aria-label={t('common.edit')}
                         data-testid={`profile-edit-button-${profile.id}`}
                       >
@@ -403,7 +410,6 @@ export default function Profiles() {
                           size="icon"
                           onClick={() => handleOpenDeleteDialog(profile)}
                           className="text-destructive hover:text-destructive"
-                          disabled={!!switchingProfileId}
                           aria-label={t('common.delete')}
                           data-testid={`profile-delete-button-${profile.id}`}
                         >
@@ -498,29 +504,33 @@ export default function Profiles() {
               <div className="relative">
                 <Input
                   id="edit-password"
-                  type={showPassword ? "text" : "password"}
+                  type={showPassword || !formData.password ? "text" : "password"}
                   placeholder={t('profiles.enter_password')}
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   className="pr-10"
                   autoCapitalize="none"
                   autoCorrect="off"
+                  autoComplete="new-password"
                   data-testid="profile-edit-password"
                 />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                  onClick={() => setShowPassword(!showPassword)}
-                  tabIndex={-1}
-                >
-                  {showPassword ? (
-                    <Eye className="h-4 w-4 text-muted-foreground" />
-                  ) : (
-                    <EyeOff className="h-4 w-4 text-muted-foreground" />
-                  )}
-                </Button>
+                {formData.password && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    onClick={() => setShowPassword(!showPassword)}
+                    tabIndex={-1}
+                    data-testid="profile-edit-password-toggle"
+                  >
+                    {showPassword ? (
+                      <Eye className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <EyeOff className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </Button>
+                )}
               </div>
               <p className="text-xs text-muted-foreground">
                 {t('profiles.password_hint')}
@@ -562,7 +572,7 @@ export default function Profiles() {
 
       {/* Delete All Profiles Confirmation Dialog */}
       <AlertDialog open={isDeleteAllDialogOpen} onOpenChange={setIsDeleteAllDialogOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent data-testid="profiles-delete-all-dialog">
           <AlertDialogHeader>
             <AlertDialogTitle>{t('profiles.delete_all_confirm_title')}</AlertDialogTitle>
             <AlertDialogDescription>
@@ -570,8 +580,8 @@ export default function Profiles() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteAllProfiles} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogCancel data-testid="profiles-delete-all-cancel">{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteAllProfiles} className="bg-destructive text-destructive-foreground hover:bg-destructive/90" data-testid="profiles-delete-all-confirm">
               {t('profiles.delete_all_btn')}
             </AlertDialogAction>
           </AlertDialogFooter>

@@ -2,28 +2,41 @@
  * Mobile Push Notifications Service
  *
  * Handles FCM push notifications for mobile platforms (iOS/Android)
- * Integrates with ZoneMinder event notification server
+ * Uses @capacitor-firebase/messaging to get FCM tokens on both platforms.
+ * Integrates with ZoneMinder event notification server.
  */
 
 import { Capacitor } from '@capacitor/core';
-import {
-  PushNotifications,
-  type Token,
-  type PushNotificationSchema,
-  type ActionPerformed,
-} from '@capacitor/push-notifications';
+import type { Notification } from '@capacitor-firebase/messaging';
 import { log, LogLevel } from '../lib/logger';
 import { navigationService } from '../lib/navigation';
 import { useNotificationStore } from '../stores/notifications';
 import { useProfileStore } from '../stores/profile';
 import { useAuthStore } from '../stores/auth';
+import { registerToken, deleteNotification } from '../api/notifications';
+import { getAppVersion } from '../lib/version';
+import { ZMNotificationService } from './notifications';
+import type { ZMEventServerConfig } from '../types/notifications';
+import { resolveProfileForNotification, requestProfileSwitch } from '../lib/notification-profile';
 
+/**
+ * Data payload sent by zmeventnotification server via FCM.
+ * ES sends mid (monitor ID), eid (event ID), and since ES 7.x+
+ * also monitorName and cause as structured fields.
+ */
 export interface PushNotificationData {
-  monitorId?: string;
+  // ES format fields
+  mid?: string;
+  eid?: string;
   monitorName?: string;
-  eventId?: string;
   cause?: string;
-  imageUrl?: string;
+  notification_foreground?: string;
+  profile?: string;
+  // ZM direct mode format fields
+  MonitorId?: string;
+  EventId?: string;
+  MonitorName?: string;
+  Cause?: string;
 }
 
 export class MobilePushService {
@@ -43,22 +56,61 @@ export class MobilePushService {
 
     try {
       // Request permission
-      const permissionResult = await PushNotifications.requestPermissions();
+      const { FirebaseMessaging } = await import('@capacitor-firebase/messaging');
+      const permissionResult = await FirebaseMessaging.requestPermissions();
 
       if (permissionResult.receive === 'granted') {
         log.push('Push notification permission granted', LogLevel.INFO);
 
-        // Setup listeners BEFORE registering to ensure we catch the registration event
+        // Create Android notification channel (no-op on iOS/web)
+        if (Capacitor.getPlatform() === 'android') {
+          await this._createNotificationChannel();
+        }
+
+        // Setup listeners BEFORE requesting token to ensure we catch token refreshes
         if (!this.isInitialized) {
           this._setupListeners();
           this.isInitialized = true;
         }
 
-        // Always register with FCM on initialization to get the current token
-        // This ensures we retrieve the token on every app start
-        log.push('Calling PushNotifications.register()', LogLevel.INFO);
-        await PushNotifications.register();
-        log.push('PushNotifications.register() called successfully', LogLevel.INFO);
+        // Get current FCM token
+        log.push('Requesting FCM token via getToken()', LogLevel.INFO);
+        try {
+          const { FirebaseMessaging } = await import('@capacitor-firebase/messaging');
+          const result = await FirebaseMessaging.getToken();
+          this.currentToken = result.token;
+          this.hasRetried = false;
+
+          log.push('FCM token received', LogLevel.INFO, {
+            token: result.token.substring(0, 20) + '...',
+          });
+
+          // Register token with ZM notification server
+          this._registerWithServer(result.token);
+        } catch (tokenError) {
+          log.push('FCM token request failed', LogLevel.ERROR, tokenError);
+
+          if (!this.hasRetried) {
+            this.hasRetried = true;
+            log.push('Retrying FCM token request once after 5s...', LogLevel.INFO);
+
+            setTimeout(async () => {
+              try {
+                const { FirebaseMessaging } = await import('@capacitor-firebase/messaging');
+                const retryResult = await FirebaseMessaging.getToken();
+                this.currentToken = retryResult.token;
+
+                log.push('FCM token received on retry', LogLevel.INFO, {
+                  token: retryResult.token.substring(0, 20) + '...',
+                });
+
+                this._registerWithServer(retryResult.token);
+              } catch (e) {
+                log.push('FCM token retry failed', LogLevel.ERROR, e);
+              }
+            }, 5000);
+          }
+        }
 
         log.push('Push notifications initialized successfully', LogLevel.INFO);
       } else {
@@ -100,9 +152,13 @@ export class MobilePushService {
   }
 
   /**
-   * Deregister from push notifications and notify server
+   * Deregister from push notifications and notify server.
+   * @param overrideProfileId - Profile ID to deregister for. Required because
+   *   the store's currentProfileId may already be null if disconnect() was
+   *   called before this method (e.g., when updateProfileSettings triggers
+   *   an automatic disconnect).
    */
-  public async deregister(): Promise<void> {
+  public async deregister(overrideProfileId?: string): Promise<void> {
     if (!Capacitor.isNativePlatform()) {
       return;
     }
@@ -115,12 +171,34 @@ export class MobilePushService {
     log.push('Deregistering from push notifications', LogLevel.INFO);
 
     try {
-      // Send disabled state to server if connected
       const notificationStore = useNotificationStore.getState();
-      if (notificationStore.isConnected) {
-        const platform = Capacitor.getPlatform() as 'ios' | 'android';
-        log.push('Sending disabled state to notification server', LogLevel.INFO, { platform });
-        await notificationStore.deregisterPushToken(this.currentToken, platform);
+      const profileId = overrideProfileId || notificationStore.currentProfileId;
+
+      if (profileId) {
+        const settings = notificationStore.getProfileSettings(profileId);
+
+        if (settings.notificationMode === 'direct') {
+          // Direct mode: delete via ZM REST API
+          const notifId = settings.notificationId;
+          if (notifId) {
+            log.push('Deleting notification via ZM API (direct mode)', LogLevel.INFO, { notificationId: notifId });
+            await deleteNotification(notifId);
+            notificationStore.updateProfileSettings(profileId, { notificationId: null });
+          }
+        } else {
+          // ES mode: deregister via websocket
+          const platform = Capacitor.getPlatform() as 'ios' | 'android';
+
+          if (notificationStore.isConnected) {
+            // Already connected — send directly
+            log.push('Sending disabled state to notification server', LogLevel.INFO, { platform });
+            await notificationStore.deregisterPushToken(this.currentToken, platform);
+          } else {
+            // Not connected — temporarily connect to send the deregister
+            log.push('Not connected to ES, using temporary connection to deregister', LogLevel.INFO, { platform });
+            await this._deregisterViaTemporaryConnection(profileId, this.currentToken, platform);
+          }
+        }
       }
 
       // Unregister locally
@@ -128,6 +206,66 @@ export class MobilePushService {
     } catch (error) {
       log.push('Failed to deregister from push notifications', LogLevel.ERROR, error);
       throw error;
+    }
+  }
+
+  /**
+   * Establish a temporary WebSocket connection to the EventServer
+   * solely to send a push token deregistration message, then disconnect.
+   */
+  private async _deregisterViaTemporaryConnection(
+    profileId: string,
+    token: string,
+    platform: 'ios' | 'android'
+  ): Promise<void> {
+    const notificationStore = useNotificationStore.getState();
+    const settings = notificationStore.getProfileSettings(profileId);
+
+    if (!settings.host) {
+      log.push('Cannot deregister via temp connection - no ES host configured', LogLevel.WARN, { profileId });
+      return;
+    }
+
+    const { profiles } = useProfileStore.getState();
+    const profile = profiles.find(p => p.id === profileId);
+
+    if (!profile?.username) {
+      log.push('Cannot deregister via temp connection - no username', LogLevel.WARN, { profileId });
+      return;
+    }
+
+    const getDecryptedPassword = useProfileStore.getState().getDecryptedPassword;
+    const password = await getDecryptedPassword(profileId);
+
+    if (!password) {
+      log.push('Cannot deregister via temp connection - failed to decrypt password', LogLevel.WARN, { profileId });
+      return;
+    }
+
+    const config: ZMEventServerConfig = {
+      host: settings.host,
+      port: settings.port,
+      ssl: settings.ssl,
+      username: profile.username,
+      password,
+      appVersion: getAppVersion(),
+      portalUrl: profile.portalUrl,
+    };
+
+    const tempService = new ZMNotificationService();
+
+    try {
+      await tempService.connect(config);
+      await tempService.deregisterPushToken(token, platform, profile.name);
+
+      // Brief delay to let the WebSocket flush the send buffer
+      await new Promise(resolve => setTimeout(resolve, 200));
+
+      log.push('Deregistered push token via temporary ES connection', LogLevel.INFO, { profileId });
+    } catch (error) {
+      log.push('Failed to deregister via temporary ES connection', LogLevel.ERROR, error);
+    } finally {
+      tempService.disconnect();
     }
   }
 
@@ -142,8 +280,12 @@ export class MobilePushService {
     log.push('Unregistering from push notifications locally', LogLevel.INFO);
 
     try {
+      const { FirebaseMessaging } = await import('@capacitor-firebase/messaging');
       // Remove all listeners
-      await PushNotifications.removeAllListeners();
+      await FirebaseMessaging.removeAllListeners();
+
+      // Delete FCM token
+      await FirebaseMessaging.deleteToken();
 
       // Clear token
       this.currentToken = null;
@@ -160,43 +302,46 @@ export class MobilePushService {
 
   // ========== PRIVATE METHODS ==========
 
-  private _setupListeners(): void {
-    // Called when FCM token is received
-    PushNotifications.addListener('registration', (token: Token) => {
-      log.push('FCM token received', LogLevel.INFO, {
-        token: token.value.substring(0, 20) + '...', // Truncate for security
+  /**
+   * Create the Android notification channel used by FCM push messages.
+   * This is idempotent — calling it when the channel already exists is a no-op.
+   */
+  private async _createNotificationChannel(): Promise<void> {
+    try {
+      const { FirebaseMessaging } = await import('@capacitor-firebase/messaging');
+      await FirebaseMessaging.createChannel({
+        id: 'zmninja-ng',
+        name: 'zmNinja Notifications',
+        description: 'ZoneMinder event alerts',
+        importance: 4, // IMPORTANCE_HIGH — heads-up notifications
+        vibration: true,
+      });
+      log.push('Android notification channel created', LogLevel.INFO, { channelId: 'zmninja-ng' });
+    } catch (error) {
+      log.push('Failed to create notification channel', LogLevel.ERROR, error);
+    }
+  }
+
+  private async _setupListeners(): Promise<void> {
+    const { FirebaseMessaging } = await import('@capacitor-firebase/messaging');
+
+    // Called when FCM token is refreshed
+    FirebaseMessaging.addListener('tokenReceived', ({ token }) => {
+      log.push('FCM token refreshed', LogLevel.INFO, {
+        token: token.substring(0, 20) + '...',
       });
 
-      this.currentToken = token.value;
-      this.hasRetried = false; // Reset retry flag on success
+      this.currentToken = token;
+      this.hasRetried = false;
 
-      // Register token with ZM notification server
-      this._registerWithServer(token.value);
-    });
-
-    // Called when registration fails
-    // Single retry after 5s delay to handle transient network issues on mobile
-    PushNotifications.addListener('registrationError', (error) => {
-      log.push('FCM registration failed', LogLevel.ERROR, error);
-
-      if (!this.hasRetried) {
-        this.hasRetried = true;
-        log.push('Retrying FCM registration once after 5s...', LogLevel.INFO);
-
-        setTimeout(async () => {
-          try {
-            await PushNotifications.register();
-          } catch (e) {
-            log.push('FCM registration retry failed', LogLevel.ERROR, e);
-          }
-        }, 5000);
-      }
+      // Register refreshed token with ZM notification server
+      this._registerWithServer(token);
     });
 
     // Called when notification is received while app is in foreground
-    PushNotifications.addListener(
-      'pushNotificationReceived',
-      (notification: PushNotificationSchema) => {
+    FirebaseMessaging.addListener(
+      'notificationReceived',
+      ({ notification }) => {
         log.push('Push notification received (foreground)', LogLevel.INFO, {
           title: notification.title,
           body: notification.body,
@@ -209,159 +354,220 @@ export class MobilePushService {
     );
 
     // Called when user taps on notification
-    PushNotifications.addListener(
-      'pushNotificationActionPerformed',
-      (action: ActionPerformed) => {
+    FirebaseMessaging.addListener(
+      'notificationActionPerformed',
+      ({ notification }) => {
         log.push('Push notification action performed', LogLevel.INFO, {
-          actionId: action.actionId,
-          notification: action.notification,
+          notification,
         });
 
         // Handle the tap action
-        this._handleNotificationAction(action);
+        this._handleNotificationAction(notification);
       }
     );
   }
 
   private async _registerWithServer(token: string): Promise<void> {
     const notificationStore = useNotificationStore.getState();
-
-    if (!notificationStore.isConnected) {
-      log.push('Storing FCM token - will register when connected to notification server', LogLevel.INFO);
+    const profileId = notificationStore.currentProfileId;
+    if (!profileId) {
+      log.push('No profile connected - cannot register token', LogLevel.WARN);
       return;
     }
 
-    try {
-      const platform = Capacitor.getPlatform() as 'ios' | 'android';
+    const settings = notificationStore.getProfileSettings(profileId);
 
-      log.push('Registering FCM token with notification server', LogLevel.INFO, {
-        platform,
-      });
+    if (settings.notificationMode === 'direct') {
+      // Direct mode: register via ZM REST API (no websocket needed)
+      try {
+        const platform = Capacitor.getPlatform() as 'android' | 'ios';
+        const enabledFilters = settings.monitorFilters.filter(f => f.enabled);
+        const monitorList = settings.allMonitors ? undefined : enabledFilters.map(f => f.monitorId).join(',');
+        const interval = settings.allMonitors ? 0 : Math.max(0, ...enabledFilters.map(f => f.checkInterval));
 
-      await notificationStore.registerPushToken(token, platform);
+        const { profiles } = useProfileStore.getState();
+        const currentProfile = profiles.find(p => p.id === profileId);
 
-      log.push('Successfully registered FCM token with server', LogLevel.INFO);
-    } catch (error) {
-      log.push('Failed to register FCM token with server', LogLevel.ERROR, error);
+        log.push('Registering FCM token via ZM REST API (direct mode)', LogLevel.INFO, { platform, profile: currentProfile?.name });
+
+        const result = await registerToken({
+          token,
+          platform,
+          monitorList,
+          interval,
+          pushState: 'enabled',
+          appVersion: getAppVersion(),
+          profile: currentProfile?.name,
+        });
+
+        notificationStore.updateProfileSettings(profileId, { notificationId: result.Id });
+        log.push('Successfully registered FCM token via ZM API', LogLevel.INFO, { notificationId: result.Id });
+      } catch (error) {
+        log.push('Failed to register FCM token via ZM API', LogLevel.ERROR, error);
+      }
+    } else {
+      // ES mode: register via websocket
+      if (!notificationStore.isConnected) {
+        log.push('Storing FCM token - will register when connected to notification server', LogLevel.INFO);
+        return;
+      }
+
+      try {
+        const platform = Capacitor.getPlatform() as 'ios' | 'android';
+
+        log.push('Registering FCM token with notification server', LogLevel.INFO, {
+          platform,
+        });
+
+        await notificationStore.registerPushToken(token, platform);
+
+        log.push('Successfully registered FCM token with server', LogLevel.INFO);
+      } catch (error) {
+        log.push('Failed to register FCM token with server', LogLevel.ERROR, error);
+      }
     }
   }
 
   /**
    * Handle incoming push notification when app is in foreground
-   * This is called when a notification is received while the app is open
    */
-  private _handleNotification(notification: PushNotificationSchema): void {
-    const data = notification.data as PushNotificationData;
+  private _handleNotification(notification: Notification): void {
+    const data = notification.data as PushNotificationData | undefined;
 
     log.push('Processing FCM notification (foreground)', LogLevel.INFO, {
-      
       title: notification.title,
       body: notification.body,
       data: notification.data,
     });
 
-    // Extract event data and add to notification store
-    if (data.monitorId && data.eventId) {
-      const notificationStore = useNotificationStore.getState();
+    const notificationStore = useNotificationStore.getState();
 
-      // If we are connected to the event server, we will receive this event via WebSocket.
-      // Ignore the push notification to avoid duplicate processing/toasts.
-      // The WebSocket handler already adds the event to the store.
-      if (notificationStore.isConnected) {
-        log.push('Ignoring foreground push notification - already connected to event server', LogLevel.INFO, {
-          eventId: data.eventId,
-        });
-        return;
-      }
-
-      const profileId = notificationStore.currentProfileId;
-
-      if (profileId) {
-        // Construct image URL using the app's portal URL and auth token
-        // Don't use the image URL from the server as it may have incorrect format
-        let imageUrl: string | undefined;
-
-        // Get current profile to construct proper image URL
-        const profileStore = useProfileStore.getState();
-        const currentProfile = profileStore.currentProfile();
-        const authStore = useAuthStore.getState();
-
-        if (currentProfile && authStore.accessToken) {
-          imageUrl = `${currentProfile.portalUrl}/index.php?view=image&eid=${data.eventId}&fid=snapshot&width=600&token=${authStore.accessToken}`;
-
-          log.push('Constructed image URL for FCM notification', LogLevel.INFO, {
-            eventId: data.eventId,
-            imageUrl,
-          });
-        }
-
-        notificationStore.addEvent(profileId, {
-          MonitorId: parseInt(data.monitorId, 10),
-          MonitorName: data.monitorName || 'Unknown',
-          EventId: parseInt(data.eventId, 10),
-          Cause: data.cause || notification.body || 'Motion detected',
-          Name: data.monitorName || 'Unknown',
-          ImageUrl: imageUrl,
-        });
-      }
+    // If we are connected to the event server, we will receive this event via WebSocket.
+    // Ignore the push notification to avoid duplicate processing/toasts.
+    if (notificationStore.isConnected) {
+      log.push('Ignoring foreground push notification - already connected to event server', LogLevel.INFO, {
+        eventId: data?.eid,
+      });
+      return;
     }
+
+    const currentProfileId = notificationStore.currentProfileId;
+    if (!currentProfileId) return;
+
+    // Resolve which profile this notification belongs to
+    const { targetProfileId } = resolveProfileForNotification(data?.profile, currentProfileId);
+    if (!targetProfileId) return;
+
+    const { profiles } = useProfileStore.getState();
+    const targetProfile = profiles.find(p => p.id === targetProfileId);
+    const authStore = useAuthStore.getState();
+
+    // Extract event data from either ES format (mid/eid) or ZM direct format (EventId/MonitorId)
+    const mid = data?.mid || data?.MonitorId;
+    const eid = data?.eid || data?.EventId;
+
+    // Only construct image URL if the notification is for the current profile
+    // (we have a valid auth token for the current profile only)
+    let imageUrl: string | undefined;
+    if (eid && targetProfileId === currentProfileId && targetProfile && authStore.accessToken) {
+      imageUrl = `${targetProfile.portalUrl}/index.php?view=image&eid=${eid}&fid=snapshot&width=600&token=${authStore.accessToken}`;
+    }
+
+    const monitorName = data?.monitorName || data?.MonitorName || notification.title?.replace(/\s*Alarm.*$/, '') || 'Unknown';
+    const cause = data?.cause || data?.Cause || notification.body || 'Motion detected';
+
+    notificationStore.addEvent(targetProfileId, {
+      MonitorId: mid ? parseInt(String(mid), 10) : 0,
+      MonitorName: monitorName,
+      EventId: eid ? parseInt(String(eid), 10) : Date.now(),
+      Cause: cause,
+      Name: monitorName,
+      ImageUrl: imageUrl,
+    }, 'push');
   }
 
   /**
-   * Handle notification tap action
-   * This is called when user taps on a push notification (app in background/killed)
-   * Adds the event to notification history and navigates to event detail
+   * Handle notification tap action.
+   *
+   * Resolves the correct profile from the notification payload.
+   * If the notification is for the current profile, navigates directly.
+   * If it's for a different profile, queues a confirmation dialog
+   * so the user can choose whether to switch profiles.
    */
-  private _handleNotificationAction(action: ActionPerformed): void {
-    const data = action.notification.data as PushNotificationData;
+  private _handleNotificationAction(notification: Notification): void {
+    const data = notification.data as PushNotificationData | undefined;
 
-    log.push('Processing notification tap', LogLevel.INFO, {
-      actionId: action.actionId,
-      monitorId: data.monitorId,
-      eventId: data.eventId,
-    });
+    const mid = data?.mid || data?.MonitorId;
+    const eid = data?.eid || data?.EventId;
 
-    // Add event to notification history and navigate if we have event ID
-    if (data.eventId && data.monitorId) {
-      const notificationStore = useNotificationStore.getState();
-      const profileId = notificationStore.currentProfileId;
+    log.push('Processing notification tap', LogLevel.INFO, { mid, eid, profile: data?.profile });
 
-      if (profileId) {
-        // Construct image URL using the app's portal URL and auth token
-        let imageUrl: string | undefined;
+    const notificationStore = useNotificationStore.getState();
+    const currentProfileId = notificationStore.currentProfileId;
 
-        const profileStore = useProfileStore.getState();
-        const currentProfile = profileStore.currentProfile();
-        const authStore = useAuthStore.getState();
+    // Resolve which profile this notification belongs to
+    const { targetProfileId, isCrossProfile } = resolveProfileForNotification(
+      data?.profile,
+      currentProfileId
+    );
 
-        if (currentProfile && authStore.accessToken) {
-          imageUrl = `${currentProfile.portalUrl}/index.php?view=image&eid=${data.eventId}&fid=snapshot&width=600&token=${authStore.accessToken}`;
-        }
+    const profileIdForEvent = targetProfileId || currentProfileId;
 
-        // Add event to notification history (duplicate prevention handled by store)
-        // Event is added as unread initially
-        notificationStore.addEvent(profileId, {
-          MonitorId: parseInt(data.monitorId, 10),
-          MonitorName: data.monitorName || 'Unknown',
-          EventId: parseInt(data.eventId, 10),
-          Cause: data.cause || action.notification.body || 'Motion detected',
-          Name: data.monitorName || 'Unknown',
-          ImageUrl: imageUrl,
-        });
+    if (profileIdForEvent) {
+      const { profiles } = useProfileStore.getState();
+      const targetProfile = profiles.find(p => p.id === profileIdForEvent);
+      const authStore = useAuthStore.getState();
 
-        // Mark as read since user is tapping to view the event
-        notificationStore.markEventRead(profileId, parseInt(data.eventId, 10));
-
-        log.push('Added notification to history from tap action and marked as read', LogLevel.INFO, {
-          eventId: data.eventId,
-          profileId,
-        });
+      // Only construct image URL if the notification is for the current profile
+      let imageUrl: string | undefined;
+      if (eid && profileIdForEvent === currentProfileId && targetProfile && authStore.accessToken) {
+        imageUrl = `${targetProfile.portalUrl}/index.php?view=image&eid=${eid}&fid=snapshot&width=600&token=${authStore.accessToken}`;
       }
 
-      // Navigate to event detail page
-      navigationService.navigateToEvent(data.eventId);
+      const monitorName = data?.monitorName || data?.MonitorName || notification.title?.replace(/\s*Alarm.*$/, '') || 'Unknown';
+      const cause = data?.cause || data?.Cause || notification.body || 'Motion detected';
+      const eventId = eid ? parseInt(String(eid), 10) : Date.now();
 
-      log.push('Navigating to event detail', LogLevel.INFO, { eventId: data.eventId });
+      // Always store event under the correct profile's history
+      notificationStore.addEvent(profileIdForEvent, {
+        MonitorId: mid ? parseInt(String(mid), 10) : 0,
+        MonitorName: monitorName,
+        EventId: eventId,
+        Cause: cause,
+        Name: monitorName,
+        ImageUrl: imageUrl,
+      }, 'push');
+
+      notificationStore.markEventRead(profileIdForEvent, eventId);
+
+      log.push('Added notification to history from tap action', LogLevel.INFO, {
+        eventId: eid,
+        targetProfileId: profileIdForEvent,
+        isCrossProfile,
+      });
+    }
+
+    if (!eid) return;
+
+    if (isCrossProfile && targetProfileId) {
+      // Different profile — request user confirmation before switching
+      const { profiles } = useProfileStore.getState();
+      const targetProfile = profiles.find(p => p.id === targetProfileId);
+
+      log.push('Cross-profile notification tap, requesting switch confirmation', LogLevel.INFO, {
+        targetProfile: targetProfile?.name,
+        eventId: eid,
+      });
+
+      requestProfileSwitch({
+        targetProfileId,
+        targetProfileName: targetProfile?.name || data?.profile || 'Unknown',
+        eventId: String(eid),
+      });
+    } else {
+      // Same profile — navigate directly (with fallback route for back button)
+      navigationService.navigateToEvent(String(eid), { from: '/monitors', fromNotification: true });
+      log.push('Navigating to event detail', LogLevel.INFO, { eventId: eid });
     }
   }
 }
@@ -378,7 +584,6 @@ export function getPushService(): MobilePushService {
 
 export function resetPushService(): void {
   if (pushService) {
-    // Use private _unregister to avoid sending disabled state to server during cleanup
     pushService['_unregister']().catch((error) => {
       log.push('Failed to unregister push service', LogLevel.ERROR, error);
     });

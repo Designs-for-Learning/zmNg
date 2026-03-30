@@ -1,21 +1,30 @@
-# zmNg - Modern ZoneMinder Client
+# zmNinjaNG - Modern ZoneMinder Client
 
-[![Build Android](https://github.com/pliablepixels/zmNg/actions/workflows/build-android.yml/badge.svg)](https://github.com/pliablepixels/zmNg/actions/workflows/build-android.yml)
-[![Build macOS](https://github.com/pliablepixels/zmNg/actions/workflows/build-macos.yml/badge.svg)](https://github.com/pliablepixels/zmNg/actions/workflows/build-macos.yml)
-[![Build Windows](https://github.com/pliablepixels/zmNg/actions/workflows/build-windows.yml/badge.svg)](https://github.com/pliablepixels/zmNg/actions/workflows/build-windows.yml)
-[![Build Linux](https://github.com/pliablepixels/zmNg/actions/workflows/build-linux-amd64.yml/badge.svg)](https://github.com/pliablepixels/zmNg/actions/workflows/build-linux-amd64.yml)
-[![Tests](https://github.com/pliablepixels/zmNg/actions/workflows/test.yml/badge.svg)](https://github.com/pliablepixels/zmNg/actions/workflows/test.yml)
-[![GitHub release](https://img.shields.io/github/v/release/pliablepixels/zmNg)](https://github.com/pliablepixels/zmNg/releases)
-[![GitHub downloads](https://img.shields.io/github/downloads/pliablepixels/zmNg/total?cache=none)](https://github.com/pliablepixels/zmNg/releases)
+[![Build Android](https://github.com/pliablepixels/zmNinjaNG/actions/workflows/build-android.yml/badge.svg)](https://github.com/pliablepixels/zmNinjaNG/actions/workflows/build-android.yml)
+[![Build macOS](https://github.com/pliablepixels/zmNinjaNG/actions/workflows/build-macos.yml/badge.svg)](https://github.com/pliablepixels/zmNinjaNG/actions/workflows/build-macos.yml)
+[![Build Windows](https://github.com/pliablepixels/zmNinjaNG/actions/workflows/build-windows.yml/badge.svg)](https://github.com/pliablepixels/zmNinjaNG/actions/workflows/build-windows.yml)
+[![Build Linux](https://github.com/pliablepixels/zmNinjaNG/actions/workflows/build-linux-amd64.yml/badge.svg)](https://github.com/pliablepixels/zmNinjaNG/actions/workflows/build-linux-amd64.yml)
+[![Tests](https://github.com/pliablepixels/zmNinjaNG/actions/workflows/test.yml/badge.svg)](https://github.com/pliablepixels/zmNinjaNG/actions/workflows/test.yml)
+[![GitHub release](https://img.shields.io/github/v/release/pliablepixels/zmNinjaNG)](https://github.com/pliablepixels/zmNinjaNG/releases)
+[![GitHub downloads](https://img.shields.io/github/downloads/pliablepixels/zmNinjaNG/total?cache=none)](https://github.com/pliablepixels/zmNinjaNG/releases)
 
 <img src="app/assets/logo.png" align="right" width="120" />
 
-A modern web and mobile application for ZoneMinder, providing a clean, intuitive interface for viewing live camera feeds, reviewing events, and managing multiple server profiles. It is a ground-up rewrite of the original [zmNinja](https://zmninja.zoneminder.com/) application, using modern web technologies and a more intuitive user interface. The code was 99% Claude CLI generated when I first started. Since then, I've been using `codex`, `antigravity` and `copilot w/Gemini3` depending on where I have tokens. `claude` is still head and shoulders above the rest, but codex isn't bad. 
+**[Documentation](https://zmninjang.readthedocs.io/en/latest/)**
 
-Watch a video of the demo [HERE](https://youtu.be/ces_2ap-htc)
+A modern web and mobile application for ZoneMinder, providing a clean, intuitive interface for viewing live camera feeds, reviewing events, and managing multiple server profiles. It is a ground-up rewrite of the original [zmNinja](https://zmninja.zoneminder.com/) application, using modern web technologies and a more intuitive user interface. 
 
-### Screenshots
-<sub><sup>frames courtesy [appleframer](https://appleframer.com/)</sup></sub>
+### Demo
+
+[Watch the demo](https://pliablepixels.github.io/zmNinjaNG/)
+
+### Important Notes:
+- zmNinjaNG supports self-signed certificates on mobile (iOS/Android). Enable it in Settings > Connection. On desktop, add your CA to the system trust store. Using proper certificates (e.g. [LetsEncrypt](https://letsencrypt.org/)) is still recommended.
+- zmNinjaNG has been tested with [ES7+](https://zmeventnotificationv7.readthedocs.io/en/latest/) - I'd recommend you switch to this new ecosystem
+
+<details>
+<summary>Screenshots</summary>
+<sub><sup>frames courtesy <a href="https://appleframer.com/">appleframer</a></sup></sub>
 
 <p align="center">
   <img src="images/1.png" width="32%" />
@@ -32,14 +41,15 @@ Watch a video of the demo [HERE](https://youtu.be/ces_2ap-htc)
   <img src="images/8.png" width="32%" />
   <img src="images/9.png" width="32%" />
 </p>
+</details>
 
 
 ### Agentic AI, you and me
 
-Agentic AI and me: I built the very first version of zmNinja over several months and built in more features over multiple years. I built the first version of zmNg over 2.5 days with almost as many features as the last version of zmNinja. My agent of choice was Claude CLI (with Antigraviy and Copilot when tokens expired). Honestly, zmNg is better structured, more modern and easier to support than zmNinja (which uses tons of now deprecated tech and other code issues). I built it to learn how to effectively use agentic coding tools and wow, was I pleasantly surprised. zmNg has better tests, better release workflow (100% automated), easier to read code and better UX as well (imho).
+Agentic AI and me: I built the very first version of zmNinja over several months and built in more features over multiple years. I built the first version of zmNinjaNG over 2.5 days with almost as many features as the last version of zmNinja. Thanks to Claude.
 
-Agentic AI and you: I don't plan to support zmNg at all. Please don't ping me and expect quick answers. 
-Instead, treat this as "personal software" - i.e. download the code and fix it yourself. If you don't code, or do code, but aren't familiar with the environment of zmNg, I'd encourage you to use an agentic AI tool to help you along the way. Pick one you prefer. Remember, for mobile support, you'll need to generate your own FCM tokens. See mobile guides later for more.
+Agentic AI and you: I don't plan to support zmNinjaNG with any urgency. Please don't ping me and expect quick answers. 
+Instead, treat this as "personal software" - i.e. download the code and fix it yourself. If you don't code, or do code, but aren't familiar with the environment of zmNinjaNG, I'd encourage you to use an agentic AI tool to help you along the way. Pick one you prefer. Personally, I'd recommend [Claude Code](https://claude.com/product/claude-code). In my experience, as of Mar 2026, its significantly ahead of others.
 
 
 #### Pull Requests
@@ -47,13 +57,12 @@ Instead, treat this as "personal software" - i.e. download the code and fix it y
 I am happy to accept PRs, but I don't want [AI slop](https://en.wikipedia.org/wiki/AI_slop). Funny I am saying this, given this repo is largely AI agent(s) generated. The difference is I understand the code and know how to prompt it with directions that make the tools generate better quality code. Remember these tools are amazing but love to write a lot of code doing custom things when simpler/better means are available. They also make mistakes. So here are the rules:
 
 - If you have not read and understood the code you generated, please don't PR it to my repo. Please continue to extend it yourself
-- See my agent rules for [CLAUDE](CLAUDE.md) here - please make sure to use it in your agent
+- See my agent rules for [CLAUDE](AGENTS.md) here - please make sure to use it in your agent
 - Before you PR, please do a code review
 
 ### Limitations & Notes
-- Self signed/untrusted certificates are not supported. It's not worth the effort to support them. Please use LetsEncrypt or other free certs, or just use http.
-- Push notifications won't work till you build the mobile apps yourself (web notifications, when the app is in foreground will work). See [Android](docs/building/ANDROID.md) and [iOS](docs/building/IOS.md) guides.
-- If you want push notifications, you'll have to use a newer [Event Server](https://github.com/pliablepixels/zm_docker_macos) that has support for direct FCM (yep, you don't need the proxy cloud function anymore)
+- Self-signed certificates are supported on mobile (iOS/Android) via Settings > Connection. On desktop, add your CA to the system trust store. Using proper certificates (e.g. [LetsEncrypt](https://letsencrypt.org/)) is still recommended.
+- If you want push notifications, you'll have to use a newer [Event Server](https://zmeventnotificationv7.readthedocs.io/en/latest/)
 
 ### Streaming More Than 6 Cameras (Per-Monitor Streaming Ports)
 
@@ -101,9 +110,9 @@ By default, browsers limit concurrent connections to 6 per domain (HTTP/1.1 limi
 ## Quick Start
 
 ### Binaries
-- Download binaries from [zmNg Releases](https://github.com/pliablepixels/zmNg/releases)
-- iOS is not uploaded - I don't have a dev account anymore
-- I use Github workflows and runners to automatically build release binaries [here](https://github.com/pliablepixels/zmNg/tree/main/.github/workflows). Binaries are built for specific platforms. If the binary doesn't work for your linux distro, look at those files
+- Download binaries from [zmNinjaNG Releases](https://github.com/pliablepixels/zmNinjaNG/releases)
+- iOS will be in the app store soon. Isaac is on it.
+- I use Github workflows and runners to automatically build release binaries [here](https://github.com/pliablepixels/zmNinjaNG/tree/main/.github/workflows). Binaries are built for specific platforms. If the binary doesn't work for your linux distro, look at those files
 
 ## Build from Source
 
@@ -127,8 +136,8 @@ This allows the workflows to create GitHub releases automatically when you push 
 ### Desktop Development
 
 ```bash
-git clone https://github.com/pliablepixels/zmNg
-cd zmNg/app
+git clone https://github.com/pliablepixels/zmNinjaNG
+cd zmNinjaNG/app
 npm install
 
 # Desktop development (Tauri - native app)
@@ -155,58 +164,50 @@ Deploy web build (`dist/`) to: Netlify, Vercel, GitHub Pages, AWS S3, etc.
 
 ## Testing
 
-The project includes unit tests and end-to-end (E2E) tests to ensure code quality and reliability.
+The project includes unit tests and cross-platform E2E tests. All commands run from `app/`.
 
 ### Unit Tests
 
-Run unit tests with Vitest:
-
 ```bash
-cd zmNg/app
-
-# Run all unit tests
-npm run test:unit
-
-# Run tests in watch mode
-npm run test:unit -- --watch
-
-# Run with coverage report
-npm run test:coverage
-
-# Run specific test file
-npm run test:unit -- src/lib/__tests__/url-builder.test.ts
+npm run test:unit              # Run all unit tests
+npm run test:unit -- --watch   # Watch mode
+npm run test:coverage          # With coverage report
 ```
 
-Coverage reports are generated in `coverage/` directory.
+### Web E2E Tests
 
-### End-to-End Tests
-
-Run E2E tests with Playwright:
+Uses Playwright with Gherkin `.feature` files against a real ZoneMinder server. Configure credentials in `app/.env`.
 
 ```bash
-# Run E2E tests
-npm run test:e2e
-
-# Run with UI mode (visual debugging)
-npm run test:e2e:ui
-
-# Run specific test file
-npm run test:e2e -- tests/monitors.spec.ts
+npm run test:e2e                                    # All web E2E tests
+npm run test:e2e -- tests/features/dashboard.feature  # Single feature
+npm run test:e2e -- --headed                          # See the browser
+npm run test:e2e:visual-update                        # Regenerate visual baselines
+npm run test:all                                      # Unit + web E2E
 ```
 
-**Note:** E2E tests require a running ZoneMinder server. Configure test credentials in `.env` file (see `.env.example`).
+### Device E2E Tests
 
-### Run All Tests
+Tests run on real devices — Android emulator, iOS simulator (phone + tablet), and Tauri desktop. Each platform uses shell scripts that handle building, booting, and running tests.
 
 ```bash
-# Run both unit and E2E tests
-npm run test:all
+bash scripts/test-android.sh          # Android emulator (Playwright via CDP)
+bash scripts/test-ios.sh phone        # iPhone simulator (WebDriverIO + Appium)
+bash scripts/test-ios.sh tablet       # iPad simulator (WebDriverIO + Appium)
+bash scripts/test-tauri.sh            # Tauri desktop (WebDriverIO + tauri-driver)
+bash scripts/test-all-platforms.sh    # All 5 platforms sequentially
+```
+
+Device tests require one-time setup (Xcode, Android Studio, Appium, etc.). Run `npm run test:platform:setup` to verify your machine is ready. See [app/tests/README.md](app/tests/README.md) for setup instructions and [docs/developer-guide/06-testing-strategy.rst](docs/developer-guide/06-testing-strategy.rst) for the full testing guide.
+
+### Documentation
+
+```bash
+pip install -r docs/requirements.txt sphinx-autobuild && cd docs && make clean && make html && sphinx-autobuild . _build/html
 ```
 
 ### Making releases
-- See `scripts/release.sh` [here](scripts/release.sh). This automatically tags the current state and triggers release builds
-
-### New vs Old
-[View Comparison with zmNinja](notes/COMPARISON.md)
+- See `scripts/make_release.sh` [here](scripts/make_release.sh). This automatically tags the current state and triggers release builds
+- `app/package.json` is the source of truth for the version number. `scripts/sync-version.js` propagates it to `app/src-tauri/tauri.conf.json` and `app/src-tauri/Cargo.toml` during builds and releases
 
 

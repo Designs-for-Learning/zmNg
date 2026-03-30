@@ -1,13 +1,18 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { ResponsiveLayouts } from 'react-grid-layout/legacy';
+import type { Layout, Layouts } from 'react-grid-layout';
 import { LogLevel } from '../lib/log-level';
+import type { BandwidthMode } from '../lib/zmninja-ng-constants';
 
 export type ViewMode = 'snapshot' | 'streaming';
 export type DisplayMode = 'normal' | 'compact';
 export type MonitorFeedFit = 'contain' | 'cover' | 'fill' | 'none' | 'scale-down';
 export type EventsViewMode = 'list' | 'montage';
-export type ThemePreference = 'dark' | 'light' | 'system';
+export type ThemePreference = 'amber' | 'cream' | 'dark' | 'light' | 'slate' | 'system';
+export type StreamingMethod = 'auto' | 'mjpeg';
+export type WebRTCProtocol = 'webrtc' | 'mse' | 'hls';
+export type DateFormatPreset = 'MMM d, yyyy' | 'MMM d' | 'dd/MM/yyyy' | 'dd/MM' | 'custom';
+export type TimeFormatPreset = '12h' | '24h' | 'custom';
 
 export interface ProfileSettings {
   viewMode: ViewMode;
@@ -19,13 +24,14 @@ export interface ProfileSettings {
   streamScale: number; // Scale percentage for live streams (1-100)
   defaultEventLimit: number; // Default number of events to fetch when no filters applied
   dashboardRefreshInterval: number; // in seconds, for dashboard widgets (events/timeline)
-  montageLayouts: ResponsiveLayouts; // Store montage layouts per profile
-  eventMontageLayouts: ResponsiveLayouts; // Store event montage layouts per profile
+  montageLayouts: Layouts; // Store montage layouts per profile
+  eventMontageLayouts: Layouts; // Store event montage layouts per profile
   montageGridRows: number; // Grid rows for Montage page
   montageGridCols: number; // Grid columns for Montage page
   eventMontageGridCols: number; // Grid columns for EventMontage page
   montageIsFullscreen: boolean; // Fullscreen state for Montage page
   montageFeedFit: MonitorFeedFit; // Object-fit for montage feeds
+  montageShowToolbar: boolean; // Show/hide montage toolbar row
   eventsViewMode: EventsViewMode; // List vs montage view for Events page
   monitorsFeedFit: MonitorFeedFit; // Object-fit for monitor grid feeds
   monitorDetailFeedFit: MonitorFeedFit; // Object-fit for monitor detail feed
@@ -40,8 +46,52 @@ export interface ProfileSettings {
     startDate: string;
     endDate: string;
   };
+  eventsPageFilters: {
+    monitorIds: string[];
+    tagIds: string[];
+    startDateTime: string;
+    endDateTime: string;
+    favoritesOnly: boolean;
+    onlyDetectedObjects: boolean;
+  };
   disableLogRedaction: boolean;
   lastRoute: string; // Last visited route for this profile
+  // Streaming method: 'auto' tries WebRTC/MSE/HLS for Go2RTC-enabled monitors, 'mjpeg' forces MJPEG for all
+  streamingMethod: StreamingMethod;
+  // Whether to enable fallback from WebRTC to MSE to HLS when protocols fail
+  webrtcFallbackEnabled: boolean;
+  // Which protocols to try for WebRTC streaming (video-rtc runs them in parallel)
+  webrtcProtocols: WebRTCProtocol[];
+  // Bandwidth mode: 'normal' for default intervals, 'low' for reduced bandwidth usage
+  bandwidthMode: BandwidthMode;
+  // Selected group ID for filtering monitors (null = show all monitors)
+  selectedGroupId: string | null;
+  // Allow self-signed HTTPS certificates for this profile's server
+  allowSelfSignedCerts: boolean;
+  // SHA-256 fingerprint of the trusted TLS certificate (TOFU pinning)
+  trustedCertFingerprint: string | null;
+  // Custom sidebar nav order (array of route paths). Empty = default order.
+  sidebarNavOrder: string[];
+  // Named saved montage layouts
+  montageSavedLayouts: Array<{ name: string; layout: Layout[]; displayCols: number }>;
+  // Name of the currently active saved layout (null = using a preset column count)
+  montageActiveLayoutName: string | null;
+  // Timeline page persisted filters
+  timelinePageFilters: {
+    monitorIds: string[];
+    startDateTime: string;
+    endDateTime: string;
+    onlyDetectedObjects: boolean;
+  };
+  // Date/time display format
+  dateFormat: DateFormatPreset;
+  timeFormat: TimeFormatPreset;
+  customDateFormat: string; // used when dateFormat === 'custom'
+  customTimeFormat: string; // used when timeFormat === 'custom'
+  // Auto-play video when opening event detail
+  eventVideoAutoplay: boolean;
+  // Desktop sidebar width in pixels (60–320, persisted across sessions)
+  sidebarWidth: number;
 }
 
 interface SettingsState {
@@ -55,43 +105,39 @@ interface SettingsState {
   updateProfileSettings: (profileId: string, updates: Partial<ProfileSettings>) => void;
 
   // Save montage layout for current profile
-  saveMontageLayout: (profileId: string, layout: ResponsiveLayouts) => void;
+  saveMontageLayout: (profileId: string, layout: Layouts) => void;
 
   // Save event montage layout for current profile
-  saveEventMontageLayout: (profileId: string, layout: ResponsiveLayouts) => void;
+  saveEventMontageLayout: (profileId: string, layout: Layouts) => void;
 }
 
-// Determine default display mode based on device type
+// Compact is the default for all devices
 const getDefaultDisplayMode = (): DisplayMode => {
-  // Check if window is available (client-side)
-  if (typeof window !== 'undefined') {
-    // Use mobile breakpoint (768px = md breakpoint in Tailwind)
-    return window.innerWidth < 768 ? 'compact' : 'normal';
-  }
-  return 'normal';
+  return 'compact';
 };
 
 const getDefaultLogLevel = (): LogLevel => (
   typeof import.meta !== 'undefined' && import.meta.env?.DEV ? LogLevel.DEBUG : LogLevel.INFO
 );
 
-const DEFAULT_SETTINGS: ProfileSettings = {
+export const DEFAULT_SETTINGS: ProfileSettings = {
   viewMode: 'snapshot',
   displayMode: getDefaultDisplayMode(),
-  theme: 'light',
+  theme: 'slate',
   logLevel: getDefaultLogLevel(),
   snapshotRefreshInterval: 3,
   streamMaxFps: 10,
   streamScale: 50,
-  defaultEventLimit: 300,
+  defaultEventLimit: 100,
   dashboardRefreshInterval: 30,
   montageLayouts: {},
   eventMontageLayouts: {},
-  montageGridRows: 4,
-  montageGridCols: 4,
+  montageGridRows: 2,
+  montageGridCols: 2,
   eventMontageGridCols: 2,
   montageIsFullscreen: false,
-  montageFeedFit: 'contain',
+  montageFeedFit: 'cover',
+  montageShowToolbar: true,
   eventsViewMode: 'list',
   monitorsFeedFit: 'cover',
   monitorDetailFeedFit: 'contain',
@@ -106,8 +152,46 @@ const DEFAULT_SETTINGS: ProfileSettings = {
     startDate: '',
     endDate: '',
   },
+  eventsPageFilters: {
+    monitorIds: [],
+    tagIds: [],
+    startDateTime: '',
+    endDateTime: '',
+    favoritesOnly: false,
+    onlyDetectedObjects: false,
+  },
   disableLogRedaction: false,
   lastRoute: '/monitors',
+  // Auto mode: use WebRTC/MSE/HLS for Go2RTC-enabled monitors, MJPEG for others
+  streamingMethod: 'auto',
+  // Enable fallback through protocols when one fails
+  webrtcFallbackEnabled: true,
+  // Default: try all protocols (video-rtc runs them in parallel, first to produce video wins)
+  webrtcProtocols: ['webrtc', 'mse', 'hls'],
+  // Normal bandwidth mode by default
+  bandwidthMode: 'normal',
+  // No group filter by default (show all monitors)
+  selectedGroupId: null,
+  // Self-signed certs disabled by default (secure default)
+  allowSelfSignedCerts: false,
+  // No pinned certificate by default
+  trustedCertFingerprint: null,
+  // Default sidebar order (empty = use hardcoded order)
+  sidebarNavOrder: [],
+  timelinePageFilters: {
+    monitorIds: [],
+    startDateTime: '',
+    endDateTime: '',
+    onlyDetectedObjects: false,
+  },
+  dateFormat: 'MMM d',
+  timeFormat: '12h',
+  customDateFormat: 'EEE, MMM d yyyy',
+  customTimeFormat: 'h:mm:ss a',
+  eventVideoAutoplay: true,
+  montageSavedLayouts: [],
+  montageActiveLayoutName: null,
+  sidebarWidth: 256,
 };
 
 export const useSettingsStore = create<SettingsState>()(
@@ -133,27 +217,11 @@ export const useSettingsStore = create<SettingsState>()(
       },
 
       saveMontageLayout: (profileId, layout) => {
-        set((state) => ({
-          profileSettings: {
-            ...state.profileSettings,
-            [profileId]: {
-              ...(state.profileSettings[profileId] || DEFAULT_SETTINGS),
-              montageLayouts: layout,
-            },
-          },
-        }));
+        get().updateProfileSettings(profileId, { montageLayouts: layout });
       },
 
       saveEventMontageLayout: (profileId, layout) => {
-        set((state) => ({
-          profileSettings: {
-            ...state.profileSettings,
-            [profileId]: {
-              ...(state.profileSettings[profileId] || DEFAULT_SETTINGS),
-              eventMontageLayouts: layout,
-            },
-          },
-        }));
+        get().updateProfileSettings(profileId, { eventMontageLayouts: layout });
       },
     }),
     {

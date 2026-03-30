@@ -1,229 +1,321 @@
 # Development Guidelines
 
-## Quick Reference
-1. **Internationalization**: Update ALL language files (en, de, es, fr, zh + any future)
-2. **Cross-platform**: iOS, Android, Desktop, mobile portrait
-3. **Settings**: Must be profile-scoped; read/write via profile settings only
-4. **Testing**: Data tags required, tests updated
-5. **Logging**: Use component-specific helpers (e.g., `log.secureStorage(msg, LogLevel.INFO, details)`), never `console.*`
-6. **Coding**: DRY principles, keep code files small and modular
+## Rules
+
+These are non-negotiable. Every rule applies to all communication: responses, commits, docs, code comments.
+
+1. **No superlatives** — never use "comprehensive", "critical", "major", "robust", "powerful", "extensively", "thoroughly", "excellent", "amazing", "significant", etc. Plain, factual language only.
+2. **Issues first** — create a GitHub issue before implementing features or fixing bugs. Commit directly to main only for docs-only changes, refactors without behavior change, test additions for existing code, or dependency updates.
+3. **Test first, verify before commit** — write tests first, run `npm test` + `tsc --noEmit` + `npm run build` + relevant e2e tests before every commit. Build passing is not proof code works.
+4. **Update docs** — update `docs/developer-guide/` in the same session when adding new APIs, components, utilities, or hooks and/or `docs/user-gudie` for changed/updated or new functionality
+5. **i18n all languages** — never hardcode user-facing strings. Update ALL translation files: en, de, es, fr, zh.
+6. **Cross-platform** — test on iOS, Android, Desktop, phone portrait + landscape. Device e2e tests (`ios-phone`, `android`, etc.) are manual-invoke-only — only `npm run test:e2e` (web) runs in the automated workflow.
+7. **Profile-scoped settings** — read/write via `getProfileSettings`/`updateProfileSettings`. Never use global singletons.
+8. **Bandwidth settings** — all polling/refresh features must use `useBandwidthSettings()` (or `getBandwidthSettings()` outside React). Never hardcode polling intervals.
+9. **Logging** — use `log.*` component helpers with explicit LogLevel, never `console.*`. See `lib/logger.ts` for available helpers.
+10. **HTTP** — use `lib/http.ts` abstractions (`httpGet`, `httpPost`, etc.), never raw `fetch()` or `axios`.
+11. **Text overflow** — use `truncate` + `min-w-0` in flex containers; add `title` for tooltips. Multi-line: `line-clamp-N`.
+12. **Small files** — DRY, ~400 LOC max, extract complex logic to separate modules.
+13. **`data-testid`** — add `data-testid="kebab-case-name"` to all interactive elements. Required for e2e tests.
+14. **Capacitor plugins** — dynamic imports only with platform checks. Never static imports. Match `@capacitor/core` major version. Add mock to `tests/setup.ts`.
+15. **Mobile downloads** — use CapacitorHttp base64 directly. Never convert to Blob on mobile (OOM risk).
+16. **Tauri packages** — JS `@tauri-apps/*` and Rust `tauri-plugin-*` versions must match. Update `package.json` and `Cargo.toml` together.
+17. **No plan files in git** — delete `.md` plan files once the feature is complete.
+18. **Complete features fully** — don't leave features half-implemented.
+19. **User approval before merge** — never merge to main without user approval.
+20. **One logical change per commit** — use conventional format: `feat:`, `fix:`, `docs:`, `test:`, `chore:`, `refactor:`. Reference issues with `refs #<id>` or `fixes #<id>`.
+21. **Don't batch unrelated changes** — split into separate commits.
+22. **Analyze test failures** — read error output and fix systematically. Don't retry blindly.
 
 ---
 
-## Internationalization
+## Working Directory
 
-**Every user-facing string must be internationalized.**
+All `npm` commands must be run from the `app/` directory.
 
-- **Location**: `app/src/locales/{lang}/translation.json`
-- **Current languages**: en, de, es, fr, zh
-- **Rule**: Update ALL existing language directories, including any added in the future
-- **Usage**:
-  ```typescript
-  const { t } = useTranslation();
-  <Text>{t('setup.title')}</Text>
-  ```
-- **When adding text**: Add the same key to every translation.json file
-- **When adding a new language**: Follow `.agent/workflows/add_language.md` - must update `i18n.ts` to import and bundle the new translations
-
----
-
-## UI & Cross-Platform
-
-**All UI must work across platforms and viewports.**
-
-### Platform Support
-- Test on iOS, Android, Desktop
-- Verify mobile portrait reflow before committing
-- Use responsive design patterns
-
-### Data Tags (Required)
-- **Format**: `data-testid="kebab-case-name"`
-- **Add to**: All interactive elements and key containers
-- **Examples**:
-  ```tsx
-  <div data-testid="profile-list">
-    <div data-testid="profile-card">
-      <button data-testid="add-profile-button">
-        <span data-testid="profile-name">{name}</span>
-  ```
-
-### Navigation
-- In-view clicks must use stacked navigation with back arrow
-- Maintain proper routing history
+Structure:
+- `./` — workspace root (AGENTS.md, docs/, scripts/)
+- `app/` — main application (run npm commands here)
+- `app/src/` — source code
+- `app/tests/` — e2e test features and helpers
 
 ---
 
 ## Testing
 
-### Unit Tests (Required for New Functionality and any changes to existing functionality)
-- **Location**: Next to source in `__tests__/` subdirectory
-- **Example**: `app/src/lib/crypto.ts` → `app/src/lib/__tests__/crypto.test.ts`
-- **Run**: `npm test` (fast, < 2 seconds)
-- **Guide**: `app/tests/README.md`
+### Philosophy: Be a Human Tester
+Every test must verify what a real human would verify: "Can I accomplish this task? Does this look right? Does the data make sense?"
 
-### E2E Tests (Required for Large Changes or any UI changes)
-- **Must start with Gherkin** - no non-Gherkin e2e tests
-- **Location**: `app/tests/features/*.feature`
-- **Steps**: `app/tests/steps.ts`
-- **Run**: `npm run test:e2e`
-- **Workflow**: Write .feature file → playwright-bdd generates .spec → run tests
-- **Never** write .spec.ts files directly
-- **Guide**: `app/tests/README.md`
+- Verify outcomes (data changed, navigation happened, file downloaded) — not just element presence
+- Fill forms and verify data persists after refresh or navigation
+- Test error states, edge cases, and device-specific layout behavior
+- Add `@visual` screenshots to catch layout regressions
+- Never write "check heading is visible" as a test — that's not testing anything
+- Never mock the thing you're testing
 
-### Test Updates
-- If UI selectors change → update affected tests
-- If navigation changes → update affected tests
-- If functionality changes → update affected tests
-- Tests must interact with UI elements, not just load views
-- Use data-testid selectors for reliability
-- Always make sure tests work for android (mobile devices use different files like capacitor HTTP that are not triggered when web/desktop are tested)
+### Test-First Workflow
+1. Understand the bug/feature requirement
+2. Write a failing test that reproduces the issue
+3. Implement the fix/feature
+4. Run tests — verify they pass
+5. Run full test suite to check for regressions
+6. Commit
+
+### Unit Tests
+**Location**: Next to source in `__tests__/` subdirectory (e.g., `lib/crypto.ts` → `lib/__tests__/crypto.test.ts`)
+
+**What to test**: Happy path, edge cases (empty/null/undefined), error cases, state changes
+
+**Run**: `npm test`
+
+### E2E Tests
+**When required**: UI changes, navigation changes, interaction changes, new workflows
+
+**Location**: `app/tests/features/*.feature` (Gherkin format, never .spec.ts directly)
+
+**Step definitions**: `app/tests/steps/<screen>.steps.ts` (one file per screen, not one monolith)
+
+**Run**: `npm run test:e2e -- <feature>.feature`
+
+### Cross-Platform E2E Tests
+Tests run on 5 platform profiles using two drivers. Playwright drives Chromium-based platforms (web, Android) via CDP. WebDriverIO + Appium drives WebKit-based platforms (iOS, Tauri) via native drivers. A shared `TestActions` abstraction keeps step definitions driver-agnostic.
+
+| Profile | Device | Driver | Connection |
+|---|---|---|---|
+| `web-chromium` | Desktop browser | Playwright | Direct launch |
+| `android-phone` | Pixel 7 Emulator | Playwright | ADB port-forward → CDP |
+| `ios-phone` | iPhone 15 Simulator | WebDriverIO + Appium XCUITest | WebView context switch |
+| `ios-tablet` | iPad Air Simulator | WebDriverIO + Appium XCUITest | WebView context switch |
+| `desktop-tauri` | Tauri macOS app | WebDriverIO + tauri-driver | WebDriver protocol |
+
+### Platform Tags
+- `@all` — every platform | `@android` — Android only | `@ios` — iPhone + iPad
+- `@ios-phone` / `@ios-tablet` — specific iOS form factor
+- `@tauri` — Tauri desktop | `@web` — browser only
+- `@visual` — comparison screenshots | `@native` — requires Appium
+
+### Test Commands
+```bash
+# Unit tests
+npm test                                # Unit tests
+npm test -- --coverage                  # With coverage
+
+# E2E tests (web browser only - fast)
+npm run test:e2e                        # All web e2e tests
+npm run test:e2e -- <feature>.feature   # Specific feature
+npm run test:e2e -- --headed            # See browser
+
+# Cross-platform e2e (requires simulators/emulators)
+npm run test:e2e:android                # Android emulator
+npm run test:e2e:ios-phone              # iPhone simulator
+npm run test:e2e:ios-tablet             # iPad simulator
+npm run test:e2e:tauri                  # Tauri desktop
+npm run test:e2e:all-platforms          # All platforms sequentially
+
+# Visual regression
+npm run test:e2e:visual-update          # Regenerate all baselines
+npm run test:e2e:android -- --update-snapshots  # Platform-specific
+
+# Native-only (Appium) — PiP, biometrics, push, downloads
+npm run test:native
+
+# Setup verification
+npm run test:platform:setup             # Check tools, simulators, ports
+```
+
+### Platform Test Configuration
+Simulator names, ports, and timeouts are in `app/tests/platforms.config.defaults.ts`. To customize for your machine, copy to `platforms.config.local.ts` (gitignored) and edit.
+
+Server credentials in `.env`:
+```bash
+ZM_HOST_1=http://your-server:port
+ZM_USER_1=admin
+ZM_PASSWORD_1=password
+```
+
+### Visual Regression
+Scenarios tagged `@visual` capture screenshots and compare against per-platform baselines in `app/tests/screenshots/<platform>/`. Threshold: 0.2% pixel diff. First run on a new platform: use `--update-snapshots` to generate baselines.
+
+### Writing Good E2E Tests
+
+Ask: "If I were a human QA tester with this feature on 5 devices, what would I check?"
+
+**Good** (tests a user goal with interaction + outcome verification):
+```gherkin
+@all @visual
+Scenario: Create and verify a new widget
+  Given I am logged into zmNinjaNG
+  When I navigate to the "Dashboard" page
+  And I open the Add Widget dialog
+  And I select widget type "My New Widget"
+  And I enter the title "Test Widget"
+  And I save the widget
+  Then the widget "Test Widget" should appear on the dashboard
+  And the widget should display real data
+  When I refresh the page
+  Then the widget "Test Widget" should still be present
+  And the page should match the visual baseline
+```
+
+- One scenario per user goal, not per element
+- Add `@ios-phone @android` for phone layout, `@ios-tablet` for tablet, `@tauri` for desktop
+- Step definitions in `app/tests/steps/<screen>.steps.ts` using `TestActions` (not raw Playwright/WebDriverIO)
+- Run `--update-snapshots` on each platform for visual baselines
+
+### Conditional Testing Pattern
+For features depending on dynamic content:
+```typescript
+let actionPerformed = false;
+
+When('I click download if exists', async ({ page }) => {
+  const button = page.getByTestId('download-button');
+  if (await button.isVisible({ timeout: 1000 })) {
+    await button.click();
+    actionPerformed = true;
+  }
+});
+
+Then('I should see progress if started', async ({ page }) => {
+  if (!actionPerformed) return;
+  await expect(page.getByTestId('progress')).toBeVisible();
+});
+```
+
+### Native-Only Tests (Appium)
+For flows requiring native OS interaction (PiP, biometric auth, push, native file downloads, share sheet, app lifecycle): `app/tests/native/specs/<feature>.spec.ts`
 
 ---
 
-## Logging
+## Verification & Commits
 
-**Never use console.* - always use structured logging.**
+For every code change, execute in order:
 
-### Import
+1. `npm test` — must pass
+2. `npx tsc --noEmit` — must pass
+3. `npm run build` — must succeed
+4. `npm run test:e2e -- <feature>.feature` (if UI/navigation changed)
+5. Commit only after all pass
+
+State which tests were run: "Tests verified: npm test ✓, tsc --noEmit ✓, build ✓, test:e2e -- dashboard.feature ✓"
+
+**UI changes also require**: `data-testid` on new elements, e2e tests in `.feature` file with platform tags, visual baselines updated, all language files updated.
+
+**Native plugin changes also require**: Appium test in `app/tests/native/specs/`.
+
+**Never commit if**: tests are failing, tests don't exist for new functionality, you haven't actually run the tests, or you wrote a scenario that only checks element presence without interaction.
+
+### Feature Workflow
+1. Create GitHub issue: `gh issue create --title "feat: Description" --body "..." --label "enhancement"` (or `--label "bug"` for bugs)
+2. Create branch: `git checkout -b feature/<short-description>` (no branch needed for bug fixes)
+3. Implement with tests
+4. Request user approval before merging
+5. Tag commits: `refs #<id>`, use `fixes #<id>` in final commit only after user confirms the fix works
+
+---
+
+## Code Patterns
+
+### Internationalization
 ```typescript
-import { log, LogLevel } from '../lib/logger'; // adjust path depth as needed
+const { t } = useTranslation();
+<Text>{t('setup.title')}</Text>
+toast.error(t('montage.screen_too_small'));
 ```
+Location: `app/src/locales/{lang}/translation.json` — update all 5 languages.
 
-### Component-Specific Logging (Preferred)
-Use component-specific helpers with explicit log levels:
-
+### Logging
 ```typescript
-// Component-specific helpers automatically add { component: 'X' } context
+import { log, LogLevel } from '../lib/logger';
 log.secureStorage('Value encrypted', LogLevel.DEBUG, { key });
 log.profileForm('Testing connection', LogLevel.INFO, { portalUrl });
-log.monitorCard('Stream failed, regenerating connkey', LogLevel.WARN);
-log.download('Failed to download file', LogLevel.ERROR, { url }, error);
+log.download('Failed to download', LogLevel.ERROR, { url }, error);
 ```
+See `lib/logger.ts` for the full list of component-specific helpers (e.g., `log.auth`, `log.notifications`, `log.http`, etc.).
 
-**Available component helpers:**
-- Services: `log.notifications()`, `log.profileService()`, `log.push()`
-- Pages: `log.eventDetail()`, `log.monitorDetail()`, `log.profileForm()`
-- Components: `log.monitorCard()`, `log.montageMonitor()`, `log.videoPlayer()`, `log.errorBoundary()`, `log.imageError()`
-- Libraries: `log.download()`, `log.crypto()`, `log.http()`, `log.navigation()`, `log.secureStorage()`, `log.time()`, `log.discovery()`
-- Stores: `log.dashboard()`, `log.queryCache()`
-- Domain: `log.api()`, `log.auth()`, `log.profile()`, `log.monitor()`
-
-**Signature:** `log.componentName(message: string, level: LogLevel, details?: unknown)`
-
-### Standard Logging (Legacy - avoid for new code)
+### HTTP Requests
 ```typescript
-log.debug(msg, context, ...args)
-log.info(msg, context, ...args)
-log.warn(msg, context, ...args)
-log.error(msg, context, ...args)
+import { httpGet, httpPost, httpPut, httpDelete } from '../lib/http';
+const data = await httpGet<MonitorData>('/api/monitors.json');
+await httpPost('/api/states/change.json', { monitorId: '1', newState: 'Alert' });
+```
+Handles platform differences (Capacitor HTTP on mobile, fetch on web), logging, and authentication automatically.
+
+### Text Overflow
+```tsx
+<div className="flex items-center gap-2">
+  <span className="truncate min-w-0" title={text}>{text}</span>
+</div>
 ```
 
-### Best Practices
-- ✅ Use component-specific helpers for all new logging
-- ✅ Always specify explicit `LogLevel` (DEBUG, INFO, WARN, ERROR)
-- ✅ Include relevant context in the `details` object
-- ✅ Pass errors as part of `details`, not as separate arguments
-- ❌ Don't manually add `{ component: 'X' }` - use helpers instead
-- ❌ Don't use `console.log`, `console.error`, etc.
-
-### Examples
+### Capacitor Dynamic Imports
 ```typescript
-// Good ✅
-log.secureStorage('Failed to encrypt value', LogLevel.ERROR, { key }, error);
-log.monitorDetail('Regenerating connkey', LogLevel.INFO, { monitorId });
-
-// Bad ❌
-log.info('Failed to encrypt', { component: 'SecureStorage', key });
-console.log('Regenerating connkey');
+// Good
+if (Capacitor.isNativePlatform()) {
+  try {
+    const { Haptics, ImpactStyle } = await import('@capacitor/haptics');
+    await Haptics.impact({ style: ImpactStyle.Light });
+  } catch { /* not available */ }
+}
+// Bad — static import breaks on web
+import { Haptics } from '@capacitor/haptics';
 ```
 
-### Reference
-- Full implementation: `app/src/lib/logger.ts`
+### Background Tasks & Downloads
+```typescript
+const taskStore = useBackgroundTasks.getState();
+const taskId = taskStore.addTask({
+  type: 'download',
+  metadata: { title: 'Video.mp4', description: 'Event 12345' },
+  cancelFn: () => abortController.abort(),
+});
+taskStore.updateProgress(taskId, percentage, bytesProcessed);
+taskStore.completeTask(taskId);
+```
+On mobile, use CapacitorHttp base64 directly — never convert to Blob (OOM risk).
+
+### Bandwidth Settings
+Use `useBandwidthSettings()` in React components or `getBandwidthSettings(mode)` in services. See `BandwidthSettings` interface in `lib/zmninja-ng-constants.ts` for available properties.
+
+```typescript
+import { useBandwidthSettings } from '../hooks/useBandwidthSettings';
+const bandwidth = useBandwidthSettings();
+
+const { data } = useQuery({
+  queryKey: ['monitors'],
+  queryFn: getMonitors,
+  refetchInterval: bandwidth.monitorStatusInterval,
+});
+```
+
+To add a new polling property: add to the `BandwidthSettings` interface and both `normal`/`low` objects in `BANDWIDTH_SETTINGS` (low mode should be ~2x slower).
+
+### Settings & Data Management
+Settings must be profile-scoped via `getProfileSettings`/`updateProfileSettings`. Detect version/structure changes in stored data — if incompatible, prompt user to reset (don't crash).
+
+### Adding Dependencies
+1. Check compatibility: `npm info <package> peerDependencies`
+2. For Capacitor plugins: match `@capacitor/core` major version
+3. For Tauri plugins: match JS and Rust package versions
+4. Update test mocks in `app/src/tests/setup.ts` if needed
+5. Verify: `npm test && npm run build`
 
 ---
 
-## Settings & Data Management
+## Documentation
 
-### Profile-Scoped Settings
-- Settings must be stored under `ProfileSettings` and read/write through `getProfileSettings(currentProfile?.id)` and `updateProfileSettings(profileId, ...)`.
-- Do not read or write settings from any global singleton or module-level state.
+Update `docs/developer-guide/` when adding:
+- API modules (`api/*.ts`) → `07-api-and-data-fetching.rst`
+- Components (`components/*.tsx`) → `05-component-architecture.rst`
+- Utilities (`lib/*.ts`) → `12-shared-services-and-components.rst`
+- Hooks (`hooks/*.ts`) → `05-component-architecture.rst` or relevant chapter
 
-### Breaking Changes
-- Detect version/structure changes in stored data
-- If incompatible → prompt user to reset (don't crash)
-- Example: "Profile data format has changed. Reset to continue?"
-- Avoid silent failures or complex auto-migrations
+Document purpose, usage examples, key functions/props, integration patterns, and platform-specific gotchas.
 
 ---
 
 ## Code Quality
 
-### Keep It Simple
-- DRY, modular, simple code
-- Avoid duplication
-- Don't over-engineer
-- Three similar lines > premature abstraction
-
-## Keep It Small
-- Keep each file small (SLOC count) and cohesive
-
-### Remove Legacy Code
-- When replacing functionality, delete old code
-- Don't leave unused files or commented code
-- Clean as you go
-
-### Documentation
-- Write concise comments
-- Avoid grandiose wording
-- Comment the "why", not the "what"
-
----
-
-## Platform-Specific Code
-
-### iOS/Android Native Code
-- Capacitor regenerates some files
-- Check before modifying native code
-- Document any custom native modifications
-- Ensure changes won't be overwritten on regeneration
-
----
-
-## Commits
-
-- **CRITICAL:** Commit messages must be detailed and descriptive (no vague summaries).
-- **CRITICAL:** Split unrelated changes into separate commits (one logical change per commit).
-- **Use conventional commit format:**
-    - `feat:` - New feature
-    - `fix:` - Bug fix
-    - `docs:` - Documentation
-    - `test:` - Tests
-    - `chore:` - Maintenance
-    - `refactor:` - Code restructuring
-- When you commit code, and the code contains multiple things, break each item into separate commits
-
-
-
-
-## Issue handling
-- When Github issues are created, make sure code fixes refer to that issue in commit messages
-- Use `refs #<id>` for references and `fixes #<id>` when the commit should close the issue
-- When working in github issues, make changes, validate tests and then ask me to test before pushing code to github
-
----
-
-## Pre-Commit Checklist
-
-### UI Changes
-- [ ] Data tags added for new/changed elements
-- [ ] Responsive reflow verified (mobile portrait)
-- [ ] All language files updated
-- [ ] Tests updated for selector/navigation changes
-
-### Functional Changes
-- [ ] Unit tests added/updated
-- [ ] E2E tests updated if user journeys changed
-- [ ] No crash on migration (prompt for reset if needed)
-- [ ] Used component-specific logging helpers with explicit LogLevel (no console.*)
-
----
+- DRY, modular code. Three similar lines > premature abstraction.
+- Target ~400 LOC max per file. Extract cohesive blocks to separate modules.
+- Delete old code completely when replacing functionality. Don't leave unused files or commented code.
+- For complex features with multiple approaches or UX changes: present options and get user approval before implementing.

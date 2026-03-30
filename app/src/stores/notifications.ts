@@ -8,17 +8,24 @@ import {
   type ZMEventServerConfig,
   type ZMAlarmEvent,
   type ConnectionState,
+  type NotificationMode,
 } from '../types/notifications';
 import { log, LogLevel } from '../lib/logger';
-import { useAuthStore } from './auth';
 import { getAppVersion } from '../lib/version';
+import { updateNotification } from '../api/notifications';
+import { useProfileStore } from './profile';
 
 export interface NotificationSettings {
   enabled: boolean;
+  notificationMode: NotificationMode; // 'es' = Event Server websocket, 'direct' = ZM REST API
+  notificationId: number | null; // Server-side Notifications.Id (direct mode)
   host: string; // Event server host (e.g., "zm.example.com")
   port: number; // Event server port (default 9000)
   ssl: boolean; // Use wss:// instead of ws://
-  monitorFilters: MonitorNotificationConfig[]; // Per-monitor settings
+  allMonitors: boolean; // Receive notifications for all monitors (no filter sent to ES)
+  monitorFilters: MonitorNotificationConfig[]; // Per-monitor settings (used when allMonitors is false)
+  onlyDetectedEvents: boolean; // Only notify for events with object detection results (direct mode)
+  pollingInterval: number; // Seconds between event polls in direct mode (desktop)
   showToasts: boolean; // Show toast notifications for events
   playSound: boolean; // Play sound on notification
   badgeCount: number; // Current unread count
@@ -30,9 +37,12 @@ export interface MonitorNotificationConfig {
   checkInterval: number; // Seconds between checks (60, 120, etc.)
 }
 
+export type NotificationSource = 'websocket' | 'push' | 'poll';
+
 export interface NotificationEvent extends ZMAlarmEvent {
   receivedAt: number; // Timestamp when received
   read: boolean; // Whether user has seen it
+  source: NotificationSource; // How the event was delivered
 }
 
 interface NotificationState {
@@ -62,7 +72,7 @@ interface NotificationState {
   reconnect: () => Promise<void>;
 
   // Actions - Events
-  addEvent: (profileId: string, event: ZMAlarmEvent) => void;
+  addEvent: (profileId: string, event: ZMAlarmEvent, source?: NotificationSource) => void;
   markEventRead: (profileId: string, eventId: number) => void;
   markAllRead: (profileId: string) => void;
   clearEvents: (profileId: string) => void;
@@ -77,19 +87,56 @@ interface NotificationState {
   _initialize: () => void;
   _cleanup: () => void;
   _syncMonitorFilters: () => Promise<void>;
-  _updateBadge: () => Promise<void>;
+  _updateBadge: (count?: number) => Promise<void>;
+  _clearNativeBadge: () => void;
   _registerPushTokenIfAvailable: () => Promise<void>;
 }
 
 const MAX_EVENTS = 100; // Keep last 100 events
 const DEFAULT_PORT = 9000;
 
+/**
+ * Helper for state updaters that modify a profile's event list and badge count.
+ *
+ * Reads the current events for `profileId`, applies `updater` to produce the
+ * new list, recalculates `unreadCount`, and returns the merged state slice for
+ * both `profileEvents` and `profileSettings`.
+ */
+function _updateProfileEvents(
+  state: Pick<NotificationState, 'profileEvents' | 'profileSettings'>,
+  profileId: string,
+  updater: (current: NotificationEvent[]) => NotificationEvent[]
+): Pick<NotificationState, 'profileEvents' | 'profileSettings'> {
+  const currentEvents = state.profileEvents[profileId] || [];
+  const events = updater(currentEvents);
+  const unreadCount = events.filter((e) => !e.read).length;
+  const profileSettings = state.profileSettings[profileId] || DEFAULT_SETTINGS;
+  return {
+    profileEvents: {
+      ...state.profileEvents,
+      [profileId]: events,
+    },
+    profileSettings: {
+      ...state.profileSettings,
+      [profileId]: {
+        ...profileSettings,
+        badgeCount: unreadCount,
+      },
+    },
+  };
+}
+
 const DEFAULT_SETTINGS: NotificationSettings = {
   enabled: false,
+  notificationMode: 'es',
+  notificationId: null,
   host: '',
   port: DEFAULT_PORT,
   ssl: true,
+  allMonitors: true,
   monitorFilters: [],
+  onlyDetectedEvents: false,
+  pollingInterval: 30,
   showToasts: true,
   playSound: false,
   badgeCount: 0,
@@ -229,7 +276,6 @@ export const useNotificationStore = create<NotificationState>()(
           ssl: settings.ssl,
           username,
           password,
-          token: useAuthStore.getState().accessToken || undefined,
           appVersion: getAppVersion(),
           portalUrl,
         };
@@ -252,6 +298,9 @@ export const useNotificationStore = create<NotificationState>()(
 
           // Register push token if on mobile and token is available
           get()._registerPushTokenIfAvailable();
+
+          // Sync badge count with server after connect
+          get()._updateBadge();
         } catch (error) {
           log.notifications('Failed to connect to notification server', LogLevel.ERROR, { profileId, error });
           throw error;
@@ -272,9 +321,9 @@ export const useNotificationStore = create<NotificationState>()(
       },
 
       reconnect: async () => {
-        log.notifications('Reconnecting to notification server', LogLevel.INFO);
-        // Disconnect first, then user must call connect with credentials
-        get().disconnect();
+        log.notifications('Triggering reconnect', LogLevel.INFO);
+        const service = getNotificationService();
+        service.reconnectNow();
       },
 
       // ========== Event Actions ==========
@@ -293,69 +342,40 @@ export const useNotificationStore = create<NotificationState>()(
        * Events can come from WebSocket (when connected) or FCM push notifications
        * Duplicate prevention: if an event with the same ID already exists, it will be replaced
        */
-      addEvent: (profileId: string, event: ZMAlarmEvent) => {
+      addEvent: (profileId: string, event: ZMAlarmEvent, source: NotificationSource = 'websocket') => {
         log.notifications('Adding notification event', LogLevel.INFO, { profileId,
           monitor: event.MonitorName,
-          eventId: event.EventId, });
+          eventId: event.EventId,
+          source, });
 
-        set((state) => {
-          const notificationEvent: NotificationEvent = {
-            ...event,
-            receivedAt: Date.now(),
-            read: false,
-          };
+        const notificationEvent: NotificationEvent = {
+          ...event,
+          receivedAt: Date.now(),
+          read: false,
+          source,
+        };
 
-          const currentEvents = state.profileEvents[profileId] || [];
+        set((state) =>
+          _updateProfileEvents(state, profileId, (current) => {
+            // Remove any existing event with the same ID to avoid duplicates
+            // This prevents duplicate entries when receiving the same event from both WebSocket and FCM
+            const otherEvents = current.filter((e) => e.EventId !== event.EventId);
+            return [notificationEvent, ...otherEvents].slice(0, MAX_EVENTS);
+          })
+        );
 
-          // Remove any existing event with the same ID to avoid duplicates
-          // This prevents duplicate entries when receiving the same event from both WebSocket and FCM
-          const otherEvents = currentEvents.filter(e => e.EventId !== event.EventId);
-
-          const events = [notificationEvent, ...otherEvents].slice(0, MAX_EVENTS);
-          const unreadCount = events.filter((e) => !e.read).length;
-
-          const profileSettings = state.profileSettings[profileId] || DEFAULT_SETTINGS;
-
-          return {
-            profileEvents: {
-              ...state.profileEvents,
-              [profileId]: events,
-            },
-            profileSettings: {
-              ...state.profileSettings,
-              [profileId]: {
-                ...profileSettings,
-                badgeCount: unreadCount,
-              },
-            },
-          };
-        });
+        // Sync badge count with server so future push notifications use the correct number
+        if (get().currentProfileId === profileId) {
+          get()._updateBadge();
+        }
       },
 
       markEventRead: (profileId: string, eventId: number) => {
-        set((state) => {
-          const currentEvents = state.profileEvents[profileId] || [];
-          const events = currentEvents.map((e) =>
-            e.EventId === eventId ? { ...e, read: true } : e
-          );
-          const unreadCount = events.filter((e) => !e.read).length;
-
-          const profileSettings = state.profileSettings[profileId] || DEFAULT_SETTINGS;
-
-          return {
-            profileEvents: {
-              ...state.profileEvents,
-              [profileId]: events,
-            },
-            profileSettings: {
-              ...state.profileSettings,
-              [profileId]: {
-                ...profileSettings,
-                badgeCount: unreadCount,
-              },
-            },
-          };
-        });
+        set((state) =>
+          _updateProfileEvents(state, profileId, (current) =>
+            current.map((e) => (e.EventId === eventId ? { ...e, read: true } : e))
+          )
+        );
 
         // Update badge on server if this is the connected profile
         if (get().currentProfileId === profileId) {
@@ -363,26 +383,25 @@ export const useNotificationStore = create<NotificationState>()(
         }
       },
 
-      markAllRead: (profileId: string) => {
-        set((state) => {
-          const currentEvents = state.profileEvents[profileId] || [];
-          const events = currentEvents.map((e) => ({ ...e, read: true }));
-          const profileSettings = state.profileSettings[profileId] || DEFAULT_SETTINGS;
+      _clearNativeBadge: () => {
+        // Clear native badge and delivered notifications on mobile
+        import('@capacitor/core').then(({ Capacitor }) => {
+          if (Capacitor.isNativePlatform()) {
+            import('@capacitor-firebase/messaging').then(({ FirebaseMessaging }) => {
+              FirebaseMessaging.removeAllDeliveredNotifications();
+            }).catch(() => {});
+          }
+        }).catch(() => {});
+      },
 
-          return {
-            profileEvents: {
-              ...state.profileEvents,
-              [profileId]: events,
-            },
-            profileSettings: {
-              ...state.profileSettings,
-              [profileId]: {
-                ...profileSettings,
-                badgeCount: 0,
-              },
-            },
-          };
-        });
+      markAllRead: (profileId: string) => {
+        set((state) =>
+          _updateProfileEvents(state, profileId, (current) =>
+            current.map((e) => ({ ...e, read: true }))
+          )
+        );
+
+        get()._clearNativeBadge();
 
         // Update badge on server if this is the connected profile
         if (get().currentProfileId === profileId) {
@@ -393,23 +412,11 @@ export const useNotificationStore = create<NotificationState>()(
       clearEvents: (profileId: string) => {
         log.notifications('Clearing all notification events', LogLevel.INFO, { profileId });
 
-        set((state) => {
-          const profileSettings = state.profileSettings[profileId] || DEFAULT_SETTINGS;
+        set((state) =>
+          _updateProfileEvents(state, profileId, () => [])
+        );
 
-          return {
-            profileEvents: {
-              ...state.profileEvents,
-              [profileId]: [],
-            },
-            profileSettings: {
-              ...state.profileSettings,
-              [profileId]: {
-                ...profileSettings,
-                badgeCount: 0,
-              },
-            },
-          };
-        });
+        get()._clearNativeBadge();
 
         // Update badge on server if this is the connected profile
         if (get().currentProfileId === profileId) {
@@ -437,7 +444,8 @@ export const useNotificationStore = create<NotificationState>()(
         const monitorIds = enabledFilters.map((f) => f.monitorId);
         const intervals = enabledFilters.map((f) => f.checkInterval);
 
-        await service.registerPushToken(token, platform, monitorIds, intervals);
+        const profile = useProfileStore.getState().profiles.find(p => p.id === currentProfileId);
+        await service.registerPushToken(token, platform, monitorIds, intervals, profile?.name);
       },
 
       deregisterPushToken: async (token: string, platform: 'ios' | 'android') => {
@@ -451,7 +459,8 @@ export const useNotificationStore = create<NotificationState>()(
         log.notifications('Deregistering push token', LogLevel.INFO, { platform, profileId: currentProfileId });
 
         const service = getNotificationService();
-        await service.deregisterPushToken(token, platform);
+        const profile = useProfileStore.getState().profiles.find(p => p.id === currentProfileId);
+        await service.deregisterPushToken(token, platform, profile?.name);
       },
 
       // ========== Internal Methods ==========
@@ -509,43 +518,102 @@ export const useNotificationStore = create<NotificationState>()(
           return;
         }
 
-        const service = getNotificationService();
         const settings = get().getProfileSettings(currentProfileId);
         const { monitorFilters } = settings;
-
         const enabledFilters = monitorFilters.filter((f) => f.enabled);
-        if (enabledFilters.length === 0) {
-          log.notifications('No enabled monitor filters to sync', LogLevel.INFO, { profileId: currentProfileId });
-          return;
-        }
 
-        const monitorIds = enabledFilters.map((f) => f.monitorId);
-        const intervals = enabledFilters.map((f) => f.checkInterval);
+        if (settings.notificationMode === 'direct') {
+          // Direct mode: sync via ZM REST API
+          const notifId = settings.notificationId;
+          if (!notifId) {
+            log.notifications('Cannot sync filters in direct mode - no notification ID', LogLevel.WARN);
+            return;
+          }
 
-        log.notifications('Syncing monitor filters with server', LogLevel.INFO, { profileId: currentProfileId,
-          monitors: monitorIds,
-          intervals, });
+          const monitorList = settings.allMonitors ? '' : enabledFilters.map(f => f.monitorId).join(',');
+          const interval = settings.allMonitors ? 0 : Math.max(0, ...enabledFilters.map(f => f.checkInterval));
 
-        try {
-          await service.setMonitorFilter(monitorIds, intervals);
-        } catch (error) {
-          log.notifications('Failed to sync monitor filters', LogLevel.ERROR, { profileId: currentProfileId, error });
+          log.notifications('Syncing monitor filters via ZM API', LogLevel.INFO, {
+            profileId: currentProfileId,
+            notificationId: notifId,
+            monitorList: monitorList || '(all)',
+            interval,
+          });
+
+          try {
+            await updateNotification(notifId, {
+              monitorList: monitorList || undefined,
+              interval,
+            });
+          } catch (error) {
+            log.notifications('Failed to sync monitor filters via ZM API', LogLevel.ERROR, { profileId: currentProfileId, error });
+          }
+        } else {
+          // ES mode: sync via websocket
+          // When allMonitors is on, don't send a filter — ES treats empty monlist as "all monitors"
+          if (settings.allMonitors) {
+            log.notifications('All monitors enabled, skipping filter sync', LogLevel.INFO, { profileId: currentProfileId });
+            return;
+          }
+
+          if (enabledFilters.length === 0) {
+            log.notifications('No enabled monitor filters to sync', LogLevel.INFO, { profileId: currentProfileId });
+            return;
+          }
+
+          const monitorIds = enabledFilters.map((f) => f.monitorId);
+          const intervals = enabledFilters.map((f) => f.checkInterval);
+
+          log.notifications('Syncing monitor filters with server', LogLevel.INFO, { profileId: currentProfileId,
+            monitors: monitorIds,
+            intervals, });
+
+          try {
+            const service = getNotificationService();
+            await service.setMonitorFilter(monitorIds, intervals);
+          } catch (error) {
+            log.notifications('Failed to sync monitor filters', LogLevel.ERROR, { profileId: currentProfileId, error });
+          }
         }
       },
 
-      _updateBadge: async () => {
+      _updateBadge: async (count?: number) => {
         const { currentProfileId } = get();
         if (!currentProfileId) {
           log.notifications('Cannot update badge - no profile connected', LogLevel.WARN);
           return;
         }
 
-        const service = getNotificationService();
         const settings = get().getProfileSettings(currentProfileId);
-        const { badgeCount } = settings;
+        const badgeCount = count ?? settings.badgeCount;
+
+        // Set the iOS/Android app icon badge locally
+        try {
+          const { Capacitor } = await import('@capacitor/core');
+          if (Capacitor.isNativePlatform()) {
+            const { Badge } = await import('@capawesome/capacitor-badge');
+            await Badge.set({ count: badgeCount });
+            log.notifications('Set native app badge', LogLevel.DEBUG, { badgeCount });
+          }
+        } catch {
+          // Badge plugin not available — non-fatal
+        }
 
         try {
-          await service.updateBadgeCount(badgeCount);
+          if (settings.notificationMode === 'direct') {
+            // Direct mode: update badge count via ZM REST API
+            const notifId = settings.notificationId;
+            if (notifId) {
+              await updateNotification(notifId, { badgeCount });
+              log.notifications('Updated badge count via ZM API', LogLevel.DEBUG, { badgeCount, notifId });
+            } else {
+              log.notifications('Cannot update badge - no notification ID (token not registered)', LogLevel.WARN);
+            }
+          } else {
+            // ES mode: update badge count via WebSocket
+            const service = getNotificationService();
+            await service.updateBadgeCount(badgeCount);
+          }
         } catch (error) {
           log.notifications('Failed to update badge count', LogLevel.ERROR, { profileId: currentProfileId, error });
         }

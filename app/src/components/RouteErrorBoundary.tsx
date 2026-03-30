@@ -60,7 +60,7 @@ class RouteErrorBoundaryClass extends Component<Props, State> {
             <div className="flex justify-center">
               <AlertCircle className="h-16 w-16 text-destructive" />
             </div>
-            <h1 className="text-2xl font-bold">{t('error.page_error')}</h1>
+            <h1 className="text-lg font-bold">{t('error.page_error')}</h1>
             <p className="text-muted-foreground">
               {t('error.page_error_message')}
             </p>

@@ -6,9 +6,10 @@
  */
 
 import { getApiClient } from './client';
-import type { LoginResponse, ZmsPathResponse, VersionResponse } from './types';
-import { LoginResponseSchema, ZmsPathResponseSchema, StreamingPortResponseSchema, VersionResponseSchema } from './types';
+import type { Go2RTCPathResponse, LoginResponse, ZmsPathResponse, VersionResponse } from './types';
+import { Go2RTCPathResponseSchema, LoginResponseSchema, ZmsPathResponseSchema, VersionResponseSchema } from './types';
 import { log, LogLevel } from '../lib/logger';
+import type { HttpError } from '../lib/http';
 
 export interface LoginCredentials {
   user: string;
@@ -71,13 +72,13 @@ export async function login(credentials: LoginCredentials): Promise<LoginRespons
       throw zodError;
     }
   } catch (error: unknown) {
-    const err = error as { constructor: { name: string }; message: string; response?: { status: number; data: unknown } };
+    const err = error as HttpError & { constructor: { name: string } };
     log.auth('Login failed', LogLevel.ERROR, {
       error,
       errorType: err.constructor.name,
       message: err.message,
-      status: err.response?.status,
-      responseData: err.response?.data,
+      status: err.status,
+      responseData: err.data,
     });
 
     throw error;
@@ -168,13 +169,13 @@ export async function fetchZmsPath(): Promise<string | null> {
     log.auth('ZMS path fetched successfully', LogLevel.INFO, { zmsPath });
     return zmsPath;
   } catch (error: unknown) {
-    const err = error as { constructor: { name: string }; message: string; response?: { status: number; data: unknown } };
+    const err = error as HttpError & { constructor: { name: string } };
     log.auth('Failed to fetch ZMS path from server', LogLevel.WARN, {
       error,
       errorType: err.constructor.name,
       message: err.message,
-      status: err.response?.status,
-      responseData: err.response?.data,
+      status: err.status,
+      responseData: err.data,
     });
 
     // Return null to allow fallback to inference logic
@@ -183,41 +184,45 @@ export async function fetchZmsPath(): Promise<string | null> {
 }
 
 /**
- * Fetch the streaming port from server configuration.
+ * Fetch the Go2RTC path from server configuration.
  *
- * This API endpoint returns the ZM_MIN_STREAMING_PORT configuration value.
- * When set, each monitor streams on its own port (basePort + monitorId),
- * which bypasses the browser's 6-connection-per-domain limit.
+ * This API endpoint returns the server-configured Go2RTC URL (ZM_GO2RTC_PATH),
+ * which includes protocol, host, port, and path (e.g., "http://server:1984").
+ * Only works after successful authentication.
  *
- * @returns Promise resolving to the streaming base port number or null if not configured
+ * Not all ZoneMinder servers have Go2RTC configured - this is optional.
+ *
+ * @returns Promise resolving to the Go2RTC URL or null if not configured/fetch fails
  */
-export async function fetchStreamingPort(): Promise<number | null> {
+export async function fetchGo2RTCPath(): Promise<string | null> {
   try {
     const client = getApiClient();
-    log.auth('Fetching streaming port from server config', LogLevel.DEBUG);
+    log.auth('Fetching Go2RTC path from server config', LogLevel.DEBUG);
 
-    const response = await client.get('/configs/viewByName/ZM_MIN_STREAMING_PORT.json');
+    const response = await client.get<Go2RTCPathResponse>('/configs/viewByName/ZM_GO2RTC_PATH.json');
 
     // Validate response with Zod
-    const validated = StreamingPortResponseSchema.parse(response.data);
-    const portStr = validated.config.Value;
+    const validated = Go2RTCPathResponseSchema.parse(response.data);
+    const go2rtcPath = validated.config.Value;
 
-    // Parse as number, return null if empty or invalid
-    if (!portStr || portStr.trim() === '') {
-      log.auth('ZM_MIN_STREAMING_PORT is not configured', LogLevel.INFO);
+    // Check if value is empty (not configured)
+    if (!go2rtcPath || go2rtcPath.trim() === '') {
+      log.auth('Go2RTC not configured (empty value)', LogLevel.INFO);
       return null;
     }
 
-    const port = parseInt(portStr, 10);
-    if (isNaN(port) || port <= 0) {
-      log.auth('ZM_MIN_STREAMING_PORT has invalid value', LogLevel.WARN, { value: portStr });
-      return null;
-    }
+    log.auth('Go2RTC path fetched successfully', LogLevel.INFO, { go2rtcPath });
+    return go2rtcPath;
+  } catch (error: unknown) {
+    const err = error as HttpError & { constructor: { name: string } };
+    log.auth('Failed to fetch Go2RTC path from server', LogLevel.INFO, {
+      error,
+      errorType: err.constructor.name,
+      message: err.message,
+      status: err.status,
+    });
 
-    log.auth('Streaming port fetched successfully', LogLevel.INFO, { streamingBasePort: port });
-    return port;
-  } catch {
-    // Return null - streaming port is optional, app works without it
+    // Return null - Go2RTC is optional
     return null;
   }
 }

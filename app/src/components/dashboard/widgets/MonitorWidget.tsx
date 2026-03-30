@@ -12,19 +12,16 @@
  * - Hover overlay with monitor name
  */
 
-import { useEffect, useState, useRef, useMemo } from 'react';
+import { useMemo, memo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { getMonitor, getMonitors, getStreamUrl } from '../../../api/monitors';
-import { useProfileStore } from '../../../stores/profile';
-import { useAuthStore } from '../../../stores/auth';
-import { useMonitorStore } from '../../../stores/monitors';
-import { useSettingsStore, type MonitorFeedFit } from '../../../stores/settings';
-import { useShallow } from 'zustand/react/shallow';
+import { getMonitor, getMonitors } from '../../../api/monitors';
+import type { MonitorFeedFit } from '../../../stores/settings';
+import { useMonitorStream } from '../../../hooks/useMonitorStream';
 import { AlertTriangle, VideoOff } from 'lucide-react';
 import { Skeleton } from '../../ui/skeleton';
 import { useTranslation } from 'react-i18next';
-import { calculateGridDimensions, getGridTemplateStyle } from '../../../lib/grid-utils';
+import { calculateGridDimensions } from '../../../lib/grid-utils';
 import { filterEnabledMonitors } from '../../../lib/filters';
 
 interface MonitorWidgetProps {
@@ -47,86 +44,13 @@ function SingleMonitor({ monitorId, objectFit }: { monitorId: string; objectFit:
         enabled: !!monitorId,
     });
 
-    const currentProfile = useProfileStore(
-        useShallow((state) => {
-            const { profiles, currentProfileId } = state;
-            return profiles.find((p) => p.id === currentProfileId) || null;
-        })
-    );
-    const accessToken = useAuthStore((state) => state.accessToken);
-    const regenerateConnKey = useMonitorStore((state) => state.regenerateConnKey);
-    const settings = useSettingsStore(
-        useShallow((state) => state.getProfileSettings(currentProfile?.id || ''))
-    );
-
-    const [connKey, setConnKey] = useState(0);
-    const [cacheBuster, setCacheBuster] = useState(Date.now());
-    const [displayedImageUrl, setDisplayedImageUrl] = useState<string>('');
-    const imgRef = useRef<HTMLImageElement>(null);
-
-    // Force regenerate connKey when monitor changes
-    useEffect(() => {
-        if (monitor) {
-            const newKey = regenerateConnKey(monitor.Monitor.Id);
-            setConnKey(newKey);
-            setCacheBuster(Date.now());
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [monitor]);
-
-    // Snapshot mode: periodic refresh
-    useEffect(() => {
-        if (settings.viewMode !== 'snapshot') return;
-
-        const interval = setInterval(() => {
-            setCacheBuster(Date.now());
-        }, settings.snapshotRefreshInterval * 1000);
-
-        return () => clearInterval(interval);
-    }, [settings.viewMode, settings.snapshotRefreshInterval]);
-
-    // Cleanup: abort image loading on unmount to release connection
-    useEffect(() => {
-        const currentImg = imgRef.current;
-        return () => {
-            if (currentImg) {
-                // Set to empty data URI to abort the connection
-                currentImg.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-            }
-        };
-    }, [monitorId]);
-
-    const streamUrl = currentProfile && monitor
-        ? getStreamUrl(currentProfile.cgiUrl, monitor.Monitor.Id, {
-            mode: settings.viewMode === 'snapshot' ? 'single' : 'jpeg',
-            scale: settings.streamScale,
-            maxfps: settings.viewMode === 'streaming' ? settings.streamMaxFps : undefined,
-            token: accessToken || undefined,
-            connkey: connKey,
-            cacheBuster: cacheBuster,
-            streamingBasePort: currentProfile.streamingBasePort,
-        })
-        : '';
-
-    // Preload images in snapshot mode to avoid flickering
-    useEffect(() => {
-        if (settings.viewMode !== 'snapshot' || !streamUrl) {
-            setDisplayedImageUrl(streamUrl);
-            return;
-        }
-
-        // Preload the new image
-        const img = new Image();
-        img.onload = () => {
-            // Only update the displayed URL when the new image is fully loaded
-            setDisplayedImageUrl(streamUrl);
-        };
-        img.onerror = () => {
-            // On error, still update to trigger the error handler
-            setDisplayedImageUrl(streamUrl);
-        };
-        img.src = streamUrl;
-    }, [streamUrl, settings.viewMode]);
+    // Delegate all streaming logic (connKey, cacheBuster, URL construction,
+    // snapshot refresh interval, image preloading) to the shared hook.
+    // The hook is disabled until the monitor query has loaded.
+    const { displayedImageUrl, imgRef } = useMonitorStream({
+        monitorId,
+        enabled: !!monitor,
+    });
 
     if (isLoading) {
         return <Skeleton className="w-full h-full" />;
@@ -151,28 +75,30 @@ function SingleMonitor({ monitorId, objectFit }: { monitorId: string; objectFit:
             className="w-full h-full bg-black relative group overflow-hidden cursor-pointer"
             onClick={() => navigate(`/monitors/${monitor.Monitor.Id}`, { state: { from: '/dashboard' } })}
         >
-            <img
-                ref={imgRef}
-                src={displayedImageUrl}
-                alt={monitor.Monitor.Name}
-                className="w-full h-full"
-                style={{ objectFit }}
-                onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = 'none';
-                    (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
-                }}
-            />
+            {displayedImageUrl && (
+                <img
+                    ref={imgRef}
+                    src={displayedImageUrl}
+                    alt={monitor.Monitor.Name}
+                    className="w-full h-full"
+                    style={{ objectFit }}
+                    onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                        (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                    }}
+                />
+            )}
             <div className="hidden absolute inset-0 flex items-center justify-center text-white/50 bg-zinc-900">
                 <VideoOff className="h-8 w-8" />
             </div>
-            <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                 <p className="text-white text-xs font-medium truncate">{monitor.Monitor.Name}</p>
             </div>
         </div>
     );
 }
 
-export function MonitorWidget({ monitorIds, objectFit = 'contain' }: MonitorWidgetProps) {
+export const MonitorWidget = memo(function MonitorWidget({ monitorIds, objectFit = 'contain' }: MonitorWidgetProps) {
     const { t } = useTranslation();
 
     // Fetch all monitors to check which ones are deleted
@@ -213,18 +139,23 @@ export function MonitorWidget({ monitorIds, objectFit = 'contain' }: MonitorWidg
 
     // Calculate optimal grid layout for multiple monitors
     const { cols, rows } = calculateGridDimensions(activeMonitorIds.length);
-    const gridStyle = getGridTemplateStyle(cols, rows);
 
     return (
         <div
-            className="w-full h-full grid gap-0.5 bg-black"
-            style={gridStyle}
+            className="w-full h-full flex flex-wrap bg-black"
         >
             {activeMonitorIds.map((id) => (
-                <div key={id} className="relative overflow-hidden">
+                <div
+                    key={id}
+                    className="relative overflow-hidden"
+                    style={{
+                        width: `${100 / cols}%`,
+                        height: `${100 / rows}%`,
+                    }}
+                >
                     <SingleMonitor monitorId={id} objectFit={objectFit} />
                 </div>
             ))}
         </div>
     );
-}
+});

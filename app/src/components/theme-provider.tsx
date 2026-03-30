@@ -6,11 +6,11 @@
  * CSS class to the document root.
  */
 
-import { createContext, useContext, useEffect, useMemo, useState } from "react"
+import { createContext, useContext, useEffect, useMemo, useState, useCallback } from "react"
 import { useProfileStore } from '../stores/profile';
-import { useSettingsStore } from '../stores/settings';
+import { useSettingsStore, type ThemePreference } from '../stores/settings';
 
-type Theme = "dark" | "light" | "system"
+type Theme = ThemePreference
 
 type ThemeProviderProps = {
     children: React.ReactNode
@@ -42,8 +42,10 @@ export function ThemeProvider({
     defaultTheme = "system",
 }: ThemeProviderProps) {
     const currentProfileId = useProfileStore((state) => state.currentProfileId);
+    // Select theme directly from profileSettings to avoid calling getProfileSettings()
+    // which creates a new object on each call and causes infinite re-renders
     const profileTheme = useSettingsStore(
-        (state) => (currentProfileId ? state.getProfileSettings(currentProfileId).theme : undefined)
+        (state) => (currentProfileId ? state.profileSettings[currentProfileId]?.theme : undefined)
     );
     const updateProfileSettings = useSettingsStore((state) => state.updateProfileSettings);
     const resolvedDefault = useMemo(() => profileTheme || defaultTheme, [defaultTheme, profileTheme]);
@@ -58,7 +60,7 @@ export function ThemeProvider({
     useEffect(() => {
         const root = window.document.documentElement
 
-        root.classList.remove("light", "dark")
+        root.classList.remove("light", "dark", "slate", "amber", "cream")
 
         if (theme === "system") {
             const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
@@ -70,18 +72,24 @@ export function ThemeProvider({
             return
         }
 
-        root.classList.add(theme)
+        if (theme === "slate" || theme === "amber") {
+            root.classList.add("dark", theme)
+        } else {
+            root.classList.add(theme)
+        }
     }, [theme])
 
-    const value = {
+    const handleSetTheme = useCallback((newTheme: Theme) => {
+        setTheme(newTheme)
+        if (currentProfileId) {
+            updateProfileSettings(currentProfileId, { theme: newTheme });
+        }
+    }, [currentProfileId, updateProfileSettings]);
+
+    const value = useMemo(() => ({
         theme,
-        setTheme: (theme: Theme) => {
-            setTheme(theme)
-            if (currentProfileId) {
-                updateProfileSettings(currentProfileId, { theme });
-            }
-        },
-    }
+        setTheme: handleSetTheme,
+    }), [theme, handleSetTheme]);
 
     return (
         <ThemeProviderContext.Provider {...value} value={value}>

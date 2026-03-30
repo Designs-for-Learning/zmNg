@@ -5,7 +5,7 @@
  * Includes play/pause, speed controls, frame navigation, and alarm frames display.
  */
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Card } from '../ui/card';
@@ -15,8 +15,8 @@ import {
   Pause,
   SkipBack,
   SkipForward,
-  Rewind,
-  FastForward,
+  ChevronLeft,
+  ChevronRight,
   AlertCircle,
 } from 'lucide-react';
 import { getEventImageUrl } from '../../api/events';
@@ -24,6 +24,9 @@ import { useTranslation } from 'react-i18next';
 import { httpGet } from '../../lib/http';
 import { log, LogLevel } from '../../lib/logger';
 import { getEventZmsUrl, getZmsControlUrl } from '../../lib/url-builder';
+import { useZoomPan } from '../../hooks/useZoomPan';
+import { ZoomControls } from '../ui/ZoomControls';
+import { useBandwidthSettings } from '../../hooks/useBandwidthSettings';
 
 // ZoneMinder stream command constants
 const ZM_CMD = {
@@ -66,6 +69,7 @@ export function ZmsEventPlayer({
   className,
 }: ZmsEventPlayerProps) {
   const { t } = useTranslation();
+  const bandwidth = useBandwidthSettings();
   const [currentFrame, setCurrentFrame] = useState(1);
   const [isPlaying, setIsPlaying] = useState(true);
   const [playbackSpeed, setPlaybackSpeed] = useState(100); // 100 = 1x speed
@@ -129,6 +133,46 @@ export function ZmsEventPlayer({
     }
   }, [portalUrl, apiUrl, connKey, token]);
 
+  // Poll stream status to track playback position
+  const pollTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const queryStatus = useCallback(async () => {
+    const url = getZmsControlUrl(portalUrl, ZM_CMD.QUERY, connKey, { token, apiUrl });
+    try {
+      const resp = await httpGet<{ status?: { progress?: number; duration?: number } }>(url);
+      const status = resp.data?.status;
+      if (status && typeof status.progress === 'number' && typeof status.duration === 'number' && status.duration > 0) {
+        const fraction = status.progress / status.duration;
+        const frame = Math.max(1, Math.round(fraction * totalFrames));
+        setCurrentFrame(frame);
+
+        // Stop at end of event to prevent looping
+        if (fraction >= 0.99) {
+          sendCommand(ZM_CMD.PAUSE);
+          setIsPlaying(false);
+          setCurrentFrame(totalFrames);
+        }
+      }
+    } catch {
+      // Status query failed — ignore and retry next tick
+    }
+  }, [portalUrl, connKey, token, apiUrl, totalFrames]);
+
+  useEffect(() => {
+    if (isPlaying) {
+      pollTimer.current = setInterval(queryStatus, bandwidth.zmsStatusInterval);
+    } else if (pollTimer.current) {
+      clearInterval(pollTimer.current);
+      pollTimer.current = null;
+    }
+    return () => {
+      if (pollTimer.current) {
+        clearInterval(pollTimer.current);
+        pollTimer.current = null;
+      }
+    };
+  }, [isPlaying, queryStatus, bandwidth.zmsStatusInterval]);
+
   // Calculate time offset from frame number
   const frameToOffset = useCallback((frame: number) => {
     return (frame / totalFrames) * eventLength;
@@ -155,23 +199,27 @@ export function ZmsEventPlayer({
     sendCommand(ZM_CMD.SEEK, offset);
   }, [totalFrames, frameToOffset, sendCommand]);
 
-  const stepBackward = useCallback(() => {
-    sendCommand(ZM_CMD.PREV);
-    setCurrentFrame((prev) => Math.max(1, prev - 1));
-  }, [sendCommand]);
+  const seekBack = useCallback(() => {
+    // Seek back 5 seconds
+    const targetOffset = Math.max(0, frameToOffset(currentFrame) - 5);
+    const targetFrame = Math.max(1, Math.round((targetOffset / eventLength) * totalFrames));
+    goToFrame(targetFrame);
+  }, [currentFrame, frameToOffset, eventLength, totalFrames, goToFrame]);
 
-  const stepForward = useCallback(() => {
-    sendCommand(ZM_CMD.NEXT);
-    setCurrentFrame((prev) => Math.min(totalFrames, prev + 1));
-  }, [sendCommand, totalFrames]);
+  const seekForward = useCallback(() => {
+    // Seek forward 5 seconds
+    const targetOffset = Math.min(eventLength, frameToOffset(currentFrame) + 5);
+    const targetFrame = Math.min(totalFrames, Math.round((targetOffset / eventLength) * totalFrames));
+    goToFrame(targetFrame);
+  }, [currentFrame, frameToOffset, eventLength, totalFrames, goToFrame]);
 
-  const jumpBackward = useCallback(() => {
-    goToFrame(currentFrame - 10);
-  }, [currentFrame, goToFrame]);
+  const goToStart = useCallback(() => {
+    goToFrame(1);
+  }, [goToFrame]);
 
-  const jumpForward = useCallback(() => {
-    goToFrame(currentFrame + 10);
-  }, [currentFrame, goToFrame]);
+  const goToEnd = useCallback(() => {
+    goToFrame(totalFrames);
+  }, [goToFrame, totalFrames]);
 
   // Jump to alarm frame
   const jumpToAlarmFrame = useCallback(() => {
@@ -188,6 +236,9 @@ export function ZmsEventPlayer({
   }, [maxScoreFrameId, goToFrame]);
 
   // Speed presets
+  // Pinch-to-zoom and pan for ZMS image
+  const zoomPan = useZoomPan({ maxScale: 4 });
+
   const speedPresets = [
     { label: '0.25x', value: 25 },
     { label: '0.5x', value: 50 },
@@ -199,71 +250,102 @@ export function ZmsEventPlayer({
   return (
     <div className={className}>
       {/* Video Display */}
-      <Card className="overflow-hidden shadow-2xl border-0 ring-1 ring-border/20 bg-black">
+      <Card
+        ref={zoomPan.ref}
+        className="overflow-hidden shadow-2xl border-0 ring-1 ring-border/20 bg-black touch-none relative"
+      >
         <div className="aspect-video relative bg-black">
-          <img
-            src={zmsUrl}
-            alt={t('event_detail.event_playback')}
-            className="w-full h-full object-contain"
-          />
+          <div ref={zoomPan.innerRef}>
+            <img
+              src={zmsUrl}
+              alt={t('event_detail.event_playback')}
+              className="w-full h-full object-contain"
+            />
+          </div>
 
           {/* Status Badge */}
-          <div className="absolute top-4 left-4">
+          <div className="absolute top-4 left-4 z-10">
             <Badge variant="secondary" className="gap-2 bg-blue-500/80 text-white hover:bg-blue-500">
               <AlertCircle className="h-3 w-3" />
               {t('event_detail.zms_playback')}
             </Badge>
           </div>
         </div>
+        <ZoomControls
+          onZoomIn={zoomPan.zoomIn}
+          onZoomOut={zoomPan.zoomOut}
+          onReset={zoomPan.reset}
+          onPanLeft={zoomPan.panLeft}
+          onPanRight={zoomPan.panRight}
+          onPanUp={zoomPan.panUp}
+          onPanDown={zoomPan.panDown}
+          isZoomed={zoomPan.isZoomed}
+          scale={zoomPan.scale}
+          className="bottom-2 left-2"
+        />
       </Card>
 
       {/* Playback Controls */}
       <Card className="p-4 space-y-4 bg-card/95 backdrop-blur">
         {/* Transport Controls */}
         <div className="flex items-center justify-center gap-2">
+          {/* Jump to start */}
           <Button
             variant="outline"
             size="icon"
-            onClick={jumpBackward}
+            onClick={goToStart}
             disabled={currentFrame <= 1}
-            title={t('event_detail.rewind')}
-          >
-            <Rewind className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={stepBackward}
-            disabled={currentFrame <= 1}
-            title={t('event_detail.previous_frame')}
+            title={t('event_detail.go_to_start')}
+            data-testid="zms-go-to-start"
           >
             <SkipBack className="h-4 w-4" />
           </Button>
+          {/* Seek back 5s */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={seekBack}
+            disabled={currentFrame <= 1}
+            title={t('event_detail.rewind')}
+            className="gap-1"
+            data-testid="zms-seek-back"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            <span className="text-xs">{t('event_detail.seek_back')}</span>
+          </Button>
+          {/* Play/Pause */}
           <Button
             variant="default"
             size="icon"
             onClick={togglePlayPause}
             title={isPlaying ? t('event_detail.pause') : t('event_detail.play')}
+            data-testid="zms-play-pause"
           >
             {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
           </Button>
+          {/* Seek forward 5s */}
           <Button
             variant="outline"
-            size="icon"
-            onClick={stepForward}
-            disabled={currentFrame >= totalFrames}
-            title={t('event_detail.next_frame')}
-          >
-            <SkipForward className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={jumpForward}
+            size="sm"
+            onClick={seekForward}
             disabled={currentFrame >= totalFrames}
             title={t('event_detail.fast_forward')}
+            className="gap-1"
+            data-testid="zms-seek-forward"
           >
-            <FastForward className="h-4 w-4" />
+            <span className="text-xs">{t('event_detail.seek_forward')}</span>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+          {/* Jump to end */}
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={goToEnd}
+            disabled={currentFrame >= totalFrames}
+            title={t('event_detail.go_to_end')}
+            data-testid="zms-go-to-end"
+          >
+            <SkipForward className="h-4 w-4" />
           </Button>
         </div>
 
@@ -273,6 +355,7 @@ export function ZmsEventPlayer({
           totalFrames={totalFrames}
           alarmFrames={alarmFramePositions}
           onSeek={goToFrame}
+          duration={eventLength}
         />
 
         {/* Speed Controls */}

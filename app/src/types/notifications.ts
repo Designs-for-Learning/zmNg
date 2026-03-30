@@ -9,7 +9,6 @@ export interface ZMEventServerConfig {
     ssl: boolean; // true for wss://, false for ws://
     username: string;
     password: string;
-    token?: string;
     appVersion: string;
     portalUrl: string; // ZoneMinder portal URL for constructing image URLs
 }
@@ -20,8 +19,10 @@ export interface ZMAlarmEvent {
     EventId: number;
     Cause: string;
     Name: string;
+    Notes?: string; // Event notes (e.g. "detected:car| Motion: All") — available from poller, not from websocket/FCM
     DetectionJson?: unknown[];
-    ImageUrl?: string; // URL to event snapshot/alarm frame
+    Picture?: string; // Server-provided image URL (if include_picture is configured)
+    ImageUrl?: string; // URL to event snapshot/alarm frame (server-provided or client-constructed)
 }
 
 export interface ZMNotificationMessage {
@@ -40,6 +41,8 @@ export type ConnectionState =
     | 'authenticating'
     | 'connected'
     | 'error';
+
+export type NotificationMode = 'es' | 'direct';
 
 export type NotificationEventCallback = (event: ZMAlarmEvent) => void;
 export type ConnectionStateCallback = (state: ConnectionState) => void;
