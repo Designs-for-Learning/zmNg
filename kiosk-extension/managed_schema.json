@@ -121,6 +121,11 @@
       "title": "Keep Screen Awake",
       "description": "Prevent the screen from sleeping",
       "type": "boolean"
+    },
+    "hideNavigation": {
+      "title": "Hide Navigation",
+      "description": "Hide the sidebar and mobile header for a clean kiosk display",
+      "type": "boolean"
     }
   }
 }

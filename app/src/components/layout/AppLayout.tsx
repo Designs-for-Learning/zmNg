@@ -147,7 +147,7 @@ export default function AppLayout() {
   return (
     <div className="flex h-[100dvh] bg-background overflow-hidden pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]">
       {/* Desktop Sidebar */}
-      <aside
+      {!settings.hideNavigation && <aside
         className="hidden md:flex flex-col border-r bg-card/50 backdrop-blur-xl z-20 transition-all duration-300 relative group pt-[env(safe-area-inset-top)]"
         style={{ width: `${sidebarWidth}px` }}
       >
@@ -166,10 +166,10 @@ export default function AppLayout() {
             <ChevronLeft className="h-4 w-4 text-primary-foreground" />
           )}
         </div>
-      </aside>
+      </aside>}
 
       {/* Mobile Header */}
-      {!isLocked && (
+      {!isLocked && !settings.hideNavigation && (
       <div className="md:hidden fixed top-0 left-0 right-0 h-[calc(3rem+env(safe-area-inset-top))] pt-[env(safe-area-inset-top)] border-b bg-background z-30 flex items-center px-3 justify-between">
         <div className="flex items-center gap-2">
           <img src="/logo.png" alt={t('app.logo_alt')} className="h-8 w-8 rounded-lg" />
@@ -213,7 +213,7 @@ export default function AppLayout() {
       )}
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto overflow-x-hidden relative w-full pt-[calc(3rem+env(safe-area-inset-top))] md:pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
+      <main className={`flex-1 overflow-y-auto overflow-x-hidden relative w-full pb-[env(safe-area-inset-bottom)] ${settings.hideNavigation ? 'pt-0' : 'pt-[calc(3rem+env(safe-area-inset-top))] md:pt-[env(safe-area-inset-top)]'}`}>
         {/* Background gradient blob for visual interest */}
         <div className="absolute top-0 left-0 w-full h-96 bg-gradient-to-b from-primary/5 to-transparent -z-10 pointer-events-none" />
 

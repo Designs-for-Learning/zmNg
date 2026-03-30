@@ -60,6 +60,8 @@ export interface ProfileSettings {
   defaultPage: string | null;
   // Kiosk: when locked, restrict navigation to defaultPage only
   kioskNavigationLock: boolean;
+  // Kiosk: hide sidebar and mobile header entirely
+  hideNavigation: boolean;
   // Streaming method: 'auto' tries WebRTC/MSE/HLS for Go2RTC-enabled monitors, 'mjpeg' forces MJPEG for all
   streamingMethod: StreamingMethod;
   // Whether to enable fallback from WebRTC to MSE to HLS when protocols fail
@@ -168,6 +170,7 @@ export const DEFAULT_SETTINGS: ProfileSettings = {
   lastRoute: '/monitors',
   defaultPage: null,
   kioskNavigationLock: false,
+  hideNavigation: false,
   // Auto mode: use WebRTC/MSE/HLS for Go2RTC-enabled monitors, MJPEG for others
   streamingMethod: 'auto',
   // Enable fallback through protocols when one fails

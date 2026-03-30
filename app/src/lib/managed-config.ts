@@ -38,6 +38,7 @@ export interface ManagedConfig {
   selectedGroupId?: string;
   // Display
   insomnia?: boolean;
+  hideNavigation?: boolean;
 }
 
 // All keys we request from managed config
@@ -46,7 +47,7 @@ const MANAGED_KEYS = [
   'kioskMode', 'kioskPin', 'kioskNavigationLock', 'allowSelfSignedCerts',
   'montageGridRows', 'montageGridCols', 'montageFeedFit', 'montageShowToolbar',
   'montageIsFullscreen', 'viewMode', 'streamingMethod', 'snapshotRefreshInterval',
-  'streamMaxFps', 'streamScale', 'selectedGroupId', 'insomnia',
+  'streamMaxFps', 'streamScale', 'selectedGroupId', 'insomnia', 'hideNavigation',
 ];
 
 const EXTENSION_STORAGE_KEY = 'zmng-managed-config';
@@ -121,6 +122,7 @@ function parseConfig(items: Record<string, unknown>): ManagedConfig | null {
     streamScale: items.streamScale as number | undefined,
     selectedGroupId: items.selectedGroupId as string | undefined,
     insomnia: items.insomnia as boolean | undefined,
+    hideNavigation: items.hideNavigation as boolean | undefined,
   };
 
   log.managedConfig('Managed config loaded', LogLevel.INFO, {
