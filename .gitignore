@@ -1,3 +1,7 @@
+# Extension signing key
+*.pem
+*.crx
+
 # Logs
 logs
 *.log

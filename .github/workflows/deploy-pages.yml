@@ -6,6 +6,7 @@ on:
     paths:
       - 'app/**'
       - 'site/**'
+      - 'kiosk-extension/**'
   workflow_dispatch:
 
 permissions:
@@ -44,7 +45,33 @@ jobs:
       - name: Package kiosk extension
         run: |
           cd kiosk-extension
-          zip -r ../kiosk-extension.zip manifest.json managed_schema.json background.js content.js icon-48.png icon-128.png
+          zip -r ../kiosk-extension.zip manifest.json managed_schema.json background.js content.js icon-48.png icon-128.png updates.xml
+
+      - name: Build signed CRX
+        env:
+          EXTENSION_SIGNING_KEY: ${{ secrets.EXTENSION_SIGNING_KEY }}
+        run: |
+          echo "$EXTENSION_SIGNING_KEY" > kiosk-extension.pem
+          python3 -c "
+          import zipfile, struct, subprocess, os, io
+          zip_buf = io.BytesIO()
+          with zipfile.ZipFile(zip_buf, 'w', zipfile.ZIP_DEFLATED) as zf:
+              for f in ['manifest.json', 'managed_schema.json', 'background.js', 'content.js', 'icon-48.png', 'icon-128.png', 'updates.xml']:
+                  zf.write(os.path.join('kiosk-extension', f), f)
+          zip_data = zip_buf.getvalue()
+          pub_key = subprocess.check_output(['openssl', 'rsa', '-in', 'kiosk-extension.pem', '-pubout', '-outform', 'DER'], stderr=subprocess.DEVNULL)
+          sig = subprocess.run(['openssl', 'dgst', '-sha1', '-sign', 'kiosk-extension.pem'], input=zip_data, capture_output=True).stdout
+          with open('kiosk-extension.crx', 'wb') as f:
+              f.write(b'Cr24')
+              f.write(struct.pack('<I', 2))
+              f.write(struct.pack('<I', len(pub_key)))
+              f.write(struct.pack('<I', len(sig)))
+              f.write(pub_key)
+              f.write(sig)
+              f.write(zip_data)
+          print(f'Built kiosk-extension.crx ({os.path.getsize(\"kiosk-extension.crx\")} bytes)')
+          "
+          rm kiosk-extension.pem
 
       - name: Prepare deploy directory
         run: |
@@ -53,6 +80,7 @@ jobs:
           cp -r app/dist deploy/app
           cp -r kiosk-extension/* deploy/extension/
           cp kiosk-extension.zip deploy/extension/
+          cp kiosk-extension.crx deploy/extension/
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
