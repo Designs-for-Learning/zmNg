@@ -1,9 +1,8 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
   isManagedConfigAvailable,
   getManagedConfig,
   getManagedConfigHash,
-  onManagedConfigChanged,
 } from '../managed-config';
 
 vi.mock('../logger', () => ({
@@ -11,105 +10,104 @@ vi.mock('../logger', () => ({
   LogLevel: { DEBUG: 0, INFO: 1, WARN: 2, ERROR: 3 },
 }));
 
+/** Mock navigator.managed API */
+function mockNavigatorManaged(result: Record<string, unknown> | Error) {
+  Object.defineProperty(navigator, 'managed', {
+    value: {
+      getManagedConfiguration: result instanceof Error
+        ? vi.fn().mockRejectedValue(result)
+        : vi.fn().mockResolvedValue(result),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    },
+    writable: true,
+    configurable: true,
+  });
+}
+
+function clearNavigatorManaged() {
+  Object.defineProperty(navigator, 'managed', {
+    value: undefined,
+    writable: true,
+    configurable: true,
+  });
+}
+
 describe('managed-config', () => {
-  beforeEach(() => {
-    localStorage.clear();
+  afterEach(() => {
+    clearNavigatorManaged();
   });
 
   describe('isManagedConfigAvailable', () => {
-    it('returns false when no config in localStorage', () => {
+    it('returns false when navigator.managed is not available', () => {
       expect(isManagedConfigAvailable()).toBe(false);
     });
 
-    it('returns true when config exists in localStorage', () => {
-      localStorage.setItem('zmng-managed-config', '{"serverUrl":"https://zm.test"}');
+    it('returns true when navigator.managed exists', () => {
+      mockNavigatorManaged({});
       expect(isManagedConfigAvailable()).toBe(true);
     });
   });
 
   describe('getManagedConfig', () => {
-    it('returns null when no config stored', async () => {
+    it('returns null when navigator.managed is not available', async () => {
       expect(await getManagedConfig()).toBeNull();
     });
 
-    it('returns null when stored config is empty object', async () => {
-      localStorage.setItem('zmng-managed-config', '{}');
+    it('returns null when config is empty', async () => {
+      mockNavigatorManaged({});
       expect(await getManagedConfig()).toBeNull();
     });
 
     it('returns null when serverUrl is missing', async () => {
-      localStorage.setItem('zmng-managed-config', '{"username":"admin"}');
+      mockNavigatorManaged({ username: 'admin' });
       expect(await getManagedConfig()).toBeNull();
     });
 
     it('returns config when serverUrl is present', async () => {
-      localStorage.setItem('zmng-managed-config', JSON.stringify({
+      mockNavigatorManaged({
         serverUrl: 'https://zm.example.com',
         username: 'admin',
         password: 'secret',
         defaultPage: '/montage',
-      }));
+      });
 
       const config = await getManagedConfig();
-      expect(config).toEqual({
+      expect(config).toMatchObject({
         serverUrl: 'https://zm.example.com',
         username: 'admin',
         password: 'secret',
         defaultPage: '/montage',
-        profileName: undefined,
-        kioskMode: undefined,
-        kioskPin: undefined,
-        kioskNavigationLock: undefined,
-        allowSelfSignedCerts: undefined,
       });
     });
 
     it('rejects invalid defaultPage values', async () => {
-      localStorage.setItem('zmng-managed-config', JSON.stringify({
+      mockNavigatorManaged({
         serverUrl: 'https://zm.example.com',
         defaultPage: '/invalid-page',
-      }));
+      });
 
       const config = await getManagedConfig();
       expect(config?.defaultPage).toBeUndefined();
     });
 
-    it('returns null on invalid JSON', async () => {
-      localStorage.setItem('zmng-managed-config', 'not-json');
+    it('returns null on API error', async () => {
+      mockNavigatorManaged(new Error('NotAllowedError'));
       expect(await getManagedConfig()).toBeNull();
     });
-  });
 
-  describe('onManagedConfigChanged', () => {
-    it('calls callback when custom event is dispatched', () => {
-      const callback = vi.fn();
-      const unsubscribe = onManagedConfigChanged(callback);
+    it('includes montage settings', async () => {
+      mockNavigatorManaged({
+        serverUrl: 'https://zm.example.com',
+        montageGridRows: 3,
+        montageGridCols: 4,
+        montageFeedFit: 'cover',
+      });
 
-      window.dispatchEvent(
-        new CustomEvent('zmng-managed-config', {
-          detail: { serverUrl: 'https://zm.test' },
-        })
-      );
-
-      expect(callback).toHaveBeenCalledWith(
-        expect.objectContaining({ serverUrl: 'https://zm.test' })
-      );
-
-      unsubscribe();
-    });
-
-    it('returns unsubscribe function that removes listener', () => {
-      const callback = vi.fn();
-      const unsubscribe = onManagedConfigChanged(callback);
-      unsubscribe();
-
-      window.dispatchEvent(
-        new CustomEvent('zmng-managed-config', {
-          detail: { serverUrl: 'https://zm.test' },
-        })
-      );
-
-      expect(callback).not.toHaveBeenCalled();
+      const config = await getManagedConfig();
+      expect(config?.montageGridRows).toBe(3);
+      expect(config?.montageGridCols).toBe(4);
+      expect(config?.montageFeedFit).toBe('cover');
     });
   });
 

@@ -22,16 +22,7 @@ Deploy zmNinjaNG as a full-screen kiosk app on managed Chromebooks via Google Ad
    https://designs-for-learning.github.io/zmNg/app/
    ```
 
-### 2. Add the Companion Extension (Optional)
-
-The companion extension relays managed configuration via `chrome.storage.managed` as a fallback for environments where `navigator.managed` is not available.
-
-1. In the kiosk app settings, add a companion extension by URL:
-   ```
-   https://designs-for-learning.github.io/zmNg/extension/updates.xml
-   ```
-
-### 3. Configure Managed Configuration
+### 2. Configure Managed Configuration
 
 On the kiosk app URL entry, find the **Managed configuration** field and enter your JSON config.
 
@@ -75,7 +66,7 @@ On the kiosk app URL entry, find the **Managed configuration** field and enter y
 }
 ```
 
-### 4. Assign Kiosk to Chromebooks
+### 3. Assign Kiosk to Chromebooks
 
 1. Go to **Devices > Chrome > Settings > Device settings**
 2. Select the OU for your kiosk devices

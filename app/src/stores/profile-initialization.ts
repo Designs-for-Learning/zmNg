@@ -190,7 +190,6 @@ export async function handleProfileRehydration(
   });
 
   // Check for managed config (Chrome kiosk deployment via Google Admin).
-  // Wait briefly for the companion extension's content script to deliver config.
   try {
     const managedConfig = await waitForManagedConfig(2000);
     if (managedConfig) {

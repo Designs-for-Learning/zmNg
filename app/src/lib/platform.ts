@@ -52,13 +52,8 @@ export const Platform = {
     return this.isDev && this.isWeb;
   },
 
-  /** True if running as a managed kiosk (navigator.managed API or companion extension) */
+  /** True if running as a managed kiosk (navigator.managed API available) */
   get isChromeManaged() {
-    if (navigator.managed) return true;
-    try {
-      return localStorage.getItem('zmng-managed-config') !== null;
-    } catch {
-      return false;
-    }
+    return !!navigator.managed;
   },
 };
