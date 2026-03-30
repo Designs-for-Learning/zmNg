@@ -41,11 +41,18 @@ jobs:
         working-directory: app
         run: npx vite build
 
+      - name: Package kiosk extension
+        run: |
+          cd kiosk-extension
+          zip -r ../kiosk-extension.zip manifest.json managed_schema.json background.js content.js icon-48.png icon-128.png
+
       - name: Prepare deploy directory
         run: |
-          mkdir -p deploy
+          mkdir -p deploy/extension
           cp -r site/* deploy/
           cp -r app/dist deploy/app
+          cp -r kiosk-extension/* deploy/extension/
+          cp kiosk-extension.zip deploy/extension/
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
