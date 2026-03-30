@@ -98,15 +98,29 @@ export async function applyManagedConfig(config: ManagedConfig): Promise<string 
     const settingsStore = useSettingsStore.getState();
     const updates: Record<string, unknown> = {};
 
-    if (config.defaultPage) {
-      updates.defaultPage = config.defaultPage;
-    }
-    if (config.kioskNavigationLock !== undefined) {
-      updates.kioskNavigationLock = config.kioskNavigationLock;
-    }
-    if (config.allowSelfSignedCerts !== undefined) {
-      updates.allowSelfSignedCerts = config.allowSelfSignedCerts;
-    }
+    if (config.defaultPage) updates.defaultPage = config.defaultPage;
+    if (config.kioskNavigationLock !== undefined) updates.kioskNavigationLock = config.kioskNavigationLock;
+    if (config.allowSelfSignedCerts !== undefined) updates.allowSelfSignedCerts = config.allowSelfSignedCerts;
+
+    // Montage settings
+    if (config.montageGridRows !== undefined) updates.montageGridRows = config.montageGridRows;
+    if (config.montageGridCols !== undefined) updates.montageGridCols = config.montageGridCols;
+    if (config.montageFeedFit) updates.montageFeedFit = config.montageFeedFit;
+    if (config.montageShowToolbar !== undefined) updates.montageShowToolbar = config.montageShowToolbar;
+    if (config.montageIsFullscreen !== undefined) updates.montageIsFullscreen = config.montageIsFullscreen;
+
+    // Streaming settings
+    if (config.viewMode) updates.viewMode = config.viewMode;
+    if (config.streamingMethod) updates.streamingMethod = config.streamingMethod;
+    if (config.snapshotRefreshInterval !== undefined) updates.snapshotRefreshInterval = config.snapshotRefreshInterval;
+    if (config.streamMaxFps !== undefined) updates.streamMaxFps = config.streamMaxFps;
+    if (config.streamScale !== undefined) updates.streamScale = config.streamScale;
+
+    // Monitor filter
+    if (config.selectedGroupId !== undefined) updates.selectedGroupId = config.selectedGroupId;
+
+    // Display
+    if (config.insomnia !== undefined) updates.insomnia = config.insomnia;
 
     if (Object.keys(updates).length > 0) {
       settingsStore.updateProfileSettings(profileId, updates);

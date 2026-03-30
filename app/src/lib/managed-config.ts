@@ -20,6 +20,22 @@ export interface ManagedConfig {
   kioskPin?: string;
   kioskNavigationLock?: boolean;
   allowSelfSignedCerts?: boolean;
+  // Montage settings
+  montageGridRows?: number;
+  montageGridCols?: number;
+  montageFeedFit?: string;
+  montageShowToolbar?: boolean;
+  montageIsFullscreen?: boolean;
+  // Streaming settings
+  viewMode?: string;
+  streamingMethod?: string;
+  snapshotRefreshInterval?: number;
+  streamMaxFps?: number;
+  streamScale?: number;
+  // Monitor filter
+  selectedGroupId?: string;
+  // Display
+  insomnia?: boolean;
 }
 
 const STORAGE_KEY = 'zmng-managed-config';
@@ -67,6 +83,18 @@ function parseConfig(items: Record<string, unknown>): ManagedConfig | null {
     kioskPin: items.kioskPin as string | undefined,
     kioskNavigationLock: items.kioskNavigationLock as boolean | undefined,
     allowSelfSignedCerts: items.allowSelfSignedCerts as boolean | undefined,
+    montageGridRows: items.montageGridRows as number | undefined,
+    montageGridCols: items.montageGridCols as number | undefined,
+    montageFeedFit: items.montageFeedFit as string | undefined,
+    montageShowToolbar: items.montageShowToolbar as boolean | undefined,
+    montageIsFullscreen: items.montageIsFullscreen as boolean | undefined,
+    viewMode: items.viewMode as string | undefined,
+    streamingMethod: items.streamingMethod as string | undefined,
+    snapshotRefreshInterval: items.snapshotRefreshInterval as number | undefined,
+    streamMaxFps: items.streamMaxFps as number | undefined,
+    streamScale: items.streamScale as number | undefined,
+    selectedGroupId: items.selectedGroupId as string | undefined,
+    insomnia: items.insomnia as boolean | undefined,
   };
 
   log.managedConfig('Managed config loaded', LogLevel.INFO, {
@@ -112,17 +140,7 @@ export function onManagedConfigChanged(
 
 /** Compute a stable hash string for change detection */
 export async function getManagedConfigHash(config: ManagedConfig): Promise<string> {
-  const serialized = JSON.stringify({
-    serverUrl: config.serverUrl,
-    username: config.username,
-    password: config.password,
-    profileName: config.profileName,
-    defaultPage: config.defaultPage,
-    kioskMode: config.kioskMode,
-    kioskPin: config.kioskPin,
-    kioskNavigationLock: config.kioskNavigationLock,
-    allowSelfSignedCerts: config.allowSelfSignedCerts,
-  });
+  const serialized = JSON.stringify(config);
 
   const data = new TextEncoder().encode(serialized);
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
