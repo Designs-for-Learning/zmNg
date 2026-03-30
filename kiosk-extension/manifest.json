@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "zmNinjaNG Kiosk Config",
+  "description": "Relays managed configuration from Google Admin to the zmNinjaNG kiosk web app",
+  "version": "1.0.0",
+  "permissions": ["storage"],
+  "storage": {
+    "managed_schema": "managed_schema.json"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "icons": {
+    "48": "icon-48.png",
+    "128": "icon-128.png"
+  }
+}

@@ -1,89 +1,54 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   isManagedConfigAvailable,
   getManagedConfig,
   getManagedConfigHash,
+  onManagedConfigChanged,
 } from '../managed-config';
 
-// Mock logger
 vi.mock('../logger', () => ({
-  log: {
-    managedConfig: vi.fn(),
-  },
+  log: { managedConfig: vi.fn() },
   LogLevel: { DEBUG: 0, INFO: 1, WARN: 2, ERROR: 3 },
 }));
 
-/** Helper to build a chrome.storage.managed mock */
-function mockChromeManagedStorage(getResult: unknown) {
-  const onChanged = { addListener: vi.fn(), removeListener: vi.fn() };
-  globalThis.chrome = {
-    storage: {
-      managed: {
-        get: typeof getResult === 'function'
-          ? getResult
-          : vi.fn().mockResolvedValue(getResult),
-        onChanged,
-      },
-    },
-  } as unknown as typeof chrome;
-}
-
 describe('managed-config', () => {
-  const originalChrome = (globalThis as Record<string, unknown>).chrome;
-
-  afterEach(() => {
-    if (originalChrome) {
-      (globalThis as Record<string, unknown>).chrome = originalChrome;
-    } else {
-      delete (globalThis as Record<string, unknown>).chrome;
-    }
+  beforeEach(() => {
+    localStorage.clear();
   });
 
   describe('isManagedConfigAvailable', () => {
-    it('returns false when chrome is not defined', () => {
-      delete (globalThis as Record<string, unknown>).chrome;
+    it('returns false when no config in localStorage', () => {
       expect(isManagedConfigAvailable()).toBe(false);
     });
 
-    it('returns false when chrome.storage is not defined', () => {
-      (globalThis as Record<string, unknown>).chrome = {};
-      expect(isManagedConfigAvailable()).toBe(false);
-    });
-
-    it('returns false when chrome.storage.managed is not defined', () => {
-      (globalThis as Record<string, unknown>).chrome = { storage: {} };
-      expect(isManagedConfigAvailable()).toBe(false);
-    });
-
-    it('returns true when chrome.storage.managed exists', () => {
-      mockChromeManagedStorage({});
+    it('returns true when config exists in localStorage', () => {
+      localStorage.setItem('zmng-managed-config', '{"serverUrl":"https://zm.test"}');
       expect(isManagedConfigAvailable()).toBe(true);
     });
   });
 
   describe('getManagedConfig', () => {
-    it('returns null when chrome API is unavailable', async () => {
-      delete (globalThis as Record<string, unknown>).chrome;
+    it('returns null when no config stored', async () => {
       expect(await getManagedConfig()).toBeNull();
     });
 
-    it('returns null when storage is empty', async () => {
-      mockChromeManagedStorage({});
+    it('returns null when stored config is empty object', async () => {
+      localStorage.setItem('zmng-managed-config', '{}');
       expect(await getManagedConfig()).toBeNull();
     });
 
     it('returns null when serverUrl is missing', async () => {
-      mockChromeManagedStorage({ username: 'admin' });
+      localStorage.setItem('zmng-managed-config', '{"username":"admin"}');
       expect(await getManagedConfig()).toBeNull();
     });
 
     it('returns config when serverUrl is present', async () => {
-      mockChromeManagedStorage({
+      localStorage.setItem('zmng-managed-config', JSON.stringify({
         serverUrl: 'https://zm.example.com',
         username: 'admin',
         password: 'secret',
         defaultPage: '/montage',
-      });
+      }));
 
       const config = await getManagedConfig();
       expect(config).toEqual({
@@ -100,18 +65,51 @@ describe('managed-config', () => {
     });
 
     it('rejects invalid defaultPage values', async () => {
-      mockChromeManagedStorage({
+      localStorage.setItem('zmng-managed-config', JSON.stringify({
         serverUrl: 'https://zm.example.com',
         defaultPage: '/invalid-page',
-      });
+      }));
 
       const config = await getManagedConfig();
       expect(config?.defaultPage).toBeUndefined();
     });
 
-    it('returns null on chrome API error', async () => {
-      mockChromeManagedStorage(vi.fn().mockRejectedValue(new Error('Policy not set')));
+    it('returns null on invalid JSON', async () => {
+      localStorage.setItem('zmng-managed-config', 'not-json');
       expect(await getManagedConfig()).toBeNull();
+    });
+  });
+
+  describe('onManagedConfigChanged', () => {
+    it('calls callback when custom event is dispatched', () => {
+      const callback = vi.fn();
+      const unsubscribe = onManagedConfigChanged(callback);
+
+      window.dispatchEvent(
+        new CustomEvent('zmng-managed-config', {
+          detail: { serverUrl: 'https://zm.test' },
+        })
+      );
+
+      expect(callback).toHaveBeenCalledWith(
+        expect.objectContaining({ serverUrl: 'https://zm.test' })
+      );
+
+      unsubscribe();
+    });
+
+    it('returns unsubscribe function that removes listener', () => {
+      const callback = vi.fn();
+      const unsubscribe = onManagedConfigChanged(callback);
+      unsubscribe();
+
+      window.dispatchEvent(
+        new CustomEvent('zmng-managed-config', {
+          detail: { serverUrl: 'https://zm.test' },
+        })
+      );
+
+      expect(callback).not.toHaveBeenCalled();
     });
   });
 
@@ -121,7 +119,7 @@ describe('managed-config', () => {
       const hash1 = await getManagedConfigHash(config as Parameters<typeof getManagedConfigHash>[0]);
       const hash2 = await getManagedConfigHash(config as Parameters<typeof getManagedConfigHash>[0]);
       expect(hash1).toBe(hash2);
-      expect(hash1).toHaveLength(64); // SHA-256 hex
+      expect(hash1).toHaveLength(64);
     });
 
     it('produces different hash for different config', async () => {

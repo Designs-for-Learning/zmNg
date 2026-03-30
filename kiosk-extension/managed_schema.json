@@ -1,0 +1,53 @@
+{
+  "type": "object",
+  "properties": {
+    "serverUrl": {
+      "title": "ZoneMinder Server URL",
+      "description": "Base URL of the ZoneMinder server (e.g. https://zm.example.com)",
+      "type": "string"
+    },
+    "username": {
+      "title": "Username",
+      "description": "ZoneMinder login username",
+      "type": "string"
+    },
+    "password": {
+      "title": "Password",
+      "description": "ZoneMinder login password",
+      "type": "string",
+      "sensitiveValue": true
+    },
+    "profileName": {
+      "title": "Profile Name",
+      "description": "Display name for the auto-created profile (default: Managed Profile)",
+      "type": "string"
+    },
+    "defaultPage": {
+      "title": "Default Page",
+      "description": "Page shown on startup",
+      "type": "string",
+      "enum": ["/montage", "/monitors", "/events", "/dashboard", "/timeline"]
+    },
+    "kioskMode": {
+      "title": "Enable Kiosk Lock",
+      "description": "Automatically lock the app into kiosk mode on startup",
+      "type": "boolean"
+    },
+    "kioskPin": {
+      "title": "Kiosk PIN",
+      "description": "PIN to unlock kiosk mode (4-8 digits)",
+      "type": "string",
+      "sensitiveValue": true
+    },
+    "kioskNavigationLock": {
+      "title": "Lock Navigation",
+      "description": "Restrict navigation to the default page only when kiosk is locked",
+      "type": "boolean"
+    },
+    "allowSelfSignedCerts": {
+      "title": "Allow Self-Signed Certificates",
+      "description": "Accept self-signed HTTPS certificates from the ZoneMinder server",
+      "type": "boolean"
+    }
+  }
+}
