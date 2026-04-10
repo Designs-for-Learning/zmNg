@@ -1023,6 +1023,8 @@
     "default_page_none": "Ninguna (usar última página)",
     "navigation_lock": "Bloquear navegación",
     "navigation_lock_desc": "En modo kiosco, restringir solo a la página predeterminada",
+    "auto_reload": "Recargar automáticamente al reconectar",
+    "auto_reload_desc": "Recargar la página cuando se restablezca la conexión de red",
     "managed_profile_created": "Perfil configurado automáticamente por el administrador",
     "managed_config_updated": "Configuración del administrador actualizada"
   }

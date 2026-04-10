@@ -36,6 +36,7 @@ export interface ManagedConfig {
   // Display
   insomnia?: boolean;
   hideNavigation?: boolean;
+  autoReloadOnReconnect?: boolean;
 }
 
 // All keys we request from managed config
@@ -45,6 +46,7 @@ const MANAGED_KEYS = [
   'montageGridRows', 'montageGridCols', 'montageFeedFit', 'montageShowToolbar',
   'montageIsFullscreen', 'viewMode', 'streamingMethod', 'snapshotRefreshInterval',
   'streamMaxFps', 'streamScale', 'selectedGroupId', 'insomnia', 'hideNavigation',
+  'autoReloadOnReconnect',
 ];
 
 const VALID_DEFAULT_PAGES = ['/montage', '/monitors', '/events', '/dashboard', '/timeline'];
@@ -110,6 +112,7 @@ function parseConfig(items: Record<string, unknown>): ManagedConfig | null {
     selectedGroupId: items.selectedGroupId as string | undefined,
     insomnia: items.insomnia as boolean | undefined,
     hideNavigation: items.hideNavigation as boolean | undefined,
+    autoReloadOnReconnect: items.autoReloadOnReconnect as boolean | undefined,
   };
 
   log.managedConfig('Managed config loaded', LogLevel.INFO, {

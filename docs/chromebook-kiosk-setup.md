@@ -62,6 +62,7 @@ On the kiosk app URL entry, find the **Managed configuration** field and enter y
   "snapshotRefreshInterval": 3,
   "selectedGroupId": "2",
   "insomnia": true,
+  "autoReloadOnReconnect": true,
   "allowSelfSignedCerts": false
 }
 ```
@@ -94,6 +95,7 @@ On the kiosk app URL entry, find the **Managed configuration** field and enter y
 | `kioskPin` | string | — | PIN to unlock kiosk mode (4-8 digits) |
 | `kioskNavigationLock` | boolean | — | Restrict navigation to default page only when locked |
 | `hideNavigation` | boolean | — | Hide sidebar and mobile header for a clean display |
+| `autoReloadOnReconnect` | boolean | false | Reload the page when network connectivity is restored |
 
 ### Montage Layout
 

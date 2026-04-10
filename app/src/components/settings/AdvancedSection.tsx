@@ -375,6 +375,23 @@ export function AdvancedSection({
               data-testid="settings-kiosk-nav-lock"
             />
           </SettingsRow>
+
+          {/* Auto-reload on reconnect */}
+          <SettingsRow>
+            <RowLabel
+              label={t('kiosk.auto_reload')}
+              desc={t('kiosk.auto_reload_desc')}
+            />
+            <Switch
+              id="auto-reload-reconnect"
+              checked={settings.autoReloadOnReconnect}
+              onCheckedChange={(checked) =>
+                currentProfile &&
+                updateSettings(currentProfile.id, { autoReloadOnReconnect: checked })
+              }
+              data-testid="settings-auto-reload-reconnect"
+            />
+          </SettingsRow>
         </SettingsCard>
       </section>
 

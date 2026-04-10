@@ -1023,6 +1023,8 @@
     "default_page_none": "无（使用上次页面）",
     "navigation_lock": "锁定导航",
     "navigation_lock_desc": "展台模式下仅限默认页面",
+    "auto_reload": "重新连接时自动刷新",
+    "auto_reload_desc": "网络连接恢复时重新加载页面",
     "managed_profile_created": "管理员已自动配置配置文件",
     "managed_config_updated": "管理员配置已更新"
   }

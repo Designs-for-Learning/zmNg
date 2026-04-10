@@ -162,6 +162,7 @@ function applySettings(
   // Display
   if (config.insomnia !== undefined) updates.insomnia = config.insomnia;
   if (config.hideNavigation !== undefined) updates.hideNavigation = config.hideNavigation;
+  if (config.autoReloadOnReconnect !== undefined) updates.autoReloadOnReconnect = config.autoReloadOnReconnect;
 
   if (Object.keys(updates).length > 0) {
     settingsStore.updateProfileSettings(profileId, updates);

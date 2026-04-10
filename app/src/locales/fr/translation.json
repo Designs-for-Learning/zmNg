@@ -1023,6 +1023,8 @@
     "default_page_none": "Aucune (utiliser la dernière page)",
     "navigation_lock": "Verrouiller la navigation",
     "navigation_lock_desc": "En mode kiosque, restreindre à la page par défaut uniquement",
+    "auto_reload": "Rechargement automatique à la reconnexion",
+    "auto_reload_desc": "Recharger la page lorsque la connexion réseau est rétablie",
     "managed_profile_created": "Profil configuré automatiquement par l'administrateur",
     "managed_config_updated": "Configuration administrateur mise à jour"
   }

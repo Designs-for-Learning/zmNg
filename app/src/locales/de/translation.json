@@ -1023,6 +1023,8 @@
     "default_page_none": "Keine (letzte Seite verwenden)",
     "navigation_lock": "Navigation sperren",
     "navigation_lock_desc": "Im Kiosk-Modus nur die Standardseite zulassen",
+    "auto_reload": "Automatisch neu laden bei Verbindung",
+    "auto_reload_desc": "Seite neu laden, wenn die Netzwerkverbindung wiederhergestellt wird",
     "managed_profile_created": "Profil automatisch vom Administrator konfiguriert",
     "managed_config_updated": "Administratorkonfiguration aktualisiert"
   }

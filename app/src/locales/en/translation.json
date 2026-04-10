@@ -1023,6 +1023,8 @@
     "default_page_none": "None (use last page)",
     "navigation_lock": "Lock Navigation",
     "navigation_lock_desc": "When kiosk mode is active, restrict to default page only",
+    "auto_reload": "Auto-reload on Reconnect",
+    "auto_reload_desc": "Reload the page when network connectivity is restored",
     "managed_profile_created": "Profile auto-configured by administrator",
     "managed_config_updated": "Admin configuration updated"
   }
