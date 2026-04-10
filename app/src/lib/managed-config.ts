@@ -125,17 +125,29 @@ function parseConfig(items: Record<string, unknown>): ManagedConfig | null {
   return config;
 }
 
-/** Read managed config via navigator.managed API */
+/**
+ * Read managed config via navigator.managed API.
+ *
+ * Requests each key individually because the API rejects requests
+ * containing keys not present in the admin's JSON config.
+ */
 export async function getManagedConfig(): Promise<ManagedConfig | null> {
   if (!navigator.managed) return null;
 
-  try {
-    const items = await navigator.managed.getManagedConfiguration(MANAGED_KEYS);
-    return parseConfig(items);
-  } catch (error) {
-    log.managedConfig('Failed to read managed config', LogLevel.ERROR, { error });
-    return null;
+  const items: Record<string, unknown> = {};
+
+  for (const key of MANAGED_KEYS) {
+    try {
+      const result = await navigator.managed.getManagedConfiguration([key]);
+      if (result[key] !== undefined) {
+        items[key] = result[key];
+      }
+    } catch {
+      // Key not in admin config — skip it
+    }
   }
+
+  return parseConfig(items);
 }
 
 /**
