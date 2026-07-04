@@ -2,6 +2,9 @@
 
 ## 2026-07-04
 - Add security-check.sh: pip-audit, bandit, npm audit, gitleaks
+- security-check.sh now records each project's dependency inventory
+  to dl-tech-digest/inventory/ so the daily digest can watch those
+  packages for CVEs
 
 ## [zmNinjaNG-1.1.4](https://github.com/pliablepixels/zmNinjaNG/tree/zmNinjaNG-1.1.4) (2026-03-28)
 
