@@ -210,4 +210,10 @@ pip install -r docs/requirements.txt sphinx-autobuild && cd docs && make clean &
 - See `scripts/make_release.sh` [here](scripts/make_release.sh). This automatically tags the current state and triggers release builds
 - `app/package.json` is the source of truth for the version number. `scripts/sync-version.js` propagates it to `app/src-tauri/tauri.conf.json` and `app/src-tauri/Cargo.toml` during builds and releases
 
+## Security Checks
 
+`./security-check.sh` (repo root) scans dependencies for known
+vulnerabilities (pip-audit / npm audit), Python code for insecure
+patterns (bandit), and git history for leaked secrets (gitleaks).
+Install scanners once: `pipx install pip-audit bandit` plus the
+gitleaks binary on PATH; exits non-zero when anything is found.

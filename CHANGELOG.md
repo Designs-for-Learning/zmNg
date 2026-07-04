@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026-07-04
+- Add security-check.sh: pip-audit, bandit, npm audit, gitleaks
+
 ## [zmNinjaNG-1.1.4](https://github.com/pliablepixels/zmNinjaNG/tree/zmNinjaNG-1.1.4) (2026-03-28)
 
 [Full Changelog](https://github.com/pliablepixels/zmNinjaNG/compare/zmNinjaNG-1.1.3...zmNinjaNG-1.1.4)
