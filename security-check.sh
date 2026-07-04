@@ -58,9 +58,9 @@ done < <(find . -name 'package.json' "${PRUNE[@]}")
 # Secret scan
 if have gitleaks; then
   if [ -d .git ]; then
-    run "gitleaks (git history)" gitleaks git --no-banner --redact --exit-code 1 .
+    run "gitleaks (git history)" gitleaks git --no-banner --redact -v --exit-code 1 .
   else
-    run "gitleaks (working tree)" gitleaks dir --no-banner --redact --exit-code 1 .
+    run "gitleaks (working tree)" gitleaks dir --no-banner --redact -v --exit-code 1 .
   fi
 else
   skip "gitleaks" gitleaks
