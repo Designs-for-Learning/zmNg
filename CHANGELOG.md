@@ -1,6 +1,9 @@
 # Changelog
 
-## zmNinjaNG-1.1.5 (2026-07-25)
+## zmNg-1.1.5 (2026-07-25)
+
+(Tagged in the fork's own `zmNg-` namespace: upstream zmNinjaNG has
+already used tags 1.1.5–1.1.8 on its diverged line.)
 
 **Fixed:**
 
