@@ -27,8 +27,9 @@ PRUNE=( -not -path '*/node_modules/*' -not -path '*/venv/*' \
 
 # Dependency inventory for the digest routine (see dl-tech-digest
 # docs/routine-prompt.md). No timestamp: output only changes when
-# dependencies do, so publishing can be change-driven.
-if [ -d ../dl-tech-digest ]; then
+# dependencies do, so publishing can be change-driven. A .digest-exclude
+# file in the project root opts it out of digest coverage.
+if [ -d ../dl-tech-digest ] && [ ! -f .digest-exclude ]; then
   mkdir -p ../dl-tech-digest/inventory
   {
     echo "# $(basename "$(pwd)") — dependency inventory"
