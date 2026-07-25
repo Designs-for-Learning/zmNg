@@ -1,5 +1,15 @@
 # Changelog
 
+## zmNinjaNG-1.1.5 (2026-07-25)
+
+**Fixed:**
+
+- npm security updates: non-breaking fixes for six advisories in app
+  dependencies (axios, ws, and transitive packages); the unit test
+  suite passes on the updated tree (1,092 tests). Remaining advisories
+  need major upgrades (vite 8, vitest 4) and are tracked for a
+  dedicated pass.
+
 ## 2026-07-04
 - Add security-check.sh: pip-audit, bandit, npm audit, gitleaks
 - security-check.sh now records each project's dependency inventory
