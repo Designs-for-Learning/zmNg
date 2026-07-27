@@ -1,5 +1,14 @@
 # Changelog
 
+## zmNg-1.1.6 (2026-07-26)
+
+**Changed:**
+
+- **Build toolchain** now uses Node.js 24 for all GitHub Actions
+  builds and releases (GitHub no longer builds on older Node
+  versions). No app behavior changes; local development now expects
+  Node 24 or newer.
+
 ## zmNg-1.1.5 (2026-07-25)
 
 (Tagged in the fork's own `zmNg-` namespace: upstream zmNinjaNG has
