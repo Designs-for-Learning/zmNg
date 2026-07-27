@@ -1,5 +1,16 @@
 # Changelog
 
+## zmNg-1.1.7 (2026-07-26)
+
+**Fixed:**
+
+- **Release checks** now pass: the test workflow that runs on each
+  release failed its coverage gate (it also failed on the two prior
+  releases) because coverage counted e2e test infrastructure,
+  vendored code, and type declarations. Coverage now measures only
+  unit-testable app code, with thresholds set from measured
+  coverage.
+
 ## zmNg-1.1.6 (2026-07-26)
 
 **Changed:**
