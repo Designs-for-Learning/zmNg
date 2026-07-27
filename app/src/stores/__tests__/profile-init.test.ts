@@ -70,7 +70,9 @@ describe('Profile Store Initialization', () => {
     vi.useRealTimers();
   });
 
-  it('marks initialization complete when no profile exists', async () => {
+  // Extended timeout: the dynamic import of ../profile is slow under
+  // coverage instrumentation and can exceed the 5s default.
+  it('marks initialization complete when no profile exists', { timeout: 15000 }, async () => {
     localStorage.setItem(
       'zmng-profiles',
       JSON.stringify({
