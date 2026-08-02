@@ -6,6 +6,7 @@ name: Publish dependency inventory
 # Needs the DIGEST_PUSH_TOKEN secret: fine-grained PAT, Contents
 # read/write on dl-tech-digest ONLY.
 on:
+  workflow_dispatch:
   push:
     branches: [main]
     paths:
