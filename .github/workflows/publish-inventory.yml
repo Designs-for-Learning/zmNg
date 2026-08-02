@@ -1,0 +1,49 @@
+name: Publish dependency inventory
+# Regenerates this project's inventory file in dl-tech-digest whenever a
+# dependency manifest changes on main, so the daily digest matches CVEs
+# against current pins without waiting for a local sweep. Reuses the
+# repo's own security-check.sh so output is byte-identical to local runs.
+# Needs the DIGEST_PUSH_TOKEN secret: fine-grained PAT, Contents
+# read/write on dl-tech-digest ONLY.
+on:
+  push:
+    branches: [main]
+    paths:
+      - '**/requirements*.txt'
+      - '**/package-lock.json'
+      - '.github/workflows/publish-inventory.yml'
+concurrency:
+  group: publish-inventory
+env:
+  # Must equal this project's inventory file basename in dl-tech-digest,
+  # i.e. the local working-dir name. Only Designs Digital Signage
+  # differs from its repo name.
+  PROJECT_DIR: ${{ github.event.repository.name }}
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: ${{ env.PROJECT_DIR }}
+      - uses: actions/checkout@v4
+        with:
+          repository: Designs-for-Learning/dl-tech-digest
+          token: ${{ secrets.DIGEST_PUSH_TOKEN }}
+          path: dl-tech-digest
+      - name: Regenerate this project's inventory
+        run: cd "$PROJECT_DIR" && ./security-check.sh --inventory-only
+      - name: Push to dl-tech-digest if changed
+        run: |
+          cd dl-tech-digest
+          git add "inventory/$PROJECT_DIR.md"
+          if git diff --quiet --cached; then echo "inventory unchanged"; exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Update dependency inventory ($PROJECT_DIR)"
+          for i in 1 2 3; do
+            git push origin main && exit 0
+            git pull --rebase origin main
+            sleep $i
+          done
+          exit 1
