@@ -23,7 +23,8 @@ have() { command -v "$1" >/dev/null 2>&1; }
 skip() { echo "== $1"; echo "-- SKIPPED ($2 not installed)"; echo; }
 
 PRUNE=( -not -path '*/node_modules/*' -not -path '*/venv/*' \
-        -not -path '*/.venv/*' -not -path '*/__pycache__/*' )
+        -not -path '*/.venv/*' -not -path '*/__pycache__/*' \
+        -not -path '*/.claude/*' )
 
 # Dependency inventory for the digest routine (see dl-tech-digest
 # docs/routine-prompt.md). No timestamp: output only changes when
