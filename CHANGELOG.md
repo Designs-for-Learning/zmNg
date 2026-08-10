@@ -1,5 +1,18 @@
 # Changelog
 
+## [Unreleased]
+
+**Fixed:**
+
+- npm security updates: resolves all open `npm audit` advisories
+  (22 in the app, 1 in the workspace root), completing the pass
+  started in 1.1.5. Includes the node-tar advisories, a react-router
+  CSRF fix, and updates to esbuild, sharp, serialize-javascript,
+  uuid, minimatch, brace-expansion, js-yaml, and nanoid. The e2e
+  test runner (playwright-bdd) moved to v9; nested version pins that
+  upstream packages have not yet updated are handled with npm
+  overrides.
+
 ## zmNg-1.1.7 (2026-07-26)
 
 **Fixed:**

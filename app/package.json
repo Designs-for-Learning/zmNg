@@ -153,7 +153,7 @@
     "globals": "^16.5.0",
     "jsdom": "^27.0.1",
     "playwright": "^1.57.0",
-    "playwright-bdd": "^8.4.2",
+    "playwright-bdd": "^9.2.0",
     "postcss": "^8.5.6",
     "rollup-plugin-visualizer": "^6.0.5",
     "tailwind-merge": "^3.4.0",
@@ -164,5 +164,19 @@
     "vite": "^7.2.4",
     "vitest": "^3.2.4",
     "webdriverio": "^9.26.1"
+  },
+  "overrides": {
+    "esbuild": "^0.28.2",
+    "sharp": "^0.35.3",
+    "serialize-javascript": "^7.1.0",
+    "@capacitor/cli": {
+      "tar": "^7.5.22"
+    },
+    "xcode": {
+      "uuid": "^11.1.1"
+    },
+    "replace": {
+      "minimatch": "^5.1.9"
+    }
   }
 }
