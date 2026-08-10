@@ -1,0 +1,16 @@
+# Accepted gitleaks findings. Format: commit:file:rule:line
+# Chrome extension manifest "key" is the RSA public key that pins the
+# extension ID — public by design.
+91015a09777ec732f52f0c7cbb7116bd273c04fe:kiosk-extension/manifest.json:generic-api-key:6
+# Podfile.lock entries are CocoaPods checksums, not secrets.
+6d762408f31f1625426c756459439eca3ffd5eb8:app/ios/App/Podfile.lock:generic-api-key:153
+2e395e18e943c6220f3386ef5920de9e747d8795:app/ios/App/Podfile.lock:generic-api-key:53
+# log-sanitizer tests contain deliberately fake secrets as fixtures.
+500e4326c481edc5e683a1012e0d5fb61e3d6efd:app/src/lib/__tests__/log-sanitizer.test.ts:generic-api-key:83
+500e4326c481edc5e683a1012e0d5fb61e3d6efd:app/src/lib/__tests__/log-sanitizer.test.ts:generic-api-key:111
+500e4326c481edc5e683a1012e0d5fb61e3d6efd:app/src/lib/__tests__/log-sanitizer.test.ts:generic-api-key:116
+500e4326c481edc5e683a1012e0d5fb61e3d6efd:app/src/lib/__tests__/log-sanitizer.test.ts:generic-api-key:185
+500e4326c481edc5e683a1012e0d5fb61e3d6efd:app/src/lib/__tests__/log-sanitizer.test.ts:generic-api-key:426
+# google-services.json ships in the app; Firebase API keys are client
+# config, not secrets (upstream zmNinja commit).
+20af98c023206ed326c4aee3ba4c8983865ed269:app/android/app/google-services.json:gcp-api-key:18
