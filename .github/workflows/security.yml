@@ -1,0 +1,31 @@
+name: security-scan
+# Runs this repo's security-check.sh scanners (pip-audit, bandit,
+# npm audit, gitleaks) in CI so findings stay current without local
+# sweeps. Auto-detection lives in the script; inventory publishing
+# stays in publish-inventory.yml. Same copy in every project, except
+# the push branch matches each repo's default branch.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "0 6 * * 1"  # Mondays 06:00 UTC
+  workflow_dispatch:
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # gitleaks scans full git history
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install scanners
+        run: |
+          python -m pip install --quiet pip-audit bandit
+          curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.24.3/gitleaks_8.24.3_linux_x64.tar.gz \
+            | sudo tar -xz -C /usr/local/bin gitleaks
+      - name: Run scans
+        run: bash security-check.sh
