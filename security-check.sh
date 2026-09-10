@@ -6,7 +6,8 @@
 #   gitleaks   - secret scan (git history, or working tree if no repo)
 # Also refreshes this project's dependency inventory in the sibling
 # dl-tech-digest repo so the daily digest routine can match CVEs
-# against our real dependencies. `--inventory-only` skips the scans.
+# against our real dependencies, transitive ones included.
+# `--inventory-only` skips the scans.
 # Exits non-zero if any check reports issues. Identical copy in every
 # project; auto-detection keeps it stack-agnostic.
 set -u
@@ -27,9 +28,12 @@ PRUNE=( -not -path '*/node_modules/*' -not -path '*/venv/*' \
         -not -path '*/.claude/*' )
 
 # Dependency inventory for the digest routine (see dl-tech-digest
-# docs/routine-prompt.md). No timestamp: output only changes when
-# dependencies do, so publishing can be change-driven. A .digest-exclude
-# file in the project root opts it out of digest coverage.
+# docs/routine-prompt.md). Direct deps are listed as declared; transitive
+# deps at the exact version a fresh install resolves to today (Node: the
+# lockfile; Python: a pip dry-run against the index), so they drift as
+# upstream publishes — publish-inventory.yml refreshes weekly. No
+# timestamp, so an unchanged tree publishes nothing. A .digest-exclude
+# file in the project root opts the project out of digest coverage.
 if [ -d ../dl-tech-digest ] && [ ! -f .digest-exclude ]; then
   mkdir -p ../dl-tech-digest/inventory
   {
@@ -38,6 +42,30 @@ if [ -d ../dl-tech-digest ] && [ ! -f .digest-exclude ]; then
     while IFS= read -r req; do
       echo; echo "## Python: $req"
       grep -vE '^[[:space:]]*(#|$|-r|--)' "$req"
+      echo; echo "## Python transitive: $req"
+      if have python3; then
+        # --dry-run never touches site-packages, so this is safe outside a
+        # venv; --ignore-installed makes the report cover the whole tree.
+        python3 - "$req" <(python3 -m pip install --dry-run --ignore-installed \
+          -q --report - -r "$req" 2>/dev/null) <<'PY'
+import json, re, sys
+norm = lambda n: re.sub(r'[-_.]+', '-', n).lower()
+declared = set()
+for line in open(sys.argv[1]):
+    line = line.strip()
+    if line and line[0] not in '#-':
+        declared.add(norm(re.split(r'[\[<>=!~;\s]', line, 1)[0]))
+try:
+    tree = json.load(open(sys.argv[2]))['install']
+except ValueError:
+    print('(pip resolution failed)'); sys.exit()
+for name, ver in sorted((norm(i['metadata']['name']), i['metadata']['version']) for i in tree):
+    if name not in declared:
+        print(f'{name}=={ver}')
+PY
+      else
+        echo "(python3 not installed)"
+      fi
     done < <(find . -name 'requirements*.txt' "${PRUNE[@]}" | sort)
     if have python3; then
       while IFS= read -r lock; do
@@ -46,9 +74,19 @@ if [ -d ../dl-tech-digest ] && [ ! -f .digest-exclude ]; then
 import json, sys
 pkgs = json.load(open(sys.argv[1])).get('packages', {})
 root = pkgs.get('', {})
-names = set(root.get('dependencies', {})) | set(root.get('devDependencies', {}))
-for n in sorted(names):
-    print(n, pkgs.get('node_modules/' + n, {}).get('version', '?'))
+direct = set(root.get('dependencies', {})) | set(root.get('devDependencies', {}))
+# Nested copies (a/node_modules/b) collapse onto the package name; a name
+# installed at several versions lists them all.
+versions = {}
+for path, meta in pkgs.items():
+    if path:
+        versions.setdefault(path.rsplit('node_modules/', 1)[1], set()).add(meta.get('version', '?'))
+def show(names):
+    for n in sorted(names):
+        print(n, ', '.join(sorted(versions.get(n, {'?'}))))
+show(direct)
+print(); print('## Node transitive:', sys.argv[1])
+show(versions.keys() - direct)
 PY
       done < <(find . -name 'package-lock.json' "${PRUNE[@]}" | sort)
     fi

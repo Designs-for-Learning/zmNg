@@ -1,12 +1,16 @@
 name: Publish dependency inventory
 # Regenerates this project's inventory file in dl-tech-digest whenever a
 # dependency manifest changes on main, so the daily digest matches CVEs
-# against current pins without waiting for a local sweep. Reuses the
-# repo's own security-check.sh so output is byte-identical to local runs.
+# against current pins without waiting for a local sweep, and weekly,
+# because the resolved transitive versions drift as upstream publishes.
+# Reuses the repo's own security-check.sh so output is byte-identical
+# to local runs.
 # Needs the DIGEST_PUSH_TOKEN secret: fine-grained PAT, Contents
 # read/write on dl-tech-digest ONLY.
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "0 5 * * 1"  # Mondays 05:00 UTC, ahead of security.yml
   push:
     branches: [main]
     paths:
