@@ -30,10 +30,12 @@ PRUNE=( -not -path '*/node_modules/*' -not -path '*/venv/*' \
 # Dependency inventory for the digest routine (see dl-tech-digest
 # docs/routine-prompt.md). Direct deps are listed as declared; transitive
 # deps at the exact version a fresh install resolves to today (Node: the
-# lockfile; Python: a pip dry-run against the index), so they drift as
-# upstream publishes — publish-inventory.yml refreshes weekly. No
-# timestamp, so an unchanged tree publishes nothing. A .digest-exclude
-# file in the project root opts the project out of digest coverage.
+# lockfile; Python: a pip dry-run against the index), each tagged
+# "# via" with the packages that require it so a CVE hit traces back to
+# the direct dep to bump. Resolved versions drift as upstream publishes —
+# publish-inventory.yml refreshes weekly. No timestamp, so an unchanged
+# tree publishes nothing. A .digest-exclude file in the project root opts
+# the project out of digest coverage.
 if [ -d ../dl-tech-digest ] && [ ! -f .digest-exclude ]; then
   mkdir -p ../dl-tech-digest/inventory
   {
@@ -48,20 +50,50 @@ if [ -d ../dl-tech-digest ] && [ ! -f .digest-exclude ]; then
         # venv; --ignore-installed makes the report cover the whole tree.
         python3 - "$req" <(python3 -m pip install --dry-run --ignore-installed \
           -q --report - -r "$req" 2>/dev/null) <<'PY'
-import json, re, sys
+import json, os, re, sys
 norm = lambda n: re.sub(r'[-_.]+', '-', n).lower()
-declared = set()
-for line in open(sys.argv[1]):
-    line = line.strip()
-    if line and line[0] not in '#-':
-        declared.add(norm(re.split(r'[\[<>=!~;\s]', line, 1)[0]))
+def parse(req):  # 'sqlalchemy[asyncio]>=2' -> ('sqlalchemy', {'asyncio'})
+    m = re.match(r'\s*([A-Za-z0-9][A-Za-z0-9._-]*)(?:\[([^\]]*)\])?', req)
+    return norm(m[1]), {norm(e.strip()) for e in (m[2] or '').split(',') if e.strip()}
+declared = {}  # name -> extras asked for; -r includes are declared too
+def read(path):
+    for line in open(path):
+        line = line.strip()
+        inc = re.match(r'(?:-r|--requirement)\s+(\S+)', line)
+        if inc:
+            read(os.path.join(os.path.dirname(path), inc[1]))
+        elif line and line[0] not in '#-':
+            name, extras = parse(line)
+            declared.setdefault(name, set()).update(extras)
+read(sys.argv[1])
 try:
     tree = json.load(open(sys.argv[2]))['install']
 except ValueError:
     print('(pip resolution failed)'); sys.exit()
-for name, ver in sorted((norm(i['metadata']['name']), i['metadata']['version']) for i in tree):
+versions = {norm(i['metadata']['name']): i['metadata']['version'] for i in tree}
+# Who requires whom, from each package's Requires-Dist. A requirement
+# gated on an extra counts only once someone asks for that extra
+# (fonttools[woff] -> brotli), so extras propagate until nothing changes.
+edges = []
+for i in tree:
+    parent = norm(i['metadata']['name'])
+    for req in i['metadata'].get('requires_dist') or []:
+        child, extras = parse(req)
+        gate = re.search(r'''extra\s*==\s*['"]([^'"]+)''', req)
+        if child in versions:
+            edges.append((parent, child, extras, gate and norm(gate[1])))
+via = {n: set() for n in versions}
+extras = {n: set(declared.get(n, ())) for n in versions}
+changed = True
+while changed:
+    changed = False
+    for parent, child, want, gate in edges:
+        if (gate is None or gate in extras[parent]) and (parent not in via[child] or not want <= extras[child]):
+            via[child].add(parent); extras[child] |= want; changed = True
+for name in sorted(versions):
     if name not in declared:
-        print(f'{name}=={ver}')
+        parents = ', '.join(sorted(via[name]))
+        print(f'{name}=={versions[name]}' + (f'  # via {parents}' if parents else ''))
 PY
       else
         echo "(python3 not installed)"
@@ -76,17 +108,24 @@ pkgs = json.load(open(sys.argv[1])).get('packages', {})
 root = pkgs.get('', {})
 direct = set(root.get('dependencies', {})) | set(root.get('devDependencies', {}))
 # Nested copies (a/node_modules/b) collapse onto the package name; a name
-# installed at several versions lists them all.
-versions = {}
+# installed at several versions lists them all. via = who requires whom,
+# peers included since npm installs them automatically.
+versions, via = {}, {}
 for path, meta in pkgs.items():
     if path:
-        versions.setdefault(path.rsplit('node_modules/', 1)[1], set()).add(meta.get('version', '?'))
-def show(names):
+        name = path.rsplit('node_modules/', 1)[1]
+        versions.setdefault(name, set()).add(meta.get('version', '?'))
+        for kind in ('dependencies', 'optionalDependencies', 'peerDependencies'):
+            for child in meta.get(kind) or {}:
+                via.setdefault(child, set()).add(name)
+def show(names, chains=False):
     for n in sorted(names):
-        print(n, ', '.join(sorted(versions.get(n, {'?'}))))
+        line = f"{n} {', '.join(sorted(versions.get(n, {'?'})))}"
+        parents = ', '.join(sorted(via.get(n, ())))
+        print(line + (f'  # via {parents}' if chains and parents else ''))
 show(direct)
 print(); print('## Node transitive:', sys.argv[1])
-show(versions.keys() - direct)
+show(versions.keys() - direct, chains=True)
 PY
       done < <(find . -name 'package-lock.json' "${PRUNE[@]}" | sort)
     fi
