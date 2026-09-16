@@ -102,7 +102,8 @@ const testConfig = {
 
 function createMockWebSocketConstructor() {
   const instances: MockWebSocket[] = [];
-  const ctor = vi.fn(() => {
+  // vitest 4 invokes the implementation with `new`, so it must be constructible
+  const ctor = vi.fn(function () {
     const ws = new MockWebSocket();
     instances.push(ws);
     return ws;

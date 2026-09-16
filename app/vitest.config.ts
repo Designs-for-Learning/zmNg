@@ -17,6 +17,9 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
+      // vitest 4 only reports files loaded by tests unless include is set;
+      // list src so untested modules still count toward the thresholds.
+      include: ['src/**'],
       exclude: [
         'node_modules/',
         'src/tests/',
@@ -30,12 +33,14 @@ export default defineConfig({
       ],
       // Coverage thresholds - fail tests if coverage drops below these values.
       // Set from the suite's measured coverage to catch regressions; raise as
-      // coverage improves.
+      // coverage improves. Re-baselined for vitest 4, whose AST-based
+      // remapping counts the functions and branches of untested files
+      // (vitest 3 reported those as covered).
       thresholds: {
-        lines: 33,
-        functions: 55,
-        branches: 70,
-        statements: 33,
+        lines: 40,
+        functions: 37,
+        branches: 30,
+        statements: 39,
       },
     },
   },

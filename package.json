@@ -40,5 +40,10 @@
   },
   "devDependencies": {
     "@wdio/cli": "^9.26.1"
+  },
+  "overrides": {
+    "@wdio/utils": {
+      "@puppeteer/browsers": "^3.2.2"
+    }
   }
 }

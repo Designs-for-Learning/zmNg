@@ -11,6 +11,16 @@
   any client spoof its address through `X-Forwarded-For`. The proxy
   server sets no trust subnet, so the flaw was not reachable here;
   the update clears the advisory.
+- **npm security updates:** clears the other open `npm audit`
+  advisories (24 in the app, 8 in the workspace root): the xmldom
+  parser advisories, browserslist, qs, js-yaml, deepmerge-ts,
+  postcss-selector-parser, and sharp's libheif fixes. The unit test
+  runner (vitest) moves from 3 to 4, and WebdriverIO moves to 9.31.9
+  with its browser downloader pinned to a patched line through an npm
+  override, since every release WebdriverIO accepts depends on an
+  unpatched extract-zip. The coverage check that runs on each release
+  is re-baselined for the new runner, which counts untested code more
+  strictly.
 
 ## zmNg-1.1.8 (2026-08-10)
 

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, type MockInstance } from 'vitest';
 import { renderHook } from '@testing-library/react';
 import { useAutoReload } from '../useAutoReload';
 
@@ -8,8 +8,8 @@ vi.mock('../../lib/logger', () => ({
 }));
 
 describe('useAutoReload', () => {
-  let addSpy: ReturnType<typeof vi.spyOn>;
-  let removeSpy: ReturnType<typeof vi.spyOn>;
+  let addSpy: MockInstance<typeof window.addEventListener>;
+  let removeSpy: MockInstance<typeof window.removeEventListener>;
   const reloadMock = vi.fn();
 
   beforeEach(() => {
@@ -26,6 +26,8 @@ describe('useAutoReload', () => {
   afterEach(() => {
     vi.useRealTimers();
     vi.restoreAllMocks();
+    // vitest 4: restoreAllMocks no longer clears vi.fn() call history
+    reloadMock.mockClear();
   });
 
   it('does not add listeners when disabled', () => {
