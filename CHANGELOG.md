@@ -1,5 +1,17 @@
 # Changelog
 
+## [Unreleased]
+
+**Fixed:**
+
+- **Security:** proxy-addr, pulled in by express for the local CORS
+  proxy (`npm run proxy`), moves from 2.0.7 to 2.0.8 to fix CVE-2026-90711
+  (GHSA-jqcg-44mw-7w3h). A trust subnet written in IPv4-mapped IPv6
+  form with an IPv4-sized prefix trusted every IPv4 client, letting
+  any client spoof its address through `X-Forwarded-For`. The proxy
+  server sets no trust subnet, so the flaw was not reachable here;
+  the update clears the advisory.
+
 ## zmNg-1.1.8 (2026-08-10)
 
 **Fixed:**
