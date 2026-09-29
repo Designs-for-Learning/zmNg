@@ -175,6 +175,9 @@
     "@wdio/utils": {
       "@puppeteer/browsers": "^3.2.2"
     },
+    "@firebase/firestore": {
+      "@grpc/grpc-js": "~1.13.6"
+    },
     "xcode": {
       "uuid": "^11.1.1"
     },

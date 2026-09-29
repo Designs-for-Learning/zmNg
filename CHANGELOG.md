@@ -22,6 +22,14 @@
   Moderate), where a malformed compressed WebSocket frame could
   crash the Node process. It is not part of the shipped app.
   `npm audit` reports no open advisories again.
+- **Security:** @grpc/grpc-js, pulled in by the Firebase SDK, moves
+  from 1.9.16 to 1.13.6 to fix CVE-2026-101916 (High) and
+  CVE-2026-101914 (Medium). The High one affects gRPC servers that
+  accept connections without requiring a client certificate. The
+  app runs no gRPC server and the package is not part of the
+  shipped app, so it was not reachable here. No Firebase release
+  uses a fixed version yet, so the version is set through an npm
+  override.
 
 ## zmNg-1.1.9 (2026-09-15)
 
