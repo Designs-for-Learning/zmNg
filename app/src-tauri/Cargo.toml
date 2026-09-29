@@ -6,7 +6,7 @@ authors = ["you"]
 license = ""
 repository = ""
 edition = "2021"
-rust-version = "1.77.2"
+rust-version = "1.90"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -15,14 +15,14 @@ name = "app_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
-tauri-build = { version = "2.5.5", features = [] }
+tauri-build = { version = "2.7.0", features = [] }
 
 [dependencies]
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 log = "0.4"
 # When running `cargo update`, also update matching @tauri-apps/* packages in package.json.
-tauri = { version = "2.10.2", features = ["devtools"] }
+tauri = { version = "2.12.0", features = ["devtools"] }
 tauri-plugin-log = "2.8.0"
 tauri-plugin-http = { version = "2.5.7", features = ["dangerous-settings"] }
 tauri-plugin-fs = "2.4.5"

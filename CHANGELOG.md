@@ -30,6 +30,12 @@
   shipped app, so it was not reachable here. No Firebase release
   uses a fixed version yet, so the version is set through an npm
   override.
+- **Security (desktop app):** the Tauri runtime moves from 2.10.3
+  to 2.12.0 to fix GHSA-w28w-mhc8-qvjv (High), where script running
+  in one app window could read data meant for another window. The
+  desktop app has one window that shows only its own content, so
+  exposure was low. Building the desktop app from source now needs
+  Rust 1.90 or newer.
 
 ## zmNg-1.1.9 (2026-09-15)
 
