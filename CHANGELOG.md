@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## zmNg-1.1.10 (2026-09-29)
 
 **Fixed:**
 
