@@ -1,5 +1,17 @@
 # Changelog
 
+## [Unreleased]
+
+**Fixed:**
+
+- **Security:** axios moves from 1.18.1 to 1.20.0, which fixes seven
+  advisories rated High (CVE-2026-101898, -101901, -101903, -101905,
+  -101906, -101907, -101909) and four rated Medium (CVE-2026-101900,
+  -101902, -101904, -101908). They cover HTTP/2 and proxy handling,
+  redirects, and slow matching on crafted URLs. The app makes its
+  requests through its own HTTP layer and does not load axios, so
+  none were reachable here; the update clears the advisories.
+
 ## zmNg-1.1.9 (2026-09-15)
 
 **Fixed:**
