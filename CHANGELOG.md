@@ -17,6 +17,11 @@
   or deeply nested brace patterns could crash the Node process. The
   package is not part of the shipped app, and the patterns it
   handles come from this project's own config files.
+- **Security:** undici, pulled in by the device test tools, moves
+  from 7.29.0 to 7.30.0 to fix CVE-2026-85024 (GHSA-3wwx-pv8p-q78v,
+  Moderate), where a malformed compressed WebSocket frame could
+  crash the Node process. It is not part of the shipped app.
+  `npm audit` reports no open advisories again.
 
 ## zmNg-1.1.9 (2026-09-15)
 
