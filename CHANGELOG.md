@@ -11,6 +11,12 @@
   one of the app's own pages, with access to the app's stored data
   and native features. The fix is in the native code, so it reaches
   devices with the next Android and iOS builds.
+- **Security:** moment, installed alongside the timeline library,
+  moves from 2.30.1 to 2.31.0 to fix CVE-2026-17495
+  (GHSA-4p3w-j4w9-5jqw, Moderate), a path traversal when loading
+  locale files. It affects server-side use only; the app runs moment
+  in the browser and never loads locales from disk, so it was not
+  reachable here. The update clears the advisory.
 
 ## zmNg-1.1.10 (2026-09-29)
 
