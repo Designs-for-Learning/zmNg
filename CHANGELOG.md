@@ -1,5 +1,17 @@
 # Changelog
 
+## [Unreleased]
+
+**Fixed:**
+
+- **Security (Android and iOS apps):** Capacitor, the native runtime
+  under the mobile apps, moves from 7.4.4 to 7.6.9 to fix
+  CVE-2026-103922 (GHSA-rvm3-566m-v7fv, CVSS 9.3). A tapped link
+  could make the app load content from another site as if it were
+  one of the app's own pages, with access to the app's stored data
+  and native features. The fix is in the native code, so it reaches
+  devices with the next Android and iOS builds.
+
 ## zmNg-1.1.10 (2026-09-29)
 
 **Fixed:**
