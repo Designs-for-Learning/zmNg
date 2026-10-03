@@ -28,6 +28,12 @@
   does not load. Other Rust crates (anyhow, quick-xml, quinn-proto,
   rand, serde_with) also move to releases that clear open
   advisories.
+- **Security (desktop app):** the Tauri file system plugin moves
+  from 2.4.5 to 2.5.2 to fix GHSA-9g54-6x48-9vpw (Low). A rule meant
+  to keep the app's page out of the WebView's own data folder did
+  not apply once an app allowed access to its local data folder.
+  The desktop app only writes to Downloads, Documents, Desktop,
+  Pictures and Movies, so it was not exposed.
 
 ## zmNg-1.1.10 (2026-09-29)
 
