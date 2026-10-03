@@ -17,6 +17,17 @@
   locale files. It affects server-side use only; the app runs moment
   in the browser and never loads locales from disk, so it was not
   reachable here. The update clears the advisory.
+- **Security (desktop app):** the HTTP and TLS libraries built into
+  the desktop app move to patched releases: rustls 0.23.37 to
+  0.23.45, rustls-webpki 0.103.10 to 0.103.15 and h2 0.4.13 to
+  0.4.19. They fix CVE-2026-93599 (High), CVE-2026-93600 and
+  CVE-2026-93601 (both Low), GHSA-2mjx-qc3c-rqvc and
+  GHSA-q83h-524g-xf6h, which cover certificate checks, TLS handshake
+  handling and memory use when a server sends crafted HTTP/2 frames.
+  The High one needs certificate revocation lists, which the app
+  does not load. Other Rust crates (anyhow, quick-xml, quinn-proto,
+  rand, serde_with) also move to releases that clear open
+  advisories.
 
 ## zmNg-1.1.10 (2026-09-29)
 
