@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## zmNg-1.1.11 (2026-10-03)
+
 **Fixed:**
 
 - **Security (Android and iOS apps):** Capacitor, the native runtime
