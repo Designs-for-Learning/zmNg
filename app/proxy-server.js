@@ -1,6 +1,6 @@
 import express from 'express';
-import { createProxyMiddleware } from 'http-proxy-middleware';
 import https from 'https';
+import { forwardRequest } from './proxy-forward.js';
 
 const app = express();
 const PORT = 3001;
@@ -87,36 +87,16 @@ app.get('/image-proxy', async (req, res) => {
   }
 });
 
-// Dynamic proxy that routes based on X-Target-Host header
-app.use('/proxy', (req, res, next) => {
+// Dynamic proxy that routes based on X-Target-Host header.
+// Mounting on /proxy strips that prefix from req.url.
+app.use('/proxy', (req, res) => {
   const targetHost = req.headers['x-target-host'];
 
   if (!targetHost) {
     return res.status(400).json({ error: 'Missing X-Target-Host header' });
   }
 
-
-
-  const proxy = createProxyMiddleware({
-    target: targetHost,
-    changeOrigin: true,
-    pathRewrite: {
-      '^/proxy': '', // Remove /proxy prefix
-    },
-    onProxyReq: (proxyReq) => {
-      // Remove our custom header before forwarding
-      proxyReq.removeHeader('x-target-host');
-      // Disable compression to avoid issues
-      proxyReq.removeHeader('accept-encoding');
-      proxyReq.setHeader('accept-encoding', 'identity');
-    },
-    onError: (err, req, res) => {
-      console.error('[Proxy Error]', err.message);
-      res.status(500).json({ error: err.message });
-    },
-  });
-
-  proxy(req, res, next);
+  forwardRequest(req, res, targetHost);
 });
 
 app.listen(PORT, () => {

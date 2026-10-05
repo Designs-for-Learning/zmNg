@@ -1252,6 +1252,14 @@ bypass CORS.
 3. Adds ``X-Target-Host: https://server.com`` header
 4. Proxy server forwards request and returns response
 
+The proxy is ``app/proxy-server.js`` (``npm run proxy``, or
+``npm run dev:all`` together with Vite). The forwarding itself is in
+``app/proxy-forward.js``, built on Node's ``http`` and ``https`` modules:
+it streams the response, passes redirects, cookies and compressed bodies
+through unchanged, and drops the upstream request when the browser
+disconnects, which ``nph-zms`` streams rely on. Its tests are in
+``app/__tests__/proxy-forward.test.js``.
+
 **Example:**
 
 .. code:: tsx
