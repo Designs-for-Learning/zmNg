@@ -181,6 +181,9 @@
     },
     "replace": {
       "minimatch": "^5.1.9"
+    },
+    "@wdio/mocha-framework": {
+      "mocha": "~11.3.0"
     }
   }
 }
