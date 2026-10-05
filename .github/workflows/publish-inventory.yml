@@ -18,6 +18,10 @@ on:
       - '**/package-lock.json'
       - '**/Gemfile.lock'
       - '**/Cargo.lock'
+      - '**/*.gradle'
+      - '**/*.gradle.kts'
+      - '**/libs.versions.toml'
+      - '**/Podfile.lock'
       - '.github/workflows/publish-inventory.yml'
 concurrency:
   group: publish-inventory

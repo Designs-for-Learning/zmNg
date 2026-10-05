@@ -4,7 +4,8 @@
 #   bandit     - Python static analysis (medium+ severity)
 #   npm audit  - known vulnerabilities in Node lockfiles (high+)
 #   osv-scanner - known vulnerabilities in Ruby (Gemfile.lock) and Rust
-#                (Cargo.lock) lockfiles, from the OSV.dev database
+#                (Cargo.lock) lockfiles and in the Maven coordinates a
+#                Gradle (Android) project declares, from the OSV.dev database
 #   gitleaks   - secret scan (git history, or working tree if no repo)
 # Also refreshes this project's dependency inventory in the sibling
 # dl-tech-digest repo so the daily digest routine can match CVEs
@@ -27,7 +28,91 @@ skip() { echo "== $1"; echo "-- SKIPPED ($2 not installed)"; echo; }
 
 PRUNE=( -not -path '*/node_modules/*' -not -path '*/venv/*' \
         -not -path '*/.venv/*' -not -path '*/__pycache__/*' \
-        -not -path '*/.claude/*' -not -path '*/target/*' )
+        -not -path '*/.claude/*' -not -path '*/target/*' -not -path '*/Pods/*' )
+
+# Declared Gradle dependencies for one project root (the directory holding
+# settings.gradle*), as "group:artifact version" lines: coordinates from
+# every *.gradle(.kts) file with $var references resolved from ext-style
+# assignments, and libs.x.y aliases resolved from gradle/libs.versions.toml.
+# Declared versions only: without a gradle.lockfile the resolved transitive
+# tree is unknown, and a "?" version is one a Compose BOM sets. Shared by
+# the inventory below and the osv-scanner step, which feeds the same lines
+# to the scanner as a synthetic lockfile.
+GRADLE_PY=$(cat <<'PY'
+import os, re, sys
+# Declared Gradle dependencies for one project root (the dir holding
+# settings.gradle*): Maven coordinates from every *.gradle(.kts) file,
+# with $var / ${var} resolved from ext-style assignments and libs.x.y
+# aliases resolved from gradle/libs.versions.toml. Declared versions
+# only — without a gradle.lockfile the resolved transitive tree is unknown.
+root = sys.argv[1]
+texts, files = {}, []
+for d, dirs, fs in os.walk(root):
+    dirs[:] = [x for x in dirs if x not in ('build', '.gradle', 'node_modules')]
+    for f in fs:
+        if f.endswith(('.gradle', '.gradle.kts')) or f == 'libs.versions.toml':
+            p = os.path.join(d, f); files.append(p)
+            texts[p] = re.sub(r'(?m)(^|\s)//.*$', r'\1', open(p, encoding='utf-8', errors='replace').read())
+norm = lambda k: re.sub(r'[-_]', '.', k)
+# version catalog
+versions, libs, plugins = {}, {}, {}
+for p, t in texts.items():
+    if not p.endswith('libs.versions.toml'): continue
+    table = None
+    for line in t.splitlines():
+        line = line.split('#')[0].strip()
+        m = re.match(r'^\[(\w+)\]', line)
+        if m: table = m[1]; continue
+        m = re.match(r'^([\w.-]+)\s*=\s*(.+)$', line)
+        if not m: continue
+        key, val = norm(m[1]), m[2]
+        if table == 'versions':
+            v = re.search(r'"([^"]+)"', val); versions[key] = v[1] if v else '?'
+        elif table in ('libraries', 'plugins'):
+            g = re.search(r'group\s*=\s*"([^"]+)"', val); n = re.search(r'name\s*=\s*"([^"]+)"', val)
+            mod = re.search(r'module\s*=\s*"([^"]+)"', val); pid = re.search(r'id\s*=\s*"([^"]+)"', val)
+            ref = re.search(r'version\.ref\s*=\s*"([^"]+)"', val); ver = re.search(r'version\s*=\s*"([^"]+)"', val)
+            s = re.match(r'^"([^":]+):([^":]+)(?::([^"]+))?"$', val)
+            coord = f"{g[1]}:{n[1]}" if g and n else mod[1] if mod else f"{s[1]}:{s[2]}" if s else pid[1] if pid else None
+            version = versions.get(norm(ref[1]), '?') if ref else ver[1] if ver else s[3] if s and s[3] else ''
+            if coord: (plugins if table == 'plugins' else libs)[key] = (coord, version)
+# ext-style version variables, for Groovy "$name" references
+vars_ = {}
+for p, t in texts.items():
+    if p.endswith('.toml'): continue
+    for m in re.finditer(r'''(?m)^\s*(?:val\s+|def\s+|ext\.)?(\w+)\s*=\s*['"]([^'"]+)['"]''', t):
+        vars_[m[1]] = m[2]
+def subst(v):
+    return re.sub(r'\$\{?(\w+)\}?', lambda m: vars_.get(m[1], m[0]), v)
+found = {}   # (coord, version) -> set of notes
+def add(coord, version, note=''):
+    found.setdefault((coord, version or '?'), set()).add(note or 'main')
+for p, t in texts.items():
+    if p.endswith('.toml'): continue
+    bom = None
+    for line in t.splitlines():
+        cfg = re.match(r'^\s*(\w+)\s*[\(\s]', line)
+        cfg = cfg[1] if cfg else ''
+        note = 'test' if re.search(r'(?i)test', cfg) else ''
+        for g, a, v in re.findall(r'''["']([A-Za-z0-9_.\-]+):([A-Za-z0-9_.\-]+):([^"'\s]+)["']''', line):
+            add(f"{g}:{a}", subst(v), note)
+        for alias in re.findall(r'\blibs\.((?!plugins\.|versions\.)[\w.]+)', line):
+            if norm(alias) in libs:
+                coord, version = libs[norm(alias)]
+                if 'platform(' in line: bom = f"{coord} {version}"
+                add(coord, version, note if version else f"version from BOM {bom}" if bom else 'version unresolved')
+        for alias in re.findall(r'\blibs\.plugins\.([\w.]+)', line):
+            if norm(alias) in plugins:
+                add(*plugins[norm(alias)], 'plugin')
+        for pid, v in re.findall(r'''id\s*\(?\s*["']([\w.]+)["']\s*\)?\s*version\s*\(?\s*["']([^"']+)["']''', line):
+            add(pid, v, 'plugin')
+for (coord, version), notes in sorted(found.items()):
+    if 'main' in notes:  # declared for the app itself, so a test-only declaration elsewhere does not matter
+        notes -= {'main', 'test'}
+    print(f"{coord} {version}" + (f"  # {', '.join(sorted(notes))}" if notes else ''))
+print("(declared versions only: no gradle.lockfile, so the resolved transitive tree is not inventoried)")
+PY
+)
 
 # Dependency inventory for the digest routine (see dl-tech-digest
 # docs/routine-prompt.md). Direct deps are listed as declared; transitive
@@ -190,6 +275,38 @@ print(); print('## Rust transitive:', sys.argv[1])
 show(versions.keys() - direct - local, True)
 PY
       done < <(find . -name 'Cargo.lock' "${PRUNE[@]}" | sort)
+      while IFS= read -r settings; do
+        echo; echo "## Gradle: $(dirname "$settings")"
+        python3 -c "$GRADLE_PY" "$(dirname "$settings")"
+      done < <(find . \( -name 'settings.gradle' -o -name 'settings.gradle.kts' \) "${PRUNE[@]}" | sort)
+      while IFS= read -r lock; do
+        echo; echo "## CocoaPods: $lock"
+        python3 - "$lock" <<'PY'
+import re, sys
+# PODS lists every pod at 2 spaces with its requirements at 4;
+# DEPENDENCIES lists what the Podfile asks for directly.
+pods, via, direct = {}, {}, set()
+section = parent = None
+for line in open(sys.argv[1]):
+    if not line.startswith(' '):
+        section = line.strip().rstrip(':'); continue
+    m = re.match(r'^( +)- "?([^" (]+)(?: \(([^)]*)\))?', line)
+    if not m: continue
+    if section == 'PODS':
+        if len(m[1]) == 2: pods[m[2]] = m[3] or '?'; parent = m[2]
+        elif len(m[1]) == 4 and parent: via.setdefault(m[2], set()).add(parent)
+    elif section == 'DEPENDENCIES' and len(m[1]) == 2:
+        direct.add(m[2])
+def show(names, chains):
+    for n in sorted(names):
+        parents = ', '.join(sorted(via.get(n, ())))
+        print(f"{n} {pods.get(n, '?')}" + (f'  # via {parents}' if chains and parents else ''))
+show(direct, False)
+print(); print('## CocoaPods transitive:', sys.argv[1])
+show(pods.keys() - direct, True)
+PY
+        echo "(CocoaPods has no advisory database; the digest matches these against NVD by name only)"
+      done < <(find . -name 'Podfile.lock' "${PRUNE[@]}" | sort)
     fi
   } > "../dl-tech-digest/inventory/$(basename "$(pwd)").md"
 fi
@@ -259,6 +376,26 @@ while IFS= read -r lock; do
     skip "osv-scanner: $lock" osv-scanner
   fi
 done < <(find . \( -name 'Gemfile.lock' -o -name 'Cargo.lock' \) "${PRUNE[@]}")
+
+# Gradle projects: the declared coordinates, written as a synthetic
+# gradle.lockfile so osv-scanner can look them up (plugins and
+# BOM-managed "?" versions excluded).
+while IFS= read -r settings; do
+  proj=$(dirname "$settings")
+  if have osv-scanner; then
+    lock=$(mktemp -d)/gradle.lockfile
+    python3 -c "$GRADLE_PY" "$proj" | python3 -c '
+import re, sys
+for l in sys.stdin:
+    m = re.match(r"^(\S+:\S+) (\S+)(?:  # (.*))?$", l.rstrip())
+    if m and m[2] != "?" and "plugin" not in (m[3] or ""): print(f"{m[1]}:{m[2]}=declared")
+print("empty=")' > "$lock"
+    run "osv-scanner (high+, declared versions): $proj" osv_scan "$lock"
+    rm -rf "$(dirname "$lock")"
+  else
+    skip "osv-scanner: $proj" osv-scanner
+  fi
+done < <(find . \( -name 'settings.gradle' -o -name 'settings.gradle.kts' \) "${PRUNE[@]}")
 
 # Secret scan
 if have gitleaks; then
