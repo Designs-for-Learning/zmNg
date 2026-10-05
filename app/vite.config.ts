@@ -1,6 +1,5 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import { viteStaticCopy } from 'vite-plugin-static-copy'
 import { visualizer } from 'rollup-plugin-visualizer'
 
 // https://vite.dev/config/
@@ -8,9 +7,6 @@ export default defineConfig({
   base: './',
   plugins: [
     react(),
-    viteStaticCopy({
-      targets: []
-    }),
     // Bundle size analyzer - generates stats.html in dist/
     visualizer({
       filename: './dist/stats.html',
