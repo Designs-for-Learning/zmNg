@@ -228,10 +228,33 @@ while IFS= read -r pkg; do
   fi
 done < <(find . -name 'package.json' "${PRUNE[@]}")
 
-# Ruby and Rust lockfiles (one binary covers both; exits 1 on any finding)
+# Ruby and Rust lockfiles. osv-scanner exits 1 on any advisory, including
+# RUSTSEC "unmaintained" notices and lows, so judge its JSON instead and
+# fail on high/critical only — the same bar as npm audit above.
+osv_scan() {
+  osv-scanner scan source -L "$1" --format json 2>/dev/null | python3 -c '
+import json, sys
+try:
+    results = json.load(sys.stdin)["results"]
+except (ValueError, KeyError):
+    sys.exit("osv-scanner produced no result")
+fail = 0
+for r in results:
+    for p in r.get("packages", []):
+        for v in p.get("vulnerabilities", []):
+            extra = [v.get("database_specific") or {}] + [a.get("database_specific") or {} for a in v.get("affected", [])]
+            if any(x.get("informational") for x in extra):
+                sev = "informational"
+            else:
+                sev = next((x["severity"].lower() for x in extra if x.get("severity")), "unknown")
+                fail += sev in ("high", "critical", "unknown")
+            name, ver, vid, summary = p["package"]["name"], p["package"]["version"], v["id"], v.get("summary", "")[:70]
+            print(f"{sev:13} {name} {ver}  {vid}  {summary}")
+sys.exit(1 if fail else 0)'
+}
 while IFS= read -r lock; do
   if have osv-scanner; then
-    run "osv-scanner: $lock" osv-scanner scan source -L "$lock"
+    run "osv-scanner (high+): $lock" osv_scan "$lock"
   else
     skip "osv-scanner: $lock" osv-scanner
   fi
