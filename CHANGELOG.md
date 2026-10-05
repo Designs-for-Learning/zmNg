@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+**Fixed:**
+
+- **Security (desktop app):** the desktop app now lets its page
+  open the **save dialog** only, not every dialog type. This works
+  around CVE-2026-95627 (High), which has no patched Tauri release
+  yet: a script injected into the app's page could show a folder
+  picker and, after one click, read and write everything under the
+  chosen folder until the app closed. Saving snapshots and videos
+  uses the save dialog and works as before.
+
 ## zmNg-1.1.11 (2026-10-03)
 
 **Fixed:**

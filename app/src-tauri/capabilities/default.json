@@ -36,6 +36,6 @@
         }
       ]
     },
-    "dialog:default"
+    "dialog:allow-save"
   ]
 }
