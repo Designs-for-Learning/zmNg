@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## zmNg-1.1.12 (2026-10-05)
+
 **Fixed:**
 
 - **Security (desktop app):** the desktop app now lets its page
