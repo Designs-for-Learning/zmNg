@@ -39,14 +39,14 @@ export function PTZControls({ onCommand, className, disabled, control }: PTZCont
   }
 
   return (
-    <div className={cn("flex flex-col items-center gap-4 p-4 bg-card/50 rounded-xl border shadow-sm backdrop-blur-sm", className)}>
+    <div className={cn("flex flex-col items-center gap-4 p-4 bg-card/50 rounded-xl border shadow-xs backdrop-blur-xs", className)}>
       {canMove && (
         <div className="grid grid-cols-3 gap-2">
           {/* Top Row */}
           <Button
             variant="outline"
             size="icon"
-            className={cn("rounded-full rotate-[-45deg]", !canMoveDiag && "invisible")}
+            className={cn("rounded-full -rotate-45", !canMoveDiag && "invisible")}
             onClick={() => onCommand(`${movePrefix}UpLeft`)}
             disabled={disabled}
             title={t('ptz.move_up_left')}
@@ -66,7 +66,7 @@ export function PTZControls({ onCommand, className, disabled, control }: PTZCont
           <Button
             variant="outline"
             size="icon"
-            className={cn("rounded-full rotate-[45deg]", !canMoveDiag && "invisible")}
+            className={cn("rounded-full rotate-45", !canMoveDiag && "invisible")}
             onClick={() => onCommand(`${movePrefix}UpRight`)}
             disabled={disabled}
             title={t('ptz.move_up_right')}
@@ -130,7 +130,7 @@ export function PTZControls({ onCommand, className, disabled, control }: PTZCont
           <Button
             variant="outline"
             size="icon"
-            className={cn("rounded-full rotate-[135deg]", !canMoveDiag && "invisible")}
+            className={cn("rounded-full rotate-135", !canMoveDiag && "invisible")}
             onClick={() => onCommand(`${movePrefix}DownRight`)}
             disabled={disabled}
             title={t('ptz.move_down_right')}

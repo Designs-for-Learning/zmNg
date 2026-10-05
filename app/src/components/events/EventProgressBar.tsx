@@ -138,7 +138,7 @@ export function EventProgressBar({
             title={t('events.alarm_frame', { frameId: alarm.frameId })}
             data-testid={`alarm-marker-${alarm.frameId}`}
           >
-            <div className="absolute top-1/2 left-1/2 h-5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-destructive/80 shadow-sm ring-1 ring-destructive/40 transition-colors group-hover:bg-destructive group-hover:ring-destructive" />
+            <div className="absolute top-1/2 left-1/2 h-5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-destructive/80 shadow-xs ring-1 ring-destructive/40 transition-colors group-hover:bg-destructive group-hover:ring-destructive" />
           </div>
         ))}
 

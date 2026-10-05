@@ -222,7 +222,7 @@ export default function MonitorDetail() {
     )}>
       {/* Header - Hidden in fullscreen */}
       {!isFullscreen && (
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-2 sm:p-3 border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-2 sm:p-3 border-b bg-card/50 backdrop-blur-xs sticky top-0 z-10">
         <div className="flex items-center gap-2 sm:gap-3">
           <Button
             variant="ghost"
@@ -314,7 +314,7 @@ export default function MonitorDetail() {
       {/* Fullscreen exit bar */}
       {isFullscreen && (
         <div
-          className="fixed top-0 left-0 right-0 z-50 bg-black/50 backdrop-blur-sm pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] pt-[env(safe-area-inset-top)]"
+          className="fixed top-0 left-0 right-0 z-50 bg-black/50 backdrop-blur-xs pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] pt-[env(safe-area-inset-top)]"
           data-testid="monitor-detail-fullscreen-toolbar"
         >
           <div className="h-8 flex items-center justify-between px-3">

@@ -82,7 +82,7 @@ export function LiveStreamingSection({
                 : t('settings.bandwidth_normal_desc')
             }
           />
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
             {settings.bandwidthMode === 'low' && (
               <Badge variant="secondary" className="text-xs bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
                 {t('settings.bandwidth_saving')}
@@ -115,7 +115,7 @@ export function LiveStreamingSection({
                 : t('settings.snapshot_mode_desc')
             }
           />
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
             {settings.viewMode === 'snapshot' && (
               <Badge variant="secondary" className="text-xs">
                 {t('settings.recommended')}
@@ -148,7 +148,7 @@ export function LiveStreamingSection({
                 : t('settings.go2rtc_disabled_note')
             }
           />
-          <div className="flex items-center gap-1.5 flex-shrink-0">
+          <div className="flex items-center gap-1.5 shrink-0">
             <Zap className="h-4 w-4 text-yellow-500" />
             <Switch
               id="go2rtc-mode"

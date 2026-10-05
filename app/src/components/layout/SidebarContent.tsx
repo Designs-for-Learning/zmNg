@@ -245,14 +245,14 @@ export function SidebarContent({ onMobileClose, isCollapsed }: SidebarContentPro
                   className={cn(
                     "flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium select-none touch-none",
                     isDragging
-                      ? "bg-primary/15 text-foreground shadow-md z-10 relative scale-[1.03]"
+                      ? "bg-primary/15 text-foreground shadow-md z-10 relative"
                       : "text-muted-foreground cursor-grab transition-all duration-200"
                   )}
                   style={isDragging ? { transform: `translateY(${dragOffsetY}px) scale(1.03)` } : undefined}
                   data-testid={`nav-reorder-${item.path.replace('/', '')}`}
                 >
-                  <GripVertical className="h-4 w-4 flex-shrink-0 text-muted-foreground/50" />
-                  <Icon className="h-4 w-4 flex-shrink-0" />
+                  <GripVertical className="h-4 w-4 shrink-0 text-muted-foreground/50" />
+                  <Icon className="h-4 w-4 shrink-0" />
                   <span className="truncate flex-1">{item.label}</span>
                 </div>
               );
@@ -281,7 +281,7 @@ export function SidebarContent({ onMobileClose, isCollapsed }: SidebarContentPro
                 title={isCollapsed ? item.label : undefined}
                 data-testid={`nav-item-${item.path.replace('/', '')}`}
               >
-                <Icon className={cn("h-4 w-4 transition-transform group-hover:scale-110 flex-shrink-0", isActive && "text-primary-foreground")} />
+                <Icon className={cn("h-4 w-4 transition-transform group-hover:scale-110 shrink-0", isActive && "text-primary-foreground")} />
                 {!isCollapsed && (
                   <>
                     <span className="truncate">{item.label}</span>
@@ -291,7 +291,7 @@ export function SidebarContent({ onMobileClose, isCollapsed }: SidebarContentPro
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-6 w-6 ml-auto flex-shrink-0"
+                          className="h-6 w-6 ml-auto shrink-0"
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
@@ -326,7 +326,7 @@ export function SidebarContent({ onMobileClose, isCollapsed }: SidebarContentPro
                         "bg-orange-500 animate-pulse";
                       return (
                         <div
-                          className={cn("h-2 w-2 rounded-full ml-2 flex-shrink-0", dotColor)}
+                          className={cn("h-2 w-2 rounded-full ml-2 shrink-0", dotColor)}
                           title={statusLabel}
                           role="status"
                           aria-live="polite"
@@ -343,7 +343,7 @@ export function SidebarContent({ onMobileClose, isCollapsed }: SidebarContentPro
           })}
         </nav>
 
-      <div className={cn("border-t bg-card/50 backdrop-blur-sm transition-all duration-300 mt-4", isCollapsed ? "p-2 space-y-3" : isMobileDrawer ? "px-2 py-2 space-y-1" : "px-3 py-2 space-y-1.5")}>
+      <div className={cn("border-t bg-card/50 backdrop-blur-xs transition-all duration-300 mt-4", isCollapsed ? "p-2 space-y-3" : isMobileDrawer ? "px-2 py-2 space-y-1" : "px-3 py-2 space-y-1.5")}>
         {!isCollapsed ? (
           <>
             <div className={isMobileDrawer ? "space-y-0.5" : "space-y-1"}>

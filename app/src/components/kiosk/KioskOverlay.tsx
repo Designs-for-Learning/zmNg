@@ -162,7 +162,7 @@ export function KioskOverlay({ onUnlock }: KioskOverlayProps) {
     <>
       {/* Transparent overlay blocking all interaction */}
       <div
-        className="fixed inset-0 z-[9999]"
+        className="fixed inset-0 z-9999"
         style={{ pointerEvents: 'auto' }}
         data-testid="kiosk-overlay"
       >

@@ -158,7 +158,7 @@ export function NotificationHandler() {
       toast(
         <div className="flex items-start gap-3">
           {latestEvent.ImageUrl ? (
-            <div className="flex-shrink-0">
+            <div className="shrink-0">
               <img
                 src={latestEvent.ImageUrl ? `${latestEvent.ImageUrl}&token=${useAuthStore.getState().accessToken}` : ''}
                 alt={latestEvent.MonitorName}
@@ -175,7 +175,7 @@ export function NotificationHandler() {
               </div>
             </div>
           ) : (
-            <div className="flex-shrink-0 mt-0.5">
+            <div className="shrink-0 mt-0.5">
               <Bell className="h-5 w-5 text-primary" />
             </div>
           )}
@@ -264,14 +264,14 @@ function ProfileSwitchDialog({
         </p>
         <div className="mt-4 flex justify-end gap-2">
           <button
-            className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
+            className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
             onClick={onCancel}
             data-testid="profile-switch-cancel"
           >
             {t('common.cancel')}
           </button>
           <button
-            className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
+            className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
             onClick={onConfirm}
             data-testid="profile-switch-confirm"
           >

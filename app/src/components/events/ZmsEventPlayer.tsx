@@ -286,7 +286,7 @@ export function ZmsEventPlayer({
       </Card>
 
       {/* Playback Controls */}
-      <Card className="p-4 space-y-4 bg-card/95 backdrop-blur">
+      <Card className="p-4 space-y-4 bg-card/95 backdrop-blur-sm">
         {/* Transport Controls */}
         <div className="flex items-center justify-center gap-2">
           {/* Jump to start */}
@@ -420,7 +420,7 @@ export function ZmsEventPlayer({
           <div className="flex gap-2 overflow-x-auto pb-2">
             {/* First alarm frame */}
             <div
-              className="flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+              className="shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
               onClick={jumpToAlarmFrame}
             >
               <img
@@ -430,7 +430,7 @@ export function ZmsEventPlayer({
                   apiUrl,
                 })}
                 alt={t('event_detail.first_alarm_frame')}
-                className="w-30 h-20 object-cover rounded border-2 border-destructive"
+                className="h-20 object-cover rounded border-2 border-destructive"
               />
               <p className="text-xs text-center mt-1 text-muted-foreground">
                 {t('event_detail.frame')} {alarmFrameId}
@@ -440,7 +440,7 @@ export function ZmsEventPlayer({
             {/* Max score frame if different from alarm frame */}
             {maxScoreFrameId && maxScoreFrameId !== alarmFrameId && (
               <div
-                className="flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+                className="shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
                 onClick={jumpToMaxScoreFrame}
               >
                 <img
@@ -450,7 +450,7 @@ export function ZmsEventPlayer({
                     apiUrl,
                   })}
                   alt={t('event_detail.max_score_frame')}
-                  className="w-30 h-20 object-cover rounded border-2 border-yellow-500"
+                  className="h-20 object-cover rounded border-2 border-yellow-500"
                 />
                 <p className="text-xs text-center mt-1 text-muted-foreground">
                   {t('event_detail.frame')} {maxScoreFrameId}

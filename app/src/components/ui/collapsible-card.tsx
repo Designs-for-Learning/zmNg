@@ -60,7 +60,7 @@ export function CollapsibleCard({
               <div className="flex-1">{header}</div>
               <ChevronDown
                 className={cn(
-                  "h-4 w-4 text-muted-foreground transition-transform duration-200 flex-shrink-0 ml-2",
+                  "h-4 w-4 text-muted-foreground transition-transform duration-200 shrink-0 ml-2",
                   open && "rotate-180"
                 )}
               />

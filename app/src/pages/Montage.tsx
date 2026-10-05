@@ -241,7 +241,7 @@ export default function Montage() {
         <>
           {/* Toolbar row - toggleable via eye button in app header */}
           {showToolbar && (
-            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap p-2 sm:p-3 border-b bg-card/50 backdrop-blur-sm shrink-0 z-10">
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap p-2 sm:p-3 border-b bg-card/50 backdrop-blur-xs shrink-0 z-10">
               <GroupFilterSelect />
               <GridLayoutControls
                 isMobile={isMobile}

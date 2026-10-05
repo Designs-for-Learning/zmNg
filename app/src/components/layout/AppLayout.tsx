@@ -145,7 +145,7 @@ export default function AppLayout() {
   }
 
   return (
-    <div className="flex h-[100dvh] bg-background overflow-hidden pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]">
+    <div className="flex h-dvh bg-background overflow-hidden pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]">
       {/* Desktop Sidebar */}
       {!settings.hideNavigation && <aside
         className="hidden md:flex flex-col border-r bg-card/50 backdrop-blur-xl z-20 transition-all duration-300 relative group pt-[env(safe-area-inset-top)]"
@@ -215,7 +215,7 @@ export default function AppLayout() {
       {/* Main Content */}
       <main className={`flex-1 overflow-y-auto overflow-x-hidden relative w-full pb-[env(safe-area-inset-bottom)] ${settings.hideNavigation ? 'pt-0' : 'pt-[calc(3rem+env(safe-area-inset-top))] md:pt-[env(safe-area-inset-top)]'}`}>
         {/* Background gradient blob for visual interest */}
-        <div className="absolute top-0 left-0 w-full h-96 bg-gradient-to-b from-primary/5 to-transparent -z-10 pointer-events-none" />
+        <div className="absolute top-0 left-0 w-full h-96 bg-linear-to-b from-primary/5 to-transparent -z-10 pointer-events-none" />
 
         <Outlet />
       </main>

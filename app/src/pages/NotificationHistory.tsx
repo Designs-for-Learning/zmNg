@@ -151,11 +151,11 @@ export default function NotificationHistory() {
                   <img
                     src={getImageSrc(event.ImageUrl)}
                     alt={`Event ${event.EventId}`}
-                    className="h-14 w-20 rounded border object-cover flex-shrink-0"
+                    className="h-14 w-20 rounded border object-cover shrink-0"
                     onError={(e) => { e.currentTarget.style.display = 'none'; }}
                   />
                 ) : (
-                  <div className="h-14 w-20 rounded border bg-muted/30 flex items-center justify-center flex-shrink-0">
+                  <div className="h-14 w-20 rounded border bg-muted/30 flex items-center justify-center shrink-0">
                     <Bell className="h-4 w-4 text-muted-foreground" />
                   </div>
                 )}

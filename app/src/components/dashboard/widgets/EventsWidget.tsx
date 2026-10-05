@@ -104,7 +104,7 @@ export const EventsWidget = memo(function EventsWidget({
     }
 
     return (
-        <div className="h-full overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        <div className="h-full overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] scrollbar-none">
             <div className="divide-y">
                 {events.map((event) => {
                     const tags = eventTagMap.get(event.Event.Id) || [];

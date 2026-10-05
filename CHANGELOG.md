@@ -2,6 +2,24 @@
 
 ## [Unreleased]
 
+**Changed:**
+
+- **Styling engine:** the app is now built with Tailwind CSS 4 in
+  place of version 3. Screens are meant to look and work as before.
+  Version 4 needs a recent browser engine: iOS 16.4, Android System
+  WebView or Chrome 111, Firefox 128. On older engines, tinted
+  backgrounds show as solid colors.
+
+**Fixed:**
+
+- **Security (build tooling):** braces, a pattern-matching library
+  used by build and test tools, is no longer installed. It has an
+  open advisory with no patched release (CVE-2026-93687, High): a
+  crafted pattern can crash the tool that reads it. Four things
+  pulled it in: Tailwind CSS 3, an unused build plugin, the proxy
+  library behind the development server and the device test runner's
+  file watcher. None of this code ships in the apps.
+
 ## zmNg-1.1.12 (2026-10-05)
 
 **Fixed:**

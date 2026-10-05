@@ -245,7 +245,7 @@ export function WidgetEditDialog({ open, onOpenChange, widget, profileId }: Widg
                                             >
                                                 <span>{t('events.filter.allTags')}</span>
                                                 {isAllTagsSelected && (
-                                                    <X className="h-3 w-3 flex-shrink-0 text-muted-foreground" />
+                                                    <X className="h-3 w-3 shrink-0 text-muted-foreground" />
                                                 )}
                                             </button>
                                             {/* Individual tags */}
@@ -269,7 +269,7 @@ export function WidgetEditDialog({ open, onOpenChange, widget, profileId }: Widg
                                                     >
                                                         <span className="truncate">{tag.Name}</span>
                                                         {isSelected && (
-                                                            <X className="h-3 w-3 flex-shrink-0 text-muted-foreground" />
+                                                            <X className="h-3 w-3 shrink-0 text-muted-foreground" />
                                                         )}
                                                     </button>
                                                 );

@@ -327,7 +327,7 @@ export default function ProfileForm() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background relative overflow-y-auto p-4">
       {/* Background Effects */}
-      <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:20px_20px]" />
+      <div className="absolute inset-0 bg-grid-white/[0.02] bg-size-[20px_20px]" />
       <div className="absolute -top-40 -right-40 w-96 h-96 bg-primary/20 rounded-full blur-3xl opacity-50 animate-pulse" />
       <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-secondary/20 rounded-full blur-3xl opacity-50" />
 
@@ -391,7 +391,7 @@ export default function ProfileForm() {
                 value={portalUrl}
                 onChange={(e) => setPortalUrl(e.target.value)}
                 disabled={testing}
-                className="h-10 !pl-10 bg-background/50 border-input/50 focus:border-primary/50 transition-colors"
+                className="h-10 pl-10! bg-background/50 border-input/50 focus:border-primary/50 transition-colors"
                 autoCapitalize="none"
                 autoCorrect="off"
                 data-testid="setup-portal-url"
@@ -413,7 +413,7 @@ export default function ProfileForm() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 disabled={testing}
-                className="h-10 !pl-10 bg-background/50 border-input/50 focus:border-primary/50 transition-colors"
+                className="h-10 pl-10! bg-background/50 border-input/50 focus:border-primary/50 transition-colors"
                 autoCapitalize="none"
                 autoCorrect="off"
                 data-testid="setup-username"

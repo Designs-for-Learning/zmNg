@@ -68,7 +68,7 @@ function EventCardComponent({ event, monitorName, thumbnailUrl, objectFit = 'con
 
   return (
     <Card
-      className="group overflow-hidden cursor-pointer hover:shadow-lg transition-all duration-200 hover:ring-2 hover:ring-primary/50 focus:outline-none focus:ring-2 focus:ring-primary"
+      className="group overflow-hidden cursor-pointer hover:shadow-lg transition-all duration-200 hover:ring-2 hover:ring-primary/50 focus:outline-hidden focus:ring-2 focus:ring-primary"
       onClick={() => navigate(`/events/${event.Id}`, { state: { from: '/events', eventFilters } })}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -83,7 +83,7 @@ function EventCardComponent({ event, monitorName, thumbnailUrl, objectFit = 'con
     >
       <div className="flex gap-2 sm:gap-3 p-2 sm:p-3">
         {/* Thumbnail - Fixed width container for consistent text alignment */}
-        <div className="relative flex-shrink-0 rounded overflow-hidden bg-black w-24 sm:w-28 md:w-32 max-w-[40%]">
+        <div className="relative shrink-0 rounded overflow-hidden bg-black w-24 sm:w-28 md:w-32 max-w-[40%]">
           <div
             className="w-full max-h-28"
             style={{ aspectRatio: aspectRatio.toString() }}
@@ -117,7 +117,7 @@ function EventCardComponent({ event, monitorName, thumbnailUrl, objectFit = 'con
                   onClick={handleFavoriteClick}
                   className={cn(
                     "p-1 rounded-full hover:bg-accent transition-colors",
-                    "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                    "focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2"
                   )}
                   aria-label={isFav ? t('events.unfavorite') : t('events.favorite')}
                   data-testid="event-favorite-button"

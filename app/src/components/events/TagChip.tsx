@@ -74,7 +74,7 @@ function TagChipComponent({
           type="button"
           onClick={handleRemove}
           className={cn(
-            'rounded-full hover:bg-black/10 transition-colors flex-shrink-0',
+            'rounded-full hover:bg-black/10 transition-colors shrink-0',
             size === 'sm' ? 'p-0.5' : 'p-0.5'
           )}
           aria-label={`Remove ${tag.Name}`}

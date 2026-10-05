@@ -118,7 +118,7 @@ export const HeatmapWidget = memo(function HeatmapWidget({ title }: HeatmapWidge
 
   return (
     <Card className="h-full flex flex-col overflow-hidden">
-      <CardHeader className="pb-3 flex-shrink-0">
+      <CardHeader className="pb-3 shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Activity className="h-5 w-5" />
@@ -128,14 +128,14 @@ export const HeatmapWidget = memo(function HeatmapWidget({ title }: HeatmapWidge
       </CardHeader>
       <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden">
         {/* Time range selector */}
-        <div className="flex flex-wrap gap-2 mb-4 flex-shrink-0">
+        <div className="flex flex-wrap gap-2 mb-4 shrink-0">
           {timeRangeButtons.map((btn) => (
             <Button
               key={btn.value}
               variant={timeRange === btn.value ? 'default' : 'outline'}
               size="sm"
               onClick={() => setTimeRange(btn.value)}
-              className="text-xs flex-shrink-0"
+              className="text-xs shrink-0"
             >
               {btn.label}
             </Button>

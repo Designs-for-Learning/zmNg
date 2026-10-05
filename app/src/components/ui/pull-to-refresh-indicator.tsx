@@ -39,9 +39,8 @@ export function PullToRefreshIndicator({
     >
       <div
         className={cn(
-          'bg-background/95 backdrop-blur-sm rounded-full p-3 shadow-lg',
-          'transition-transform duration-200',
-          isRefreshing && 'scale-110'
+          'bg-background/95 backdrop-blur-xs rounded-full p-3 shadow-lg',
+          'transition-transform duration-200'
         )}
         style={{
           transform: `translateY(${Math.min(pullDistance * 0.5, 60)}px)`,

@@ -280,7 +280,7 @@ export default function Events() {
   if (isLoading) {
     return (
       <div className="flex flex-col h-full p-6 md:p-8 gap-6">
-        <div className="flex justify-between flex-shrink-0">
+        <div className="flex justify-between shrink-0">
           <div className="h-8 w-32 bg-muted rounded animate-pulse" />
           <div className="h-8 w-24 bg-muted rounded animate-pulse" />
         </div>

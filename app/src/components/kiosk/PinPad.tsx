@@ -81,7 +81,7 @@ export function PinPad({ mode, onSubmit, onCancel, error, cooldownSeconds }: Pin
 
   return (
     <div
-      className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/70 backdrop-blur-sm"
+      className="fixed inset-0 z-10000 flex items-center justify-center bg-black/70 backdrop-blur-xs"
       data-testid="kiosk-pin-pad"
     >
       <div className="bg-card rounded-2xl p-6 w-[280px] shadow-2xl">

@@ -55,6 +55,48 @@ CSS via ``shadcn/ui`` pattern. - **Why**: Allows complete styling
 freedom (unlike Material UI) while ensuring full accessibility (keyboard
 nav, screen readers) which is hard to build from scratch.
 
+tailwindcss
+~~~~~~~~~~~
+
+Utility classes for all styling (Tailwind CSS 4). There is no
+``tailwind.config.js``; the configuration lives in CSS:
+
+- ``src/index.css`` imports Tailwind, maps the theme colors
+  (``bg-primary``, ``border-border`` and so on) to the ``hsl(var(--…))``
+  variables that the theme classes set, and loads the
+  ``tailwindcss-animate`` plugin.
+- ``src/styles/tailwind-v3-colors.css`` pins the Tailwind 3 palette, so
+  ``red-500`` and the rest look as they did before the upgrade. Delete
+  the file and its import to switch to the Tailwind 4 palette.
+- ``postcss.config.js`` runs ``@tailwindcss/postcss``.
+
+``index.css`` keeps three Tailwind 3 behaviours the app was built
+around:
+
+- ``hover:`` also applies on touch devices.
+- ``space-x-*`` and ``space-y-*`` put the gap before every child but the
+  first and win over that child's own margin classes.
+- Buttons show a pointer cursor, borders default to ``gray-200`` and
+  placeholders to ``gray-400``.
+
+**Gotchas:**
+
+- Tailwind 4 moves, scales and rotates with the separate ``translate``,
+  ``scale`` and ``rotate`` properties. An inline
+  ``style={{ transform }}`` or a ``transform`` animation no longer
+  replaces a ``translate-*`` or ``scale-*`` class on the same element;
+  the two add up.
+- Tailwind's rules sit in CSS cascade layers. Plain CSS outside a layer
+  (third-party stylesheets, the compact rules in ``index.css``) wins
+  over a utility class whatever the specificity.
+- Renamed utilities: ``shadow-sm`` is now ``shadow-xs``,
+  ``outline-none`` is ``outline-hidden``, ``flex-shrink-0`` is
+  ``shrink-0``, ``bg-gradient-to-*`` is ``bg-linear-to-*`` and
+  ``backdrop-blur-sm`` is ``backdrop-blur-xs``.
+- Tailwind 4 targets Safari and iOS 16.4, Chrome and Android WebView
+  111, and Firefox 128. Older engines lose translucent theme colors
+  (``bg-primary/10`` renders solid).
+
 Data and Logic
 --------------
 

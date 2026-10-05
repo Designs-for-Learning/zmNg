@@ -307,7 +307,7 @@ function App() {
             <Toaster />
             {isBootstrapping && (
               <div
-                className="fixed inset-0 z-[9998] flex items-center justify-center bg-background/60 backdrop-blur-sm pointer-events-auto touch-none"
+                className="fixed inset-0 z-9998 flex items-center justify-center bg-background/60 backdrop-blur-xs pointer-events-auto touch-none"
                 data-testid="app-init-blocker"
               >
                 <div className="w-[min(90vw,24rem)] rounded-lg border border-border bg-background/95 px-4 py-4 text-center shadow-lg">

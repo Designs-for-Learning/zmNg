@@ -44,7 +44,7 @@ export function MonitorControlsCard({
   const { t } = useTranslation();
 
   return (
-    <Card className="border-muted/60 shadow-sm" data-testid="monitor-controls-card">
+    <Card className="border-muted/60 shadow-xs" data-testid="monitor-controls-card">
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-semibold">{t('monitor_detail.controls_title')}</CardTitle>
       </CardHeader>

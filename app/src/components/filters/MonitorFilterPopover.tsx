@@ -57,7 +57,7 @@ export function MonitorFilterPopoverContent({
   return (
     <div className="grid gap-4">
       <div className="space-y-2">
-        <h4 className="text-sm sm:text-base font-medium leading-none">
+        <h4 className="text-sm sm:text-base font-medium leading-none sm:leading-6">
           {t('events.filters')}
         </h4>
         <p className="text-xs sm:text-sm text-muted-foreground">

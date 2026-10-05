@@ -204,7 +204,7 @@ export default function Server() {
               <div className="text-sm font-medium text-muted-foreground">
                 {t('server.timezone')}
               </div>
-              <div className="text-lg font-bold mt-1 break-words">{timezone || t('common.unknown')}</div>
+              <div className="text-lg font-bold mt-1 wrap-break-word">{timezone || t('common.unknown')}</div>
             </div>
           </div>
         </CardContent>
@@ -374,25 +374,25 @@ export default function Server() {
               </div>
               <div className="flex gap-2">
                 <Select value={selectedAction} onValueChange={setSelectedAction}>
-                  <SelectTrigger className="flex-1 [&>span]:!block [&>span]:!overflow-visible" data-testid="server-state-select">
+                  <SelectTrigger className="flex-1 [&>span]:block! [&>span]:overflow-visible!" data-testid="server-state-select">
                     <SelectValue placeholder={t('server.select_state_or_action')} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="start">
                       <div className="flex items-center gap-2 w-full">
-                        <Play className="h-4 w-4 flex-shrink-0" />
+                        <Play className="h-4 w-4 shrink-0" />
                         <span className="flex-1">{t('server.start')}</span>
                       </div>
                     </SelectItem>
                     <SelectItem value="stop">
                       <div className="flex items-center gap-2 w-full">
-                        <Square className="h-4 w-4 flex-shrink-0" />
+                        <Square className="h-4 w-4 shrink-0" />
                         <span className="flex-1">{t('server.stop')}</span>
                       </div>
                     </SelectItem>
                     <SelectItem value="restart">
                       <div className="flex items-center gap-2 w-full">
-                        <RotateCw className="h-4 w-4 flex-shrink-0" />
+                        <RotateCw className="h-4 w-4 shrink-0" />
                         <span className="flex-1">{t('server.restart')}</span>
                       </div>
                     </SelectItem>
