@@ -16,6 +16,8 @@ on:
     paths:
       - '**/requirements*.txt'
       - '**/package-lock.json'
+      - '**/Gemfile.lock'
+      - '**/Cargo.lock'
       - '.github/workflows/publish-inventory.yml'
 concurrency:
   group: publish-inventory

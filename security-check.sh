@@ -3,6 +3,8 @@
 #   pip-audit  - known vulnerabilities in Python requirements
 #   bandit     - Python static analysis (medium+ severity)
 #   npm audit  - known vulnerabilities in Node lockfiles (high+)
+#   osv-scanner - known vulnerabilities in Ruby (Gemfile.lock) and Rust
+#                (Cargo.lock) lockfiles, from the OSV.dev database
 #   gitleaks   - secret scan (git history, or working tree if no repo)
 # Also refreshes this project's dependency inventory in the sibling
 # dl-tech-digest repo so the daily digest routine can match CVEs
@@ -25,12 +27,12 @@ skip() { echo "== $1"; echo "-- SKIPPED ($2 not installed)"; echo; }
 
 PRUNE=( -not -path '*/node_modules/*' -not -path '*/venv/*' \
         -not -path '*/.venv/*' -not -path '*/__pycache__/*' \
-        -not -path '*/.claude/*' )
+        -not -path '*/.claude/*' -not -path '*/target/*' )
 
 # Dependency inventory for the digest routine (see dl-tech-digest
 # docs/routine-prompt.md). Direct deps are listed as declared; transitive
-# deps at the exact version a fresh install resolves to today (Node: the
-# lockfile; Python: a pip dry-run against the index), each tagged
+# deps at the exact version a fresh install resolves to today (Node, Ruby,
+# Rust: the lockfile; Python: a pip dry-run against the index), each tagged
 # "# via" with the packages that require it so a CVE hit traces back to
 # the direct dep to bump. Resolved versions drift as upstream publishes —
 # publish-inventory.yml refreshes weekly. No timestamp, so an unchanged
@@ -128,6 +130,66 @@ print(); print('## Node transitive:', sys.argv[1])
 show(versions.keys() - direct, chains=True)
 PY
       done < <(find . -name 'package-lock.json' "${PRUNE[@]}" | sort)
+      while IFS= read -r lock; do
+        echo; echo "## Ruby: $lock"
+        python3 - "$lock" <<'PY'
+import re, sys
+# GEM/GIT/PATH blocks list specs at 4 spaces with their requirements at
+# 6; DEPENDENCIES lists what the Gemfile asks for directly.
+specs, via, direct = {}, {}, set()
+section = parent = None
+for line in open(sys.argv[1]):
+    if not line.startswith(' '):
+        section = line.strip(); continue
+    if section in ('GEM', 'GIT', 'PATH'):
+        m = re.match(r'^( +)(\S+)(?: \(([^)]*)\))?', line)
+        if m and len(m[1]) == 4:
+            specs[m[2]] = m[3] or '?'; parent = m[2]
+        elif m and len(m[1]) == 6 and parent:
+            via.setdefault(m[2], set()).add(parent)
+    elif section == 'DEPENDENCIES':
+        m = re.match(r'^ +([^\s(!]+)', line)
+        if m: direct.add(m[1])
+def show(names, chains):
+    for n in sorted(names):
+        parents = ', '.join(sorted(via.get(n, ())))
+        print(f"{n} {specs.get(n, '?')}" + (f'  # via {parents}' if chains and parents else ''))
+show(direct, False)
+print(); print('## Ruby transitive:', sys.argv[1])
+show(specs.keys() - direct, True)
+PY
+      done < <(find . -name 'Gemfile.lock' "${PRUNE[@]}" | sort)
+      while IFS= read -r lock; do
+        echo; echo "## Rust: $lock"
+        python3 - "$lock" <<'PY'
+import sys
+# Crates without a source line are the workspace's own; their dependency
+# lists are the direct deps. Dependency entries read "name", "name 1.2.3"
+# or "name 1.2.3 (source)" when several versions coexist.
+pkgs, cur = [], None
+for line in open(sys.argv[1]):
+    line = line.rstrip('\n')
+    if line == '[[package]]': cur = {'deps': []}; pkgs.append(cur)
+    elif cur is None: continue
+    elif line.startswith('name = '): cur['name'] = line.split('"')[1]
+    elif line.startswith('version = '): cur['version'] = line.split('"')[1]
+    elif line.startswith('source = '): cur['source'] = True
+    elif line.startswith(' "'): cur['deps'].append(line.split('"')[1].split(' ')[0])
+local = {p['name'] for p in pkgs if 'source' not in p}
+versions, via = {}, {}
+for p in pkgs:
+    versions.setdefault(p['name'], set()).add(p.get('version', '?'))
+    for d in p['deps']: via.setdefault(d, set()).add(p['name'])
+direct = {d for p in pkgs if p['name'] in local for d in p['deps']}
+def show(names, chains):
+    for n in sorted(names):
+        parents = ', '.join(sorted(via.get(n, set()) - local))
+        print(f"{n} {', '.join(sorted(versions.get(n, {'?'})))}" + (f'  # via {parents}' if chains and parents else ''))
+show(direct, False)
+print(); print('## Rust transitive:', sys.argv[1])
+show(versions.keys() - direct - local, True)
+PY
+      done < <(find . -name 'Cargo.lock' "${PRUNE[@]}" | sort)
     fi
   } > "../dl-tech-digest/inventory/$(basename "$(pwd)").md"
 fi
@@ -165,6 +227,15 @@ while IFS= read -r pkg; do
     skip "npm audit: $dir" npm
   fi
 done < <(find . -name 'package.json' "${PRUNE[@]}")
+
+# Ruby and Rust lockfiles (one binary covers both; exits 1 on any finding)
+while IFS= read -r lock; do
+  if have osv-scanner; then
+    run "osv-scanner: $lock" osv-scanner scan source -L "$lock"
+  else
+    skip "osv-scanner: $lock" osv-scanner
+  fi
+done < <(find . \( -name 'Gemfile.lock' -o -name 'Cargo.lock' \) "${PRUNE[@]}")
 
 # Secret scan
 if have gitleaks; then

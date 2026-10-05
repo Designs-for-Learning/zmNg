@@ -1,6 +1,6 @@
 name: security-scan
 # Runs this repo's security-check.sh scanners (pip-audit, bandit,
-# npm audit, gitleaks) in CI so findings stay current without local
+# npm audit, osv-scanner, gitleaks) in CI so findings stay current without local
 # sweeps. Auto-detection lives in the script; inventory publishing
 # stays in publish-inventory.yml. Same copy in every project, except
 # the push branch matches each repo's default branch.
@@ -27,5 +27,8 @@ jobs:
           python -m pip install --quiet pip-audit bandit
           curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.24.3/gitleaks_8.24.3_linux_x64.tar.gz \
             | sudo tar -xz -C /usr/local/bin gitleaks
+          sudo curl -sSfL -o /usr/local/bin/osv-scanner \
+            https://github.com/google/osv-scanner/releases/download/v2.6.0/osv-scanner_linux_amd64 \
+            && sudo chmod +x /usr/local/bin/osv-scanner
       - name: Run scans
         run: bash security-check.sh
