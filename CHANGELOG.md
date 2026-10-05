@@ -11,6 +11,12 @@
   picker and, after one click, read and write everything under the
   chosen folder until the app closed. Saving snapshots and videos
   uses the save dialog and works as before.
+- **Security (release tooling):** five Ruby libraries behind the
+  script that generates the changelog at release time move to
+  patched releases: activesupport 8.1.2 to 8.1.4, addressable 2.8.8
+  to 2.9.0, concurrent-ruby 1.3.6 to 1.3.8, faraday 2.14.0 to
+  2.14.4 and json 2.18.0 to 2.21.2. This clears 12 advisories (4
+  High, 4 Moderate, 4 Low). None of this code ships in the apps.
 
 ## zmNg-1.1.11 (2026-10-03)
 
