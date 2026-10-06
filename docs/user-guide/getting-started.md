@@ -26,7 +26,7 @@ zmNinjaNG runs on Android, iOS, Windows, macOS, Linux, and the web from a single
 - **Web**: Any modern browser (Chrome, Firefox, Safari, Edge)
 - **Desktop**: Windows 10+, macOS 11+, or Linux (x86_64)
 - **Android**: Android 8.0+
-- **iOS**: iOS 15+ (you must build from source - see {doc}`../building/IOS`)
+- **iOS**: iOS 16.4+ (you must build from source - see {doc}`../building/IOS`)
 
 ## Quick Start
 

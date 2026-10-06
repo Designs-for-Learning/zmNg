@@ -9,6 +9,10 @@
   Version 4 needs a recent browser engine: iOS 16.4, Android System
   WebView or Chrome 111, Firefox 128. On older engines, tinted
   backgrounds show as solid colors.
+- **Minimum versions:** the iOS app now requires iOS 16.4 (was 16.0)
+  and the Android app Android 7.0 (was 6.0), the oldest versions the
+  new styling engine supports. Devices on older versions keep the
+  release they have.
 
 **Fixed:**
 
