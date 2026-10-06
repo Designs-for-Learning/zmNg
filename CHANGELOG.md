@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## zmNg-1.2.0 (2026-10-05)
+
 **Changed:**
 
 - **Styling engine:** the app is now built with Tailwind CSS 4 in
