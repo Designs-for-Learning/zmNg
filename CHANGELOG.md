@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## zmNg-1.2.1 (2026-10-09)
+
 **Fixed:**
 
 - **Security (build tooling):** three libraries used only when icons,
