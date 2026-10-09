@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+**Fixed:**
+
+- **Security (build tooling):** three libraries used only when icons,
+  splash screens and release notes are generated move to patched
+  releases: handlebars 4.7.9 to 4.7.10 (CVE-2026-106444, -106445 and
+  -106446, two of them Critical: a crafted template could run code),
+  sharp 0.35.4 to 0.35.5 (CVE-2026-96889, High, in the bundled SVG
+  library) and source-map-js 1.2.1 to 1.2.2 (CVE-2026-93749, High, a
+  crafted source map could hang the build). None of this code ships
+  in the apps.
+
 ## zmNg-1.2.0 (2026-10-05)
 
 **Changed:**
