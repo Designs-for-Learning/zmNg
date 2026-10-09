@@ -12,6 +12,11 @@
   library) and source-map-js 1.2.1 to 1.2.2 (CVE-2026-93749, High, a
   crafted source map could hang the build). None of this code ships
   in the apps.
+- **Security (build tooling):** Vite, the development server and
+  bundler, moves from 7.3.6 to 7.3.7 (GHSA-rq7h-c2jc-7f22 and
+  GHSA-9jrq-w75r-8gcw). While the development server runs, a page
+  could read files outside the project when their path matched a
+  system path. It does not affect the built apps.
 
 ## zmNg-1.2.0 (2026-10-05)
 
