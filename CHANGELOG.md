@@ -17,6 +17,13 @@
   GHSA-9jrq-w75r-8gcw). While the development server runs, a page
   could read files outside the project when their path matched a
   system path. It does not affect the built apps.
+- **Security (desktop app):** the Tauri HTTP plugin moves from 2.5.7
+  to 2.8.1 and the file system plugin from 2.5.2 to 2.6.0. The HTTP
+  plugin's URL matcher now uses a maintained library, which removes
+  five unmaintained text-handling crates and an old random number
+  crate with an open advisory (GHSA-cq8v-f236-94qc, Low) from the
+  desktop build. The HTTP plugin also frees each request's memory as
+  soon as it completes instead of when the window closes.
 
 ## zmNg-1.2.0 (2026-10-05)
 
