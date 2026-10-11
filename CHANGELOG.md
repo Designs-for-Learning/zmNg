@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## zmNg-1.2.2 (2026-10-11)
+
 **Changed:**
 
 - **Build, test and Pages workflows run on current GitHub Actions**:
