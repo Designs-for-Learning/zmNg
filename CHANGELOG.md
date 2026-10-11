@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+**Changed:**
+
+- **Build, test and Pages workflows run on current GitHub Actions**:
+  checkout, setup-node, setup-java, upload-artifact, the Pages actions,
+  Codecov and the release uploader move to their Node 24 releases, which
+  clears the "Node.js 20 is deprecated" warning on every CI run.
+
 ## zmNg-1.2.1 (2026-10-09)
 
 **Fixed:**
