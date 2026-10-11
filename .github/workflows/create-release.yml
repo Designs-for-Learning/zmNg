@@ -3,7 +3,7 @@ name: Create Release
 on:
   push:
     tags:
-      - 'zmNinjaNG-*'
+      - 'zmNg-*'
 
 permissions:
   contents: write
@@ -30,7 +30,7 @@ jobs:
         id: prev_tag
         run: |
           CURRENT_TAG="${{ github.ref_name }}"
-          PREV_TAG=$(git tag --sort=-version:refname | grep -A1 "^${CURRENT_TAG}$" | tail -1)
+          PREV_TAG=$(git tag -l "zmNg-*" --sort=-version:refname | grep -A1 "^${CURRENT_TAG}$" | tail -1)
           echo "previous_tag=${PREV_TAG}" >> $GITHUB_OUTPUT
           echo "Previous tag: ${PREV_TAG}"
 
@@ -60,9 +60,10 @@ jobs:
           CURRENT_TAG="${{ github.ref_name }}"
 
           # Check if release already exists
+          # Releases are normally created by hand with the CHANGELOG
+          # section as notes; never replace those with generated ones.
           if gh release view "$CURRENT_TAG" >/dev/null 2>&1; then
-            echo "Release $CURRENT_TAG already exists, updating notes"
-            gh release edit "$CURRENT_TAG" --notes-file /tmp/changelog.md
+            echo "Release $CURRENT_TAG already exists, keeping its notes"
           else
             echo "Creating release $CURRENT_TAG"
             gh release create "$CURRENT_TAG" \

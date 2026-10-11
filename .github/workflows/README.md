@@ -36,7 +36,7 @@ The easiest way to create a release is using the automated release script:
 This script will:
 1. Verify all changes are committed and pushed
 2. Read the version from `app/package.json`
-3. Create a git tag in the format `zmNinjaNG-{version}`
+3. Create a git tag in the format `zmNg-{version}`
 4. Push the tag to trigger all build workflows
 5. Create a GitHub Release with build artifacts
 
@@ -60,21 +60,21 @@ This script will:
 You can also manually push a tag to trigger builds:
 
 ```bash
-# Tag format must be: zmNinjaNG-{version}
-git tag zmNinjaNG-1.0.0
-git push origin zmNinjaNG-1.0.0
+# Tag format must be: zmNg-{version}
+git tag zmNg-1.0.0
+git push origin zmNg-1.0.0
 ```
 
 To move an existing tag to a new commit:
 
 ```bash
 # Delete old tag
-git tag -d zmNinjaNG-1.0.0
-git push origin --delete zmNinjaNG-1.0.0
+git tag -d zmNg-1.0.0
+git push origin --delete zmNg-1.0.0
 
 # Create new tag and push
-git tag zmNinjaNG-1.0.0
-git push origin zmNinjaNG-1.0.0 --force
+git tag zmNg-1.0.0
+git push origin zmNg-1.0.0 --force
 ```
 
 This will:

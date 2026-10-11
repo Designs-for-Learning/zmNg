@@ -9,6 +9,15 @@
   Codecov and the release uploader move to their Node 24 releases, which
   clears the "Node.js 20 is deprecated" warning on every CI run.
 
+**Fixed:**
+
+- **Release builds fire again on tag push**: the build workflows still
+  listened for upstream's `zmNinjaNG-*` tags, so no release since the
+  fork moved to `zmNg-*` naming got platform installers attached (the
+  last CI build ran 2025-12-31). They now trigger on `zmNg-*`, and the
+  release-notes workflow leaves a hand-written release body alone
+  instead of overwriting it with generated notes.
+
 ## zmNg-1.2.1 (2026-10-09)
 
 **Fixed:**
