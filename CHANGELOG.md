@@ -11,6 +11,14 @@
 
 **Fixed:**
 
+- **Security (documentation build):** the documentation requirements
+  now set minimum versions for the packages Sphinx pulls in (urllib3,
+  requests, certifi, idna, jinja2, pygments, babel and markdown-it-py).
+  The old file only named Sphinx and its plugins, so an environment
+  that was never upgraded could still satisfy it with releases carrying
+  published advisories, from CVE-2018-20060 (Critical) to
+  CVE-2026-97689 (High). A fresh install already resolved past all of
+  them. Building the documentation now needs Python 3.10 or newer.
 - **Release builds fire again on tag push**: the build workflows still
   listened for upstream's `zmNinjaNG-*` tags, so no release since the
   fork moved to `zmNg-*` naming got platform installers attached (the
