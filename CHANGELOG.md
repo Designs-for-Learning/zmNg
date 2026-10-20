@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+**Fixed:**
+
+- **Security (desktop app):** rustls, the TLS library inside the
+  desktop app's HTTP client, moves from 0.23.45 to 0.23.46
+  (GHSA-w44r-93j7-qv28, GHSA-h2v8-394m-p7vv, GHSA-vp88-798v-h67f and
+  GHSA-c8m5-c952-6cm4). The one that reaches zmNg: an attacker on the
+  network who answers one connection attempt could make later
+  connections to that server fall back to a classical key exchange.
+  The other three need features the app does not enable (certificate
+  compression, Encrypted Client Hello, session debug logging).
+
 ## zmNg-1.2.2 (2026-10-11)
 
 **Changed:**
