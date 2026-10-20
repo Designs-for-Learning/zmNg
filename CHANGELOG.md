@@ -21,6 +21,16 @@
   configured, so this is a precaution rather than a fix for an
   exposure.
 
+- **Security (test tooling):** two libraries used only by the
+  WebdriverIO device test runner move to patched releases. undici
+  goes from 6.28.1 to 6.29.1 and 7.30.0 to 7.30.1 (CVE-2026-87018,
+  CVE-2026-109869, CVE-2026-109383 and CVE-2026-109829, all High: a
+  hostile HTTPS endpoint could crash a test run). modern-tar goes
+  from 0.7.7 and 0.8.5 to 0.8.6 (CVE-2026-109380, High: a crafted
+  browser-driver archive could exhaust memory); reaching it needs
+  geckodriver 7.0.0, now pinned through an override. None of this
+  code ships in the apps.
+
 ## zmNg-1.2.2 (2026-10-11)
 
 **Changed:**
