@@ -13,6 +13,14 @@
   The other three need features the app does not enable (certificate
   compression, Encrypted Client Hello, session debug logging).
 
+- **Security (app):** zod, the library that checks the shape of
+  ZoneMinder API responses, moves from 4.1.13 to 4.6.7
+  (CVE-2023-54404, High). Schemas with an array size limit now reject
+  an oversized response before parsing its elements. zmNg's schemas
+  set no such limits and only parse replies from the server you
+  configured, so this is a precaution rather than a fix for an
+  exposure.
+
 ## zmNg-1.2.2 (2026-10-11)
 
 **Changed:**

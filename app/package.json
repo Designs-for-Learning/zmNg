@@ -115,7 +115,7 @@
     "vis-data": "^8.0.3",
     "vis-timeline": "^8.4.0",
     "ws": "^8.18.3",
-    "zod": "^4.1.13",
+    "zod": "^4.6.7",
     "zustand": "^5.0.8"
   },
   "devDependencies": {
