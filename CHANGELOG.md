@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## zmNg-1.2.4 (2026-10-19)
+
 **Fixed:**
 
 - **Security (app):** axios, an HTTP library the app no longer used,
