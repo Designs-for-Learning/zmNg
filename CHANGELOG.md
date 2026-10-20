@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## zmNg-1.2.3 (2026-10-19)
+
 **Fixed:**
 
 - **Security (desktop app):** rustls, the TLS library inside the
