@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+**Fixed:**
+
+- **Security (app):** axios, an HTTP library the app no longer used,
+  is removed together with the twelve packages only it pulled in.
+  Among them was follow-redirects 1.16.0 (CVE-2026-111755, High: a
+  declared sensitive header whose name contains ^ or | could be
+  forwarded to a cross-origin redirect target). The shipped apps use
+  the browser's own HTTP stack, so follow-redirects never ran in
+  them; it was only in the dependency tree.
+
 ## zmNg-1.2.3 (2026-10-19)
 
 **Fixed:**
