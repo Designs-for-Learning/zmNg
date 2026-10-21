@@ -14,6 +14,16 @@
   are not affected. Only the Sphinx build uses this file; the apps do
   not ship certifi.
 
+- **Security (desktop app):** the TLS stack inside the desktop app's
+  HTTP client moves to rustls-webpki 0.103.16 (from 0.103.15) and
+  webpki-roots 1.0.10 (from 1.0.6), the Rust side of the same emSign
+  event (RUSTSEC-2026-0382 and RUSTSEC-2026-0381). webpki-roots no
+  longer bundles the emSign ECC Root CA - G3, and rustls-webpki
+  rejects any certificate path through the distrusted eMudhra
+  intermediates even when a trust store still allows the root.
+  RUSTSEC-2026-0383 covers webpki-root-certs, which the app does not
+  use.
+
 ## zmNg-1.2.4 (2026-10-19)
 
 **Fixed:**
