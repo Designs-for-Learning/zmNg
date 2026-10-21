@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## zmNg-1.2.5 (2026-10-21)
+
 **Fixed:**
 
 - **Security (documentation build):** the certifi floor in the
