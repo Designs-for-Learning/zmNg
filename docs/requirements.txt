@@ -9,7 +9,7 @@ sphinx-copybutton>=0.5
 # lowest release that clears every advisory for that package. Needs
 # Python 3.10 or newer.
 babel>=2.9.1
-certifi>=2024.7.4
+certifi>=2026.10.19  # GHSA-6q48-6c7w-9gw2: drops the emSign root whose intermediate CA keys were compromised, keeps the sound emSign roots; floor only, never cap
 idna>=3.15
 jinja2>=3.1.6
 markdown-it-py>=2.2.0

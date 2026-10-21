@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+**Fixed:**
+
+- **Security (documentation build):** the certifi floor in the
+  documentation requirements moves from 2024.7.4 to 2026.10.19
+  (GHSA-6q48-6c7w-9gw2, Critical). Older certifi bundles trust the
+  emSign ECC Root CA - G3, and eight eMudhra intermediate certificates
+  under it have compromised private keys, so an attacker on the
+  network path could present a valid-looking certificate for any
+  hostname. 2026.10.19 drops that root and keeps the emSign roots that
+  are not affected. Only the Sphinx build uses this file; the apps do
+  not ship certifi.
+
 ## zmNg-1.2.4 (2026-10-19)
 
 **Fixed:**
