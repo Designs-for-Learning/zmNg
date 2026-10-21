@@ -24,6 +24,17 @@
   RUSTSEC-2026-0383 covers webpki-root-certs, which the app does not
   use.
 
+- **Security (test tooling):** vitest, the unit test runner, moves
+  from 4.1.11 to 4.1.12 together with its coverage plugin
+  (CVE-2026-112950 and CVE-2026-112949, both Medium). Both sit in the
+  module mocker's dev-server handler: on Windows a backslash in a
+  redirect mock's URL could escape the project root and read a file
+  beside it, and a manual mock registration could inject JavaScript
+  into the module served to the developer's browser. Both need a
+  Vitest server that a hostile client can reach; the test script runs
+  `vitest run`, which listens on no port, and none of this ships in
+  the apps.
+
 ## zmNg-1.2.4 (2026-10-19)
 
 **Fixed:**
