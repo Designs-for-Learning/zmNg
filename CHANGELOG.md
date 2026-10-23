@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+**Fixed:**
+
+- **Security (development proxy):** body-parser moves to 2.4.0
+  (CVE-2026-111181, High). The proxy developers run beside the dev
+  server could be crashed by one malformed compressed request.
+  Developer machines only; the packaged app never included it.
+
 ## zmNg-1.2.5 (2026-10-21)
 
 **Fixed:**
