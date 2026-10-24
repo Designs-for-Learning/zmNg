@@ -9,6 +9,13 @@
   server could be crashed by one malformed compressed request.
   Developer machines only; the packaged app never included it.
 
+- **Security (test tooling):** serialize-javascript, used by the
+  Mocha runner behind the device end-to-end tests, moves from 7.1.0
+  to 7.1.4 (CVE-2026-115897, Low). Older releases could leave a
+  `</script` unescaped at the end of a serialized function, letting
+  crafted function source inject markup into a page. Developer
+  machines only; the packaged app never included it.
+
 ## zmNg-1.2.5 (2026-10-21)
 
 **Fixed:**
