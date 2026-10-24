@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## zmNg-1.2.6 (2026-10-24)
+
 **Fixed:**
 
 - **Security (development proxy):** body-parser moves to 2.4.0
