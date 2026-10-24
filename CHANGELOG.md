@@ -16,6 +16,14 @@
   crafted function source inject markup into a page. Developer
   machines only; the packaged app never included it.
 
+- **Security (desktop app):** tokio, the async runtime Tauri uses
+  inside the desktop app, moves from 1.50.0 to 1.54.1
+  (RUSTSEC-2026-0386, informational). Its `AsyncFd` constructors let
+  safe code register a file descriptor it did not own, which could
+  lead to a use-after-free if that descriptor was closed and reused.
+  The app does not call `AsyncFd` itself; this keeps the bundled
+  runtime on a patched release.
+
 ## zmNg-1.2.5 (2026-10-21)
 
 **Fixed:**
