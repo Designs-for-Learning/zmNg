@@ -11,6 +11,15 @@
   crafted URL could run commands as the developer. Developer machines
   only; the packaged app never included it.
 
+- **Security (build and test tooling):** glob, the file matcher used
+  by the Capacitor command line's cleanup step, the Mocha runner and
+  WebdriverIO's test discovery, moves from 9.3.5 / 10.5.0 / 13.0.0 to
+  14.0.3 (CVE-2026-118773, Medium). Older releases kept walking
+  directories after a cancellation signal fired, so a caller relying
+  on a timeout to bound a search could be kept busy longer than
+  intended. Developer machines only; the packaged app never included
+  it.
+
 ## zmNg-1.2.6 (2026-10-24)
 
 **Fixed:**

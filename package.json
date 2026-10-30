@@ -42,6 +42,7 @@
     "@wdio/cli": "^9.26.1"
   },
   "overrides": {
+    "glob": "^14.0.2",
     "@wdio/utils": {
       "@puppeteer/browsers": "^3.2.2",
       "geckodriver": "^7.0.0"
