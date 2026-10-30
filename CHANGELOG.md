@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+**Fixed:**
+
+- **Security (build tooling):** open, the helper the Capacitor command
+  line and the bundle-size report use to launch a browser or IDE,
+  moves from 8.4.2 to 11.0.4 (CVE-2026-119025, High). On Windows and
+  WSL, older releases passed URLs to PowerShell without escaping, so a
+  crafted URL could run commands as the developer. Developer machines
+  only; the packaged app never included it.
+
 ## zmNg-1.2.6 (2026-10-24)
 
 **Fixed:**
