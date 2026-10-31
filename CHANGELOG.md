@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## zmNg-1.2.7 (2026-10-31)
+
 **Fixed:**
 
 - **Security (build tooling):** open, the helper the Capacitor command
