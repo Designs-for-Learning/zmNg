@@ -2,6 +2,25 @@
 
 ## [Unreleased]
 
+## zmNg-1.2.8 (2026-11-08)
+
+**Fixed:**
+
+- **Security (test tooling):** undici, the HTTP client WebdriverIO's
+  page parser uses in the device end-to-end tests, moves from 7.30.1
+  to 7.30.2 (CVE-2026-116592, High). Older releases could store a
+  response from an untrusted redirect hop under the trusted site's
+  cache entry when redirect following and a shared cache were both
+  enabled. Developer machines only; the packaged app never included
+  it.
+
+- **Security (build tooling):** plist, the property-list reader the
+  Capacitor command line and iOS project tools use to read the app's
+  own Info.plist, moves from 3.1.0 to 5.1.0 (CVE-2026-124078, High).
+  Older releases could be sent into endless recursion by a tiny
+  crafted binary plist, crashing the build tool. Developer machines
+  only; the packaged app never included it.
+
 ## zmNg-1.2.7 (2026-10-31)
 
 **Fixed:**
