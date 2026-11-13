@@ -185,6 +185,9 @@
     "replace": {
       "minimatch": "^5.1.9"
     },
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": "^11.0.1"
+    },
     "@wdio/mocha-framework": {
       "mocha": "~11.3.0"
     }
