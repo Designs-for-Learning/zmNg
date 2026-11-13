@@ -2,6 +2,25 @@
 
 ## [Unreleased]
 
+**Fixed:**
+
+- **Security (release tooling):** Active Support, a library the
+  changelog generator loads when a release is cut, moves from 8.1.4
+  to 8.1.4.1 (CVE-2026-126080, High). Older releases could be stalled
+  by a crafted name passed to one of its lookup helpers. Release
+  machines only; the packaged app never included it.
+
+- **Security (release tooling):** Addressable, the URL parser under
+  the same changelog generator, moves from 2.9.0 to 2.9.2
+  (CVE-2026-126354 and related, Medium). Release machines only; the
+  packaged app never included it.
+
+- **Security (lint tooling):** minimatch, the glob matcher the
+  TypeScript lint parser uses, moves from 9.0.9 to 11.0.8
+  (CVE-2026-118764, Medium). Older releases could be made to use
+  excessive CPU and memory by a crafted glob pattern. Developer
+  machines only; the packaged app never included it.
+
 ## zmNg-1.2.8 (2026-11-08)
 
 **Fixed:**
