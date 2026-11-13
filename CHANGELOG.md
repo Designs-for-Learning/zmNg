@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## zmNg-1.2.9 (2026-11-13)
+
 **Fixed:**
 
 - **Security (release tooling):** Active Support, a library the
