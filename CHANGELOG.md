@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## zmNg-1.2.10 (2026-11-16)
+
 **Fixed:**
 
 - **Security (desktop app dependencies):** quinn-udp, a network
