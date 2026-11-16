@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+**Fixed:**
+
+- **Security (desktop app dependencies):** quinn-udp, a network
+  library listed under the desktop app's HTTP client, moves from
+  0.5.14 to 0.5.16 (RUSTSEC-2026-0538). Older releases could get stuck
+  using CPU after receiving a truncated network packet. The desktop app
+  does not turn on the feature that uses this library, so released
+  builds were not exposed; the update keeps security scans clean.
+
 ## zmNg-1.2.9 (2026-11-13)
 
 **Fixed:**
