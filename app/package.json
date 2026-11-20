@@ -169,6 +169,9 @@
     "open": "^11.0.0",
     "glob": "^14.0.2",
     "plist": "^5.0.1",
+    "parse5": "^8.1.1",
+    "parse5-htmlparser2-tree-adapter": "^8.0.2",
+    "parse5-parser-stream": "^8.1.1",
     "@capacitor/cli": {
       "tar": "^7.5.22"
     },
