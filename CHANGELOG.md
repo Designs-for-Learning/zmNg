@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## zmNg-1.2.11 (2026-11-20)
+
 **Fixed:**
 
 - **Security (test tooling):** parse5, the HTML parser under the unit
