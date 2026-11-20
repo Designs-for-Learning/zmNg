@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+**Fixed:**
+
+- **Security (test tooling):** parse5, the HTML parser under the unit
+  test browser environment and the device test runner, moves from
+  7.3.0 and 8.0.0 to 8.1.1 (CVE-2026-133245, High). Older releases
+  could be crashed by two specific characters in a page. Developer
+  machines only; the packaged app never included it.
+
 ## zmNg-1.2.10 (2026-11-16)
 
 **Fixed:**
