@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## zmNg-1.2.12 (2026-11-21)
+
 **Fixed:**
 
 - **Security (Android app):** Guava, a utility library bundled into
