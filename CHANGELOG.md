@@ -2,6 +2,22 @@
 
 ## [Unreleased]
 
+**Fixed:**
+
+- **Security (Android app):** Guava, a utility library bundled into
+  the Android app by its video player, moves from 33.3.1 to 33.7.2
+  (CVE-2026-102554, High). Older releases could be made to use
+  gigabytes of memory when reading a crafted Java data stream. The
+  app does not read such streams, so released builds were not
+  exposed; the update keeps security scans clean.
+- **Security (build tooling):** the Gradle build tool used to compile
+  the Android app moves from 8.11.1 to 8.14.8, fixing seven Gradle
+  advisories (GHSA-3cfg-jpcr-gfp3, GHSA-gqrr-4j89-5267,
+  GHSA-pcp8-98xm-c6pr, GHSA-35pj-rg5r-8rpv, GHSA-7f7r-77ff-fr6f,
+  GHSA-4mf6-7pm2-6wm8, GHSA-99wf-vhq9-wm2x). They concern build
+  machines, such as other local users interfering with a running
+  build. Nothing in the installed app changes.
+
 ## zmNg-1.2.11 (2026-11-20)
 
 **Fixed:**
