@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## zmNg-1.2.13 (2026-11-22)
+
 **Fixed:**
 
 - **Security (desktop app):** url, the web address parser the desktop
