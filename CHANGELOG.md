@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+**Fixed:**
+
+- **Security (desktop app):** url, the web address parser the desktop
+  app uses for its windows and server connections, moves from 2.5.8
+  to 2.5.9 (RUSTSEC-2026-0592). Older releases could crash when asked
+  for the origin of a crafted address made of thousands of nested
+  `blob:` prefixes. Android, iOS and the web version are not affected.
+
 ## zmNg-1.2.12 (2026-11-21)
 
 **Fixed:**
