@@ -2,6 +2,23 @@
 
 ## [Unreleased]
 
+**Fixed:**
+
+- **Security (WebSocket libraries):** websocket-driver moves from
+  0.7.5 to 0.8.0 and websocket-extensions from 0.1.4 to 0.2.0
+  (CVE-2026-134813, High). Older releases unpacked a compressed
+  WebSocket message in full before checking its size, so a crafted
+  message could use large amounts of memory. They come in with the
+  Firebase SDK's Node.js database client, which the Android, iOS,
+  desktop and web apps do not load, so released builds were not
+  exposed; the update keeps security scans clean.
+- **Security (desktop app):** cookie, the cookie library the desktop
+  app uses for server connections, moves from 0.18.1 to 0.18.3
+  (RUSTSEC-2026-0594). Older releases could reuse the random value
+  that protects encrypted cookies in processes that fork. The app
+  does not use encrypted cookies, so it was not exposed; the update
+  keeps security scans clean.
+
 ## zmNg-1.2.13 (2026-11-22)
 
 **Fixed:**
