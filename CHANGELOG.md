@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## zmNg-1.2.15 (2026-11-23)
+
 **Fixed:**
 
 - **Desktop app (Tauri update):** the framework behind the Windows,
