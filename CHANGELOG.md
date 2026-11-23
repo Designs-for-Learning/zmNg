@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+**Fixed:**
+
+- **Desktop app (Tauri update):** the framework behind the Windows,
+  macOS and Linux app moves from Tauri 2.12.2 to 2.12.7, with its
+  file, HTTP, dialog and log plugins updated to match. Connections to
+  a server no longer fail when it sends a response header containing
+  non-English characters, such as a download file name. Saving a
+  download now also checks folder shortcuts (symbolic links) before
+  writing, so a file can no longer land outside the folders the app
+  is allowed to use. On Windows, the MSI installer no longer brings
+  back a desktop shortcut you deleted each time the app updates.
+
 ## zmNg-1.2.14 (2026-11-23)
 
 **Fixed:**
