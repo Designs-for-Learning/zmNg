@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## zmNg-1.2.14 (2026-11-23)
+
 **Fixed:**
 
 - **Security (WebSocket libraries):** websocket-driver moves from
